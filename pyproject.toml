@@ -1,0 +1,27 @@
+[project]
+name = "knack-slueth"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pydantic>=2.12.3",
+    "pydantic-settings>=2.11.0",
+    "typer>=0.20.0",
+]
+
+
+[build-system]
+requires = ["uv_build>=0.9.5,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "bump-my-version>=1.2.4",
+]
+
+
+[tool.bumpversion]
+current_version = "0.1.0"
+commit = true
+tag = true
