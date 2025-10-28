@@ -252,7 +252,8 @@ def search_object(
 
     # Builder Pages to Review
     settings = Settings()
-    app_slug = app_export.application.slug
+    # Use account slug for builder URLs (not application slug)
+    account_slug = app_export.application.account.get('slug', app_export.application.slug)
     
     # Collect unique scenes from all usages
     scenes_to_review = set()
@@ -276,12 +277,12 @@ def search_object(
         if settings.knack_next_gen_builder:
             # Next-Gen builder
             for scene_key in sorted(scenes_to_review):
-                url = f"{KNACK_NG_BUILDER_BASE_URL}/{app_slug}/portal/pages/{scene_key}"
+                url = f"{KNACK_NG_BUILDER_BASE_URL}/{account_slug}/portal/pages/{scene_key}"
                 console.print(f"  [link={url}]{url}[/link]")
         else:
             # Classic builder
             for scene_key in sorted(scenes_to_review):
-                url = f"{KNACK_BUILDER_BASE_URL}/apps/{app_slug}/pages/{scene_key}"
+                url = f"{KNACK_BUILDER_BASE_URL}/{account_slug}/portal/pages/{scene_key}"
                 console.print(f"  [link={url}]{url}[/link]")
         
         console.print()

@@ -117,13 +117,14 @@ The search results include clickable links to the Knack builder pages where the 
 # Classic builder URLs (default)
 export KNACK_NEXT_GEN_BUILDER=false
 uv run knack-sleuth search-object object_12
-# → https://builder.knack.com/apps/your-app/pages/scene_7
+# → https://builder.knack.com/your-account/portal/pages/scene_7
 
 # Next-Gen builder URLs
 export KNACK_NEXT_GEN_BUILDER=true
 uv run knack-sleuth search-object object_12
-# → https://builder-next.knack.com/your-app/portal/pages/scene_7
+# → https://builder-next.knack.com/your-account/portal/pages/scene_7
 ```
+
 
 ### Options
 

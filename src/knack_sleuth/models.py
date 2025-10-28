@@ -234,6 +234,7 @@ class Application(BaseModel):
     description: str = ""
     id: str
     home_scene: HomeScene
+    account: dict[str, Any] = PydanticField(default_factory=dict)  # Account info including builder slug
     objects: list[KnackObject] = PydanticField(default_factory=list)
     scenes: list[Scene] = PydanticField(default_factory=list)
     counts: dict[str, int] = PydanticField(default_factory=dict)  # Record counts per object
