@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Example of using KnackSlueth to search for object and field usages."""
+"""Example of using KnackSleuth to search for object and field usages."""
 
 import json
 from pathlib import Path
 
-from knack_slueth import KnackAppExport
-from knack_slueth.slueth import KnackSlueth
+from knack_sleuth import KnackAppExport
+from knack_sleuth.sleuth import KnackSleuth
 
 
 def print_separator(title: str = ""):
@@ -26,18 +26,18 @@ def main():
 
     # Create the search engine
     app_export = KnackAppExport(**data)
-    slueth = KnackSlueth(app_export)
+    sleuth = KnackSleuth(app_export)
 
-    print_separator("KNACK SLUETH - USAGE SEARCH DEMO")
+    print_separator("KNACK SLeutH - USAGE SEARCH DEMO")
 
     # Example 1: Search for an object (with cascading to fields)
     object_key = "object_12"  # College/School object
-    obj = slueth.get_object_info(object_key)
+    obj = sleuth.get_object_info(object_key)
 
     print(f"Searching for object: {obj.name} ({object_key})")
     print(f"  Fields in this object: {len(obj.fields)}")
 
-    results = slueth.search_object(object_key)
+    results = sleuth.search_object(object_key)
 
     # Show object-level usages
     print_separator(f"Object-level usages for {obj.name}")
@@ -61,7 +61,7 @@ def main():
 
     for field_key, usages in list(results.items())[1:4]:  # Show first 3 fields
         if field_key.startswith("field_"):
-            obj_info, field_info = slueth.get_field_info(field_key)
+            obj_info, field_info = sleuth.get_field_info(field_key)
             if field_info:
                 print(f"  Field: {field_info.name} ({field_key}) - {len(usages)} usages")
                 for usage in usages[:2]:  # Show first 2 usages per field
@@ -73,13 +73,13 @@ def main():
     # Example 2: Search for a specific field
     print_separator("FIELD-SPECIFIC SEARCH")
     field_key = "field_116"  # Institution connection field
-    obj_info, field_info = slueth.get_field_info(field_key)
+    obj_info, field_info = sleuth.get_field_info(field_key)
 
     if field_info:
         print(f"Searching for field: {obj_info.name}.{field_info.name} ({field_key})")
         print(f"  Field type: {field_info.type}\n")
 
-        field_usages = slueth.search_field(field_key)
+        field_usages = sleuth.search_field(field_key)
         print(f"Found {len(field_usages)} usages:\n")
 
         for usage in field_usages:
@@ -91,11 +91,11 @@ def main():
 
     # Example 3: Show summary statistics
     print_separator("SUMMARY STATISTICS")
-    total_objects = len(slueth.app.objects)
-    total_fields = len(slueth.field_to_object)
-    total_scenes = len(slueth.app.scenes)
+    total_objects = len(sleuth.app.objects)
+    total_fields = len(sleuth.field_to_object)
+    total_scenes = len(sleuth.app.scenes)
 
-    print(f"Application: {slueth.app.name}")
+    print(f"Application: {sleuth.app.name}")
     print(f"  Total Objects: {total_objects}")
     print(f"  Total Fields: {total_fields}")
     print(f"  Total Scenes: {total_scenes}")
@@ -103,7 +103,7 @@ def main():
 
     # Count connection fields
     connection_count = 0
-    for obj in slueth.app.objects:
+    for obj in sleuth.app.objects:
         for field in obj.fields:
             if field.type == "connection":
                 connection_count += 1

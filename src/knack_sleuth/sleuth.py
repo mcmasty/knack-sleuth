@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from knack_slueth.models import Application, KnackAppExport, KnackObject
+from knack_sleuth.models import Application, KnackAppExport, KnackObject
 
 
 @dataclass
@@ -15,7 +15,7 @@ class Usage:
     details: dict[str, Any]  # Additional context-specific information
 
 
-class KnackSlueth:
+class KnackSleuth:
     """Search engine for finding object and field usages in Knack metadata."""
 
     def __init__(self, app_export: KnackAppExport):

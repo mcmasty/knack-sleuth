@@ -1,17 +1,18 @@
 [project]
-name = "knack-slueth"
+name = "knack-sleuth"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "httpx[http2]>=0.28.1",
     "pydantic>=2.12.3",
     "pydantic-settings>=2.11.0",
     "typer>=0.20.0",
 ]
 
 [project.scripts]
-knack-sleuth = "knack_sleuth.cli:main"
+knack-sleuth = "knack_sleuth.cli:cli"
 
 [build-system]
 requires = ["uv_build>=0.9.5,<0.10.0"]

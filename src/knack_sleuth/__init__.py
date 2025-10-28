@@ -1,6 +1,6 @@
 """KnackSlueth - Find usages of data objects in Knack app metadata."""
 
-from knack_slueth.models import (
+from knack_sleuth.models import (
     Application,
     Connection,
     Connections,
@@ -12,7 +12,7 @@ from knack_slueth.models import (
     View,
     ViewSource,
 )
-from knack_slueth.slueth import KnackSlueth, Usage
+from knack_sleuth.sleuth import KnackSleuth, Usage
 
 __all__ = [
     "Application",
@@ -22,7 +22,7 @@ __all__ = [
     "KnackAppExport",
     "KnackField",
     "KnackObject",
-    "KnackSlueth",
+    "KnackSleuth",
     "Scene",
     "Usage",
     "View",

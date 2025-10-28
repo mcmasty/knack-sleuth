@@ -4,7 +4,7 @@
 import json
 from pathlib import Path
 
-from knack_slueth import KnackAppExport
+from knack_sleuth import KnackAppExport
 
 
 def main():
