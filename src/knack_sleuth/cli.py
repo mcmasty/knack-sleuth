@@ -404,6 +404,109 @@ def list_objects(
     console.print()
 
 
+@cli.command(name="show-coupling")
+def show_coupling(
+    object_identifier: str = typer.Argument(
+        ..., help="Object key (e.g., 'object_12') or name to search for"
+    ),
+    file_path: Optional[Path] = typer.Argument(
+        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+    ),
+    app_id: Optional[str] = typer.Option(
+        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+    ),
+    api_key: Optional[str] = typer.Option(
+        None, "--api-key", help="Knack API key (can also use KNACK_API_KEY env var)"
+    ),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Force refresh cached API data (ignore cache)"
+    ),
+):
+    """
+    Show coupling relationships for a specific object.
+
+    Displays:
+    - Afferent Coupling (Ca): Objects that depend on this object (inbound connections)
+    - Efferent Coupling (Ce): Objects this object depends on (outbound connections)
+    
+    This provides a focused view of an object's dependencies from its perspective.
+    """
+    # Load metadata
+    app_export = load_app_metadata(file_path, app_id, api_key, refresh)
+    
+    # Find the object (support both key and name lookup)
+    target_object = None
+    if object_identifier.lower().startswith("object_"):
+        # Search by key (case insensitive)
+        for obj in app_export.application.objects:
+            if obj.key.lower() == object_identifier.lower():
+                target_object = obj
+                object_identifier = obj.key
+                break
+    else:
+        # Search by name
+        for obj in app_export.application.objects:
+            if obj.name.lower() == object_identifier.lower():
+                target_object = obj
+                object_identifier = obj.key
+                break
+    
+    if not target_object:
+        console.print(
+            f"[red]Error:[/red] Object '{object_identifier}' not found in application"
+        )
+        raise typer.Exit(1)
+    
+    # Display header
+    console.print()
+    console.print(
+        Panel(
+            f"[bold cyan]{target_object.name}[/bold cyan] ({object_identifier})",
+            title="Object Coupling",
+            subtitle=f"Ca: {len(target_object.connections.inbound) if target_object.connections else 0} | Ce: {len(target_object.connections.outbound) if target_object.connections else 0}",
+        )
+    )
+    
+    # Build object lookup for names
+    objects_by_key = {obj.key: obj for obj in app_export.application.objects}
+    
+    # Afferent Coupling (Ca) - Inbound connections
+    if target_object.connections and target_object.connections.inbound:
+        console.print(f"\n[bold cyan]Afferent Coupling (Ca):[/bold cyan] {len(target_object.connections.inbound)} objects depend on this")
+        console.print("[dim]Objects that have connections pointing TO this object[/dim]\n")
+        
+        for conn in sorted(target_object.connections.inbound, key=lambda c: objects_by_key.get(c.object, type('obj', (), {'name': ''})).name):
+            source_obj = objects_by_key.get(conn.object)
+            if source_obj:
+                relationship = f"{conn.has} → {conn.belongs_to}"
+                console.print(
+                    f"  [yellow]←[/yellow] [bold cyan]{source_obj.name}[/bold cyan] ({conn.object})\n"
+                    f"     via [dim]{conn.name}[/dim] ({conn.key}) [{relationship}]"
+                )
+    else:
+        console.print(f"\n[bold cyan]Afferent Coupling (Ca):[/bold cyan] 0 objects")
+        console.print("[dim]No objects depend on this object[/dim]")
+    
+    # Efferent Coupling (Ce) - Outbound connections
+    if target_object.connections and target_object.connections.outbound:
+        console.print(f"\n[bold cyan]Efferent Coupling (Ce):[/bold cyan] {len(target_object.connections.outbound)} objects this depends on")
+        console.print("[dim]Objects that this object connects TO[/dim]\n")
+        
+        for conn in sorted(target_object.connections.outbound, key=lambda c: objects_by_key.get(c.object, type('obj', (), {'name': ''})).name):
+            target_obj = objects_by_key.get(conn.object)
+            if target_obj:
+                relationship = f"{conn.has} → {conn.belongs_to}"
+                console.print(
+                    f"  [yellow]→[/yellow] [bold cyan]{target_obj.name}[/bold cyan] ({conn.object})\n"
+                    f"     via [dim]{conn.name}[/dim] ({conn.key}) [{relationship}]"
+                )
+    else:
+        console.print(f"\n[bold cyan]Efferent Coupling (Ce):[/bold cyan] 0 objects")
+        console.print("[dim]This object does not depend on other objects[/dim]")
+    
+    console.print()
+
+
 @cli.command(name="download-metadata")
 def download_metadata(
     output_file: Optional[Path] = typer.Argument(

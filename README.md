@@ -31,6 +31,28 @@ This is useful for:
 
 The file is saved as formatted JSON (indented) for easy reading and version control.
 
+### Show Object Coupling
+
+View the coupling relationships for a specific object - see which objects depend on it and which objects it depends on:
+
+```bash
+# Using object key
+uv run knack-sleuth show-coupling object_12 path/to/knack_export.json
+
+# Using object name
+uv run knack-sleuth show-coupling "Events" path/to/knack_export.json
+
+# From API
+uv run knack-sleuth show-coupling object_34 --app-id YOUR_APP_ID --api-key YOUR_KEY
+```
+
+This displays:
+- **Afferent Coupling (Ca)**: Objects that depend on this object (incoming connections with ← arrows)
+- **Efferent Coupling (Ce)**: Objects this object depends on (outgoing connections with → arrows)
+- Connection details: field names, keys, and relationship types
+
+Perfect for understanding an object's role in your data model from its perspective.
+
 ### List All Objects
 
 Get an overview of all objects in your Knack application:
