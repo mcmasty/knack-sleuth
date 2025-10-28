@@ -40,7 +40,7 @@ View the coupling relationships for a specific object - see which objects depend
 uv run knack-sleuth show-coupling object_12 path/to/knack_export.json
 
 # Using object name
-uv run knack-sleuth show-coupling "Events" path/to/knack_export.json
+uv run knack-sleuth show-coupling "Object Name" path/to/knack_export.json
 
 # From API
 uv run knack-sleuth show-coupling object_34 --app-id YOUR_APP_ID --api-key YOUR_KEY
@@ -99,7 +99,7 @@ Search for all places where an object is used in your Knack application.
 uv run knack-sleuth search-object object_12 path/to/knack_export.json
 
 # Search by object name
-uv run knack-sleuth search-object "College/School" path/to/knack_export.json
+uv run knack-sleuth search-object "Object Name" path/to/knack_export.json
 
 # Hide field-level usages (show only object-level)
 uv run knack-sleuth search-object object_12 path/to/knack_export.json --no-fields
