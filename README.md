@@ -1,7 +1,35 @@
 # KnackSleuth
-Find usages of data objects in the knack app metadata
+
+**Detective work for your Knack applications.** 🕵️
+
+KnackSleuth investigates your Knack app metadata to uncover where objects, fields, and connections are used throughout your application. Like a good detective, it traces every lead—from data relationships and view dependencies to hidden references in formulas and filters.
+
+Whether you're refactoring a complex app, auditing data dependencies, or trying to understand the ripple effects of a schema change, KnackSleuth does the investigative work so you don't have to.
 
 ## Usage
+
+### Download Metadata
+
+Download and save your Knack application metadata to a local file:
+
+```bash
+# Download with default filename ({APP_ID}_metadata.json)
+uv run knack-sleuth download-metadata
+
+# Specify custom filename
+uv run knack-sleuth download-metadata my_app_backup.json
+
+# Force fresh download (ignore cache)
+uv run knack-sleuth download-metadata --refresh
+```
+
+This is useful for:
+- Creating backups of your app structure
+- Working offline with the metadata
+- Sharing app structure with others
+- Version control / tracking changes over time
+
+The file is saved as formatted JSON (indented) for easy reading and version control.
 
 ### List All Objects
 
@@ -22,7 +50,14 @@ This displays a table showing:
 - Object key and name
 - Number of rows (records) in each object
 - Number of fields in each object
-- Number of connections (inbound + outbound)
+- **Ca** (Afferent coupling): Number of inbound connections - how many other objects depend on this one
+- **Ce** (Efferent coupling): Number of outbound connections - how many other objects this one depends on
+- Total connections (Ca + Ce)
+
+**Coupling Insights:**
+- High Ca, Low Ce = Hub/core objects that many others depend on (stable, reusable)
+- Low Ca, High Ce = Highly coupled objects with many dependencies (potentially fragile)
+- High Ca + High Ce = Central, complex objects (review for potential refactoring)
 
 ### Search for Object Usages
 
@@ -72,6 +107,23 @@ uv run knack-sleuth search-object object_12 --refresh
 The command will show:
 - **Object-level usages**: Where the object appears in connections, views, and other metadata
 - **Field-level usages**: Where each field is used (columns, sorts, formulas, etc.) - can be disabled with `--no-fields`
+- **Builder Pages to Review**: Direct links to scenes in the Knack builder where this object is used
+
+#### Builder Integration
+
+The search results include clickable links to the Knack builder pages where the object is used:
+
+```bash
+# Classic builder URLs (default)
+export KNACK_NEXT_GEN_BUILDER=false
+uv run knack-sleuth search-object object_12
+# → https://builder.knack.com/apps/your-app/pages/scene_7
+
+# Next-Gen builder URLs
+export KNACK_NEXT_GEN_BUILDER=true
+uv run knack-sleuth search-object object_12
+# → https://builder-next.knack.com/your-app/portal/pages/scene_7
+```
 
 ### Options
 

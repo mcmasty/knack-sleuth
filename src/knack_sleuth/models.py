@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from pydantic import Field as PydanticField
 
 
@@ -168,6 +168,14 @@ class ViewSource(BaseModel):
     authenticated_user: bool | None = None
 
     model_config = {"extra": "allow"}
+    
+    @field_validator('criteria', mode='before')
+    @classmethod
+    def convert_empty_list_to_none(cls, v):
+        """Convert empty list to None for criteria field."""
+        if isinstance(v, list) and len(v) == 0:
+            return None
+        return v
 
 
 class View(BaseModel):
