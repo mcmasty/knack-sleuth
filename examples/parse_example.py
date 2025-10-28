@@ -21,6 +21,12 @@ def main():
     print(f"Total Scenes: {len(app.scenes)}")
     print()
 
+    # Objects
+    print("Objects")
+    for obj in app.objects:
+        print(f"  - {obj.name} ({obj.key})")
+    
+    print()
     # Example: Find all connection fields
     print("Connection Fields:")
     for obj in app.objects:

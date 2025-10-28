@@ -12,6 +12,7 @@ from knack_slueth.models import (
     View,
     ViewSource,
 )
+from knack_slueth.slueth import KnackSlueth, Usage
 
 __all__ = [
     "Application",
@@ -21,7 +22,9 @@ __all__ = [
     "KnackAppExport",
     "KnackField",
     "KnackObject",
+    "KnackSlueth",
     "Scene",
+    "Usage",
     "View",
     "ViewSource",
 ]
