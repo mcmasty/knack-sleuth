@@ -44,6 +44,9 @@ uv run knack-sleuth list-objects --app-id YOUR_APP_ID --api-key YOUR_KEY
 
 # Using environment variables
 uv run knack-sleuth list-objects
+
+# Sort by row count (largest first)
+uv run knack-sleuth list-objects --sort-by-rows path/to/knack_export.json
 ```
 
 This displays a table showing:
@@ -53,6 +56,10 @@ This displays a table showing:
 - **Ca** (Afferent coupling): Number of inbound connections - how many other objects depend on this one
 - **Ce** (Efferent coupling): Number of outbound connections - how many other objects this one depends on
 - Total connections (Ca + Ce)
+
+**Sorting:**
+- Default: Alphabetically by object name
+- `--sort-by-rows`: Sort by row count (largest first) to quickly identify your biggest tables
 
 **Coupling Insights:**
 - High Ca, Low Ce = Hub/core objects that many others depend on (stable, reusable)

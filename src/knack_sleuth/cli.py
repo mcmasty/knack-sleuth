@@ -305,6 +305,9 @@ def list_objects(
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
     ),
+    sort_by_rows: bool = typer.Option(
+        False, "--sort-by-rows", help="Sort by row count (largest first) instead of by name"
+    ),
 ):
     """
     List all objects in a Knack application with field and connection counts.
@@ -345,7 +348,18 @@ def list_objects(
     total_efferent = 0
     total_connections = 0
     
-    for obj in sorted(app_export.application.objects, key=lambda o: o.key):
+    # Sort objects based on flag
+    if sort_by_rows:
+        # Sort by row count (descending), then by name as tiebreaker
+        sorted_objects = sorted(
+            app_export.application.objects,
+            key=lambda o: (-app_export.application.counts.get(o.key, 0), o.name.lower())
+        )
+    else:
+        # Sort by name (default)
+        sorted_objects = sorted(app_export.application.objects, key=lambda o: o.name.lower())
+    
+    for obj in sorted_objects:
         # Get row count from counts dict
         row_count = app_export.application.counts.get(obj.key, 0)
         total_rows += row_count
