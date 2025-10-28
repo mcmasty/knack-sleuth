@@ -144,8 +144,9 @@ ENV/
 env.bak/
 venv.bak/
 
-# Knack Sleuth cache files
-*_app_metadata_*.json
+# Knack Sleuth cache and metadata files
+*_app_metadata_*.json  # Cache files (timestamped)
+*_metadata.json         # Downloaded metadata files
 
 # Spyder project settings
 .spyderproject
