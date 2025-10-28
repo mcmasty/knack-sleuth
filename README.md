@@ -6,7 +6,35 @@ KnackSleuth investigates your Knack app metadata to uncover where objects, field
 
 Whether you're refactoring a complex app, auditing data dependencies, or trying to understand the ripple effects of a schema change, KnackSleuth does the investigative work so you don't have to.
 
+## Installation
+
+### Using uvx (Recommended)
+
+Run KnackSleuth without installation using `uvx`:
+
+```bash
+uvx knack-sleuth --help
+```
+
+### Install with uv
+
+Install as a tool with uv:
+
+```bash
+uv tool install knack-sleuth
+knack-sleuth --help
+```
+
+### Install with pip
+
+```bash
+pip install knack-sleuth
+knack-sleuth --help
+```
+
 ## Usage
+
+> **Note**: If you haven't installed knack-sleuth, replace `knack-sleuth` with `uvx knack-sleuth` in the examples below.
 
 ### Download Metadata
 
@@ -14,13 +42,13 @@ Download and save your Knack application metadata to a local file:
 
 ```bash
 # Download with default filename ({APP_ID}_metadata.json)
-uv run knack-sleuth download-metadata
+knack-sleuth download-metadata
 
 # Specify custom filename
-uv run knack-sleuth download-metadata my_app_backup.json
+knack-sleuth download-metadata my_app_backup.json
 
 # Force fresh download (ignore cache)
-uv run knack-sleuth download-metadata --refresh
+knack-sleuth download-metadata --refresh
 ```
 
 This is useful for:
@@ -37,13 +65,13 @@ View the coupling relationships for a specific object - see which objects depend
 
 ```bash
 # Using object key
-uv run knack-sleuth show-coupling object_12 path/to/knack_export.json
+knack-sleuth show-coupling object_12 path/to/knack_export.json
 
 # Using object name
-uv run knack-sleuth show-coupling "Object Name" path/to/knack_export.json
+knack-sleuth show-coupling "Object Name" path/to/knack_export.json
 
 # From API
-uv run knack-sleuth show-coupling object_34 --app-id YOUR_APP_ID --api-key YOUR_KEY
+knack-sleuth show-coupling object_34 --app-id YOUR_APP_ID --api-key YOUR_KEY
 ```
 
 This displays:
@@ -59,16 +87,16 @@ Get an overview of all objects in your Knack application:
 
 ```bash
 # Using a local JSON file
-uv run knack-sleuth list-objects path/to/knack_export.json
+knack-sleuth list-objects path/to/knack_export.json
 
 # Fetching from API
-uv run knack-sleuth list-objects --app-id YOUR_APP_ID --api-key YOUR_KEY
+knack-sleuth list-objects --app-id YOUR_APP_ID --api-key YOUR_KEY
 
 # Using environment variables
-uv run knack-sleuth list-objects
+knack-sleuth list-objects
 
 # Sort by row count (largest first)
-uv run knack-sleuth list-objects --sort-by-rows path/to/knack_export.json
+knack-sleuth list-objects --sort-by-rows path/to/knack_export.json
 ```
 
 This displays a table showing:
@@ -96,13 +124,13 @@ Search for all places where an object is used in your Knack application.
 
 ```bash
 # Search by object key
-uv run knack-sleuth search-object object_12 path/to/knack_export.json
+knack-sleuth search-object object_12 path/to/knack_export.json
 
 # Search by object name
-uv run knack-sleuth search-object "Object Name" path/to/knack_export.json
+knack-sleuth search-object "Object Name" path/to/knack_export.json
 
 # Hide field-level usages (show only object-level)
-uv run knack-sleuth search-object object_12 path/to/knack_export.json --no-fields
+knack-sleuth search-object object_12 path/to/knack_export.json --no-fields
 ```
 
 #### Fetching from Knack API
@@ -111,20 +139,20 @@ You can fetch metadata directly from the Knack API instead of using a local file
 
 ```bash
 # Using command-line options
-uv run knack-sleuth search-object object_12 --app-id YOUR_APP_ID --api-key YOUR_API_KEY
+knack-sleuth search-object object_12 --app-id YOUR_APP_ID --api-key YOUR_API_KEY
 
 # Using environment variables
 export KNACK_APP_ID=your_app_id
 export KNACK_API_KEY=your_api_key
-uv run knack-sleuth search-object object_12
+knack-sleuth search-object object_12
 
 # Or use a .env file in the project root:
 # KNACK_APP_ID=your_app_id
 # KNACK_API_KEY=your_api_key
-uv run knack-sleuth search-object object_12
+knack-sleuth search-object object_12
 
 # Force refresh cached data (ignore cache)
-uv run knack-sleuth search-object object_12 --refresh
+knack-sleuth search-object object_12 --refresh
 ```
 
 **Caching Behavior:**
@@ -145,12 +173,12 @@ The search results include clickable links to the Knack builder pages where the 
 ```bash
 # Classic builder URLs (default)
 export KNACK_NEXT_GEN_BUILDER=false
-uv run knack-sleuth search-object object_12
+knack-sleuth search-object object_12
 # → https://builder.knack.com/your-account/portal/pages/scene_7
 
 # Next-Gen builder URLs
 export KNACK_NEXT_GEN_BUILDER=true
-uv run knack-sleuth search-object object_12
+knack-sleuth search-object object_12
 # → https://builder-next.knack.com/your-account/portal/pages/scene_7
 ```
 
