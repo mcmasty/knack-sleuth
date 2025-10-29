@@ -11,12 +11,20 @@ from rich.panel import Panel
 from rich.table import Table
 from rich import print as rprint
 
+from knack_sleuth import __version__
 from knack_sleuth.models import KnackAppExport
 from knack_sleuth.sleuth import KnackSleuth
 from knack_sleuth.config import Settings, KNACK_BUILDER_BASE_URL, KNACK_NG_BUILDER_BASE_URL
 
 cli = typer.Typer()
 console = Console()
+
+
+def version_callback(value: bool):
+    """Display version and exit."""
+    if value:
+        console.print(f"knack-sleuth version {__version__}")
+        raise typer.Exit()
 
 
 def load_app_metadata(
@@ -135,6 +143,21 @@ def load_app_metadata(
             except Exception as e:
                 console.print(f"[red]Error:[/red] Failed to parse API response: {e}")
                 raise typer.Exit(1)
+
+
+@cli.callback()
+def main(
+    version: Optional[bool] = typer.Option(
+        None,
+        "--version",
+        "-v",
+        help="Show version and exit",
+        callback=version_callback,
+        is_eager=True,
+    ),
+):
+    """KnackSleuth - Investigate your Knack.app's metadata."""
+    pass
 
 
 @cli.command(name="search-object")

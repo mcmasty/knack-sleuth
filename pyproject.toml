@@ -29,6 +29,16 @@ current_version = "0.1.6"
 commit = true
 tag = true
 
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "src/knack_sleuth/__init__.py"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
+
 
 [project.urls]
 Homepage = "https://github.com/mcmasty/knack-sleuth"
