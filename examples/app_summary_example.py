@@ -70,7 +70,7 @@ def main():
     relationships = summary["relationship_map"]
     
     print(f"Total Connections: {relationships['connection_graph']['total_connections']}")
-    print(f"\nHub Objects (high connectivity):")
+    print("\nHub Objects (high connectivity):")
     for hub in relationships["hub_objects"][:5]:
         print(f"  - {hub['object']}: {hub['total_connections']} connections")
         print(f"    {hub['interpretation']}")
@@ -85,7 +85,7 @@ def main():
     patterns = summary["data_patterns"]
     
     calc = patterns["calculation_complexity"]
-    print(f"\nCalculation Complexity:")
+    print("\nCalculation Complexity:")
     print(f"  Formula fields: {calc['total_formula_fields']}")
     print(f"  Objects with formulas: {calc['objects_with_formulas']}")
     print(f"  Assessment: {calc['interpretation']}")
@@ -100,12 +100,12 @@ def main():
     print(f"  Public: {scenes['public_scenes']}")
     
     nav = ui["navigation_depth"]
-    print(f"\nNavigation:")
+    print("\nNavigation:")
     print(f"  Max depth: {nav['max_depth']}")
     print(f"  Avg depth: {nav['avg_depth']}")
     print(f"  Complexity: {nav['interpretation']}")
     
-    print(f"\nView Types:")
+    print("\nView Types:")
     for view_type, count in sorted(
         ui["view_patterns"].items(), key=lambda x: x[1], reverse=True
     )[:5]:

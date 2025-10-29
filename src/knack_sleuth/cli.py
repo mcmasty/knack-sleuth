@@ -9,7 +9,6 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from rich import print as rprint
 
 from knack_sleuth import __version__
 from knack_sleuth.models import KnackAppExport
@@ -110,7 +109,7 @@ def load_app_metadata(
                 if refresh:
                     console.print("[cyan]Forcing refresh from API...[/cyan]")
                 
-                with console.status(f"[cyan]Fetching metadata from Knack API..."):
+                with console.status("[cyan]Fetching metadata from Knack API..."):
                     response = httpx.get(
                         api_url,
                         headers={
@@ -301,7 +300,7 @@ def search_object(
                 console.print(f"  [link={url}]{url}[/link]")
         
         console.print()
-        console.print(f"[dim]Tip: Set KNACK_NEXT_GEN_BUILDER=true to use Next-Gen builder URLs[/dim]")
+        console.print("[dim]Tip: Set KNACK_NEXT_GEN_BUILDER=true to use Next-Gen builder URLs[/dim]")
 
     console.print()
 
@@ -499,7 +498,7 @@ def show_coupling(
                     f"     via [dim]{conn.name}[/dim] ({conn.key}) [{relationship}]"
                 )
     else:
-        console.print(f"\n[bold cyan]Afferent Coupling (Ca):[/bold cyan] 0 objects")
+        console.print("\n[bold cyan]Afferent Coupling (Ca):[/bold cyan] 0 objects")
         console.print("[dim]No objects depend on this object[/dim]")
     
     # Efferent Coupling (Ce) - Outbound connections
@@ -516,7 +515,7 @@ def show_coupling(
                     f"     via [dim]{conn.name}[/dim] ({conn.key}) [{relationship}]"
                 )
     else:
-        console.print(f"\n[bold cyan]Efferent Coupling (Ce):[/bold cyan] 0 objects")
+        console.print("\n[bold cyan]Efferent Coupling (Ce):[/bold cyan] 0 objects")
         console.print("[dim]This object does not depend on other objects[/dim]")
     
     console.print()
@@ -606,7 +605,7 @@ def download_metadata(
             if refresh:
                 console.print("[cyan]Forcing refresh from API...[/cyan]")
             
-            with console.status(f"[cyan]Fetching metadata from Knack API..."):
+            with console.status("[cyan]Fetching metadata from Knack API..."):
                 response = httpx.get(
                     api_url,
                     headers={

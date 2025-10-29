@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from knack_sleuth.models import Application, KnackAppExport, KnackObject
+from knack_sleuth.models import KnackAppExport, KnackObject
 
 
 @dataclass
