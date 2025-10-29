@@ -71,7 +71,7 @@ knack-sleuth show-coupling object_12 path/to/knack_export.json
 knack-sleuth show-coupling "Object Name" path/to/knack_export.json
 
 # From API
-knack-sleuth show-coupling object_34 --app-id YOUR_APP_ID --api-key YOUR_KEY
+knack-sleuth show-coupling object_34 --app-id YOUR_APP_ID
 ```
 
 This displays:
@@ -90,7 +90,7 @@ Get an overview of all objects in your Knack application:
 knack-sleuth list-objects path/to/knack_export.json
 
 # Fetching from API
-knack-sleuth list-objects --app-id YOUR_APP_ID --api-key YOUR_KEY
+knack-sleuth list-objects --app-id YOUR_APP_ID
 
 # Using environment variables
 knack-sleuth list-objects
@@ -139,16 +139,14 @@ You can fetch metadata directly from the Knack API instead of using a local file
 
 ```bash
 # Using command-line options
-knack-sleuth search-object object_12 --app-id YOUR_APP_ID --api-key YOUR_API_KEY
+knack-sleuth search-object object_12 --app-id YOUR_APP_ID
 
 # Using environment variables
 export KNACK_APP_ID=your_app_id
-export KNACK_API_KEY=your_api_key
 knack-sleuth search-object object_12
 
 # Or use a .env file in the project root:
 # KNACK_APP_ID=your_app_id
-# KNACK_API_KEY=your_api_key
 knack-sleuth search-object object_12
 
 # Force refresh cached data (ignore cache)
@@ -186,7 +184,6 @@ knack-sleuth search-object object_12
 ### Options
 
 - `--app-id TEXT`: Knack application ID (or use `KNACK_APP_ID` env var)
-- `--api-key TEXT`: Knack API key (or use `KNACK_API_KEY` env var)
 - `--refresh`: Force refresh cached API data (ignore 24-hour cache)
 - `--show-fields` / `--no-fields`: Control whether to show field-level usages (default: show)
 - `--help`: Show help message

@@ -150,6 +150,9 @@ venv.bak/
 # Downloaded metadata files
 *_metadata.json
 
+# Warp AI instructions (may contain project-specific preferences)
+WARP.md
+
 # Spyder project settings
 .spyderproject
 .spyproject
