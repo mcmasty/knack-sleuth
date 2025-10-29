@@ -1,6 +1,6 @@
 """KnackSlueth - Find usages of data objects in Knack app metadata."""
 
-__version__ = "0.1.12"
+__version__ = "0.1.13"
 
 from knack_sleuth.models import (
     Application,
