@@ -82,26 +82,6 @@ The AI now has complete architectural context and can help you reason through.
 | Estimating affected systems | ✅ Yes (planning) | ✅ Yes (specific change) |
 | Architectural discussions with AI | ✅ Yes | ❌ No (too specific) |
 
-## Best Practices
-
-1. **Start Broad** - Begin with high-level architectural questions
-2. **Use Metrics** - Reference specific metrics when discussing decisions
-3. **Ask for Alternatives** - "What are the tradeoffs between these approaches?"
-4. **Document Decisions** - Save the conversation and your reasoning
-5. **Validate Assumptions** - "Does this match what you see in the architecture?"
-6. **Plan Phases** - Let AI help break the work into milestones
-7. **Consider Clusters** - Use dependency clusters to identify natural boundaries
-
-## Example Questions to Ask
-
-- "What's the highest-risk part of this conversion?"
-- "Which core entities will be hardest to convert?"
-- "How should I handle the tight coupling pairs?"
-- "What's my estimated effort: 40 hours? 100 hours? 200 hours?"
-- "Should I convert all objects at once or phase it in?"
-- "Which objects can stay organization-agnostic?"
-- "What new tables/fields do I need to add for tenancy?"
-- "How should I handle reference data that's shared vs org-specific?"
 
 ## Next Steps
 
