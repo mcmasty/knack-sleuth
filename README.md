@@ -181,9 +181,149 @@ knack-sleuth search-object object_12
 ```
 
 
+## Experimental Commands
+
+⚠️ **Alpha/Beta Features** — These commands are actively being developed and refined. Results may vary, and as they are used we hope to improve them. Use at your own risk.
+
+These experimental commands generate comprehensive architectural analysis and impact assessments designed for both human understanding and AI/agent processing. They aim to accelerate development on Knack by providing structured insights into your application's data model, relationships, and dependencies.
+
+### Impact Analysis
+
+Generate a comprehensive analysis of how changing a specific object or field would impact your Knack application:
+
+```bash
+# Using object key
+knack-sleuth impact-analysis object_12 path/to/knack_export.json --format json
+
+# Using object name
+knack-sleuth impact-analysis "Object Name" my_app.json --format markdown
+
+# From API
+knack-sleuth impact-analysis field_116 --app-id YOUR_APP_ID --output impact.json
+```
+
+**Output Formats:**
+- `json`: Structured output for AI/agent processing (default)
+- `markdown`: Human-friendly documentation
+- `yaml`: Alternative structured format
+
+**What it shows:**
+- Direct impacts: connections, views, forms, and formulas affected
+- Cascade impacts: dependent fields and scenes
+- Risk assessment: breaking change likelihood and impact score
+- Affected user workflows
+
+### App Summary
+
+Generate a comprehensive architectural summary of your entire Knack application:
+
+```bash
+# Using a local JSON file
+knack-sleuth app-summary path/to/knack_export.json
+
+# From API with markdown output
+knack-sleuth app-summary --app-id YOUR_APP_ID --format markdown
+
+# Save to file
+knack-sleuth app-summary my_app.json --output summary.json
+```
+
+**Output Formats:**
+- `json`: Structured output for AI/agent processing (default)
+- `markdown`: Human-friendly documentation
+- `yaml`: Alternative structured format
+
+**What it includes:**
+- Domain model classification (user profiles, core entities, transactional/reference/supporting data)
+- Relationship topology (connections, clusters, hub objects)
+- Data patterns (temporal, calculation complexity)
+- UI architecture (scenes, views, navigation depth)
+- Access patterns (authentication, roles)
+- Technical debt indicators (orphaned resources, bottlenecks)
+- Extensibility assessment (modularity, coupling)
+
+**Use Cases:**
+- Understanding overall application architecture
+- Planning major refactorings or migrations
+- AI-assisted architecture discussions and recommendations
+- Documentation generation
+- Complexity assessment for onboarding new developers
+
+---
+
+## Concepts & Terminology
+
+> ⚠️ **Important Note**: The metrics and classifications in this section represent *technical analysis* of your Knack application's data structure and architecture. They should **not** be confused with business importance or business meaning. An object that is technically "important" (high centrality, high importance score, or a hub) may have little business significance, and conversely, a critical business object may have a simple technical structure. These metrics are designed to help identify technical risks, change complexity, and architectural patterns—not to reflect business priorities or domain significance.
+
+### Connection
+
+A **connection** is a direct relationship between two objects via a field. When you create a "connection" field in Knack (like a lookup, link, or relationship), you create a connection in the graph.
+
+**Examples:**
+- A "Client" field on an Order object connects to the Clients object
+- A "Category" field on a Product object connects to the Categories object
+
+Connections are directional—an object can have:
+- **Outbound connections**: connections this object creates (e.g., Order → Client)
+- **Inbound connections**: connections pointing to this object (e.g., Invoice → Order)
+
+### Centrality
+
+**Centrality** (0-1 scale) measures how important an object is in the system based on its connections and usage:
+
+- **Calculation**: Weighted combination of connection density (70%) and view usage (30%)
+- **Low (<0.3)**: Peripheral object, used in few places
+- **Medium (0.3-0.6)**: Moderately important, used in several areas
+- **High (>0.6)**: Core object, critical to app architecture, high change risk
+
+### Importance
+
+**Importance** (0-1 scale) ranks objects among core entities based on overall architectural impact:
+
+- **Calculation**: Weighted combination of data volume (60%) and connectivity (40%)
+- **Data volume**: Objects with more records tend to affect more users
+- **Connectivity**: Objects with more connections have wider architectural impact
+- **Core Entity Selection & Display**: Objects are selected and displayed as core entities in descending order by importance score (top ~20% of objects)
+- **Importance determines ranking**: The order in which core entities appear shows their architectural importance from most to least critical
+
+### Hub Object
+
+A **hub object** is an object with many connections (≥3 total), making it a central point in your data model. Objects act as hubs when many other objects reference them or depend on them.
+
+**Characteristics:**
+- Highly connected (3+ relationships)
+- Often represent core business concepts
+- May be a bottleneck if many objects depend on them
+- Good candidates for review during refactoring
+
+**Interpretation:**
+- **High inbound, low outbound**: A stable hub that others depend on (like a shared lookup table)
+- **High outbound, low inbound**: A central aggregator that pulls data from many sources
+- **High both ways**: A central, complex object that may benefit from decomposition
+
+### Cluster
+
+A **cluster** is a group of objects that are tightly interconnected with each other—they have more connections within the group than outside it. Clusters represent logical groupings or domains within your application.
+
+**Visual analogy:** Think of connections and clusters like a map:
+- **Connection** = a single road between two cities
+- **Hub object** = a city with many roads connecting to it (central hub)
+- **Cluster** = a region where cities are all interconnected with each other
+
+In your app, a cluster might represent:
+- A business process (e.g., "Order Processing": Orders, Invoices, Payments, Customers)
+- A domain area (e.g., "User Management": Users, Roles, Permissions)
+- A feature set (e.g., "Reporting": Reports, Datasets, Metrics)
+
+Clusters help you understand the modular structure of your application and identify which objects naturally belong together.
+
+---
+
 ### Options
 
 - `--app-id TEXT`: Knack application ID (or use `KNACK_APP_ID` env var)
 - `--refresh`: Force refresh cached API data (ignore 24-hour cache)
 - `--show-fields` / `--no-fields`: Control whether to show field-level usages (default: show)
+- `--format TEXT`: Output format (`json`, `markdown`, `yaml`)
+- `--output TEXT` / `-o`: Save output to file instead of stdout
 - `--help`: Show help message

@@ -1,0 +1,1360 @@
+{
+  "application": {
+    "name": "Texas Global Copy Sandbox",
+    "id": "68c9bb7c1652d9028f64d6b2",
+    "complexity_metrics": {
+      "total_objects": 23,
+      "total_fields": 254,
+      "total_scenes": 97,
+      "total_views": 220,
+      "total_records": 293722467,
+      "connection_density": 0.174
+    }
+  },
+  "domain_model": {
+    "core_entities": [
+      {
+        "object_key": "object_3",
+        "name": "Accounts",
+        "role": "core_entity",
+        "record_count": 1626,
+        "field_count": 49,
+        "is_user_object": true,
+        "centrality_score": 0.5,
+        "field_types": {
+          "name": 1,
+          "concatenation": 8,
+          "boolean": 9,
+          "multiple_choice": 10,
+          "connection": 7,
+          "user_roles": 1,
+          "email": 1,
+          "short_text": 5,
+          "date_time": 3,
+          "equation": 1,
+          "password": 1,
+          "auto_increment": 1,
+          "paragraph_text": 1
+        }
+      },
+      {
+        "object_key": "object_8",
+        "name": "Approver",
+        "role": "core_entity",
+        "record_count": 201,
+        "field_count": 9,
+        "is_user_object": true,
+        "centrality_score": 0.129,
+        "field_types": {
+          "name": 1,
+          "email": 1,
+          "user_roles": 1,
+          "multiple_choice": 1,
+          "boolean": 2,
+          "password": 1,
+          "connection": 2
+        }
+      },
+      {
+        "object_key": "object_20",
+        "name": "Advising",
+        "role": "core_entity",
+        "record_count": 1289,
+        "field_count": 6,
+        "is_user_object": true,
+        "centrality_score": 0.066,
+        "field_types": {
+          "name": 1,
+          "email": 1,
+          "user_roles": 1,
+          "multiple_choice": 1,
+          "boolean": 1,
+          "password": 1
+        }
+      },
+      {
+        "object_key": "object_34",
+        "name": "Student",
+        "role": "core_entity",
+        "record_count": 1,
+        "field_count": 7,
+        "is_user_object": true,
+        "centrality_score": 0.065,
+        "field_types": {
+          "name": 1,
+          "email": 1,
+          "password": 1,
+          "multiple_choice": 1,
+          "user_roles": 1,
+          "connection": 2
+        }
+      },
+      {
+        "object_key": "object_7",
+        "name": "Study Abroad",
+        "role": "core_entity",
+        "record_count": 10,
+        "field_count": 6,
+        "is_user_object": true,
+        "centrality_score": 0.033,
+        "field_types": {
+          "name": 1,
+          "email": 1,
+          "password": 1,
+          "user_roles": 1,
+          "multiple_choice": 1,
+          "boolean": 1
+        }
+      },
+      {
+        "object_key": "object_29",
+        "name": "Registrar",
+        "role": "core_entity",
+        "record_count": 8,
+        "field_count": 5,
+        "is_user_object": true,
+        "centrality_score": 0.0,
+        "field_types": {
+          "name": 1,
+          "email": 1,
+          "password": 1,
+          "multiple_choice": 1,
+          "user_roles": 1
+        }
+      },
+      {
+        "object_key": "object_30",
+        "name": "Degree Certifier",
+        "role": "core_entity",
+        "record_count": 42,
+        "field_count": 5,
+        "is_user_object": true,
+        "centrality_score": 0.0,
+        "field_types": {
+          "name": 1,
+          "email": 1,
+          "password": 1,
+          "multiple_choice": 1,
+          "user_roles": 1
+        }
+      }
+    ],
+    "transactional_entities": [
+      {
+        "object_key": "object_5",
+        "name": "My Courses",
+        "role": "transactional",
+        "record_count": 8253,
+        "field_count": 37,
+        "is_user_object": false,
+        "centrality_score": 0.211,
+        "field_types": {
+          "connection": 5,
+          "concatenation": 6,
+          "short_text": 12,
+          "date_time": 2,
+          "multiple_choice": 6,
+          "rich_text": 1,
+          "paragraph_text": 2,
+          "equation": 1,
+          "auto_increment": 1,
+          "number": 1
+        }
+      },
+      {
+        "object_key": "object_1",
+        "name": "Courses",
+        "role": "transactional",
+        "record_count": 5146,
+        "field_count": 52,
+        "is_user_object": false,
+        "centrality_score": 0.375,
+        "field_types": {
+          "connection": 7,
+          "concatenation": 4,
+          "short_text": 11,
+          "multiple_choice": 17,
+          "boolean": 3,
+          "file": 1,
+          "link": 1,
+          "paragraph_text": 3,
+          "date_time": 3,
+          "equation": 1,
+          "auto_increment": 1
+        }
+      }
+    ],
+    "reference_data": [
+      {
+        "object_key": "object_32",
+        "name": "College/School",
+        "role": "reference",
+        "record_count": 8,
+        "field_count": 3,
+        "is_user_object": false,
+        "centrality_score": 0.196,
+        "field_types": {
+          "short_text": 2,
+          "connection": 1
+        },
+        "used_by": [
+          "object_8",
+          "object_34",
+          "object_1",
+          "object_33",
+          "object_40"
+        ]
+      },
+      {
+        "object_key": "object_2",
+        "name": "Programs",
+        "role": "reference",
+        "record_count": 40,
+        "field_count": 15,
+        "is_user_object": false,
+        "centrality_score": 0.163,
+        "field_types": {
+          "short_text": 5,
+          "multiple_choice": 3,
+          "link": 1,
+          "concatenation": 1,
+          "connection": 1,
+          "paragraph_text": 2,
+          "date_time": 1,
+          "auto_increment": 1
+        },
+        "used_by": [
+          "object_3",
+          "object_1",
+          "object_5",
+          "object_38"
+        ]
+      },
+      {
+        "object_key": "object_31",
+        "name": "Institution",
+        "role": "reference",
+        "record_count": 1,
+        "field_count": 3,
+        "is_user_object": false,
+        "centrality_score": 0.127,
+        "field_types": {
+          "auto_increment": 1,
+          "short_text": 2
+        },
+        "used_by": [
+          "object_3",
+          "object_1",
+          "object_32",
+          "object_40"
+        ]
+      },
+      {
+        "object_key": "object_33",
+        "name": "Department/Program",
+        "role": "reference",
+        "record_count": 6,
+        "field_count": 3,
+        "is_user_object": false,
+        "centrality_score": 0.165,
+        "field_types": {
+          "short_text": 2,
+          "connection": 1
+        },
+        "used_by": [
+          "object_8",
+          "object_34",
+          "object_1",
+          "object_40"
+        ]
+      },
+      {
+        "object_key": "object_36",
+        "name": "Category Values",
+        "role": "reference",
+        "record_count": 7,
+        "field_count": 2,
+        "is_user_object": false,
+        "centrality_score": 0.106,
+        "field_types": {
+          "connection": 1,
+          "short_text": 1
+        },
+        "used_by": [
+          "object_37",
+          "object_37"
+        ]
+      },
+      {
+        "object_key": "object_39",
+        "name": "Course Equivalency",
+        "role": "reference",
+        "record_count": 1,
+        "field_count": 9,
+        "is_user_object": false,
+        "centrality_score": 0.133,
+        "field_types": {
+          "auto_increment": 1,
+          "connection": 3,
+          "date_time": 1,
+          "count": 2,
+          "multiple_choice": 1,
+          "short_text": 1
+        },
+        "used_by": [
+          "object_41"
+        ]
+      },
+      {
+        "object_key": "object_40",
+        "name": "Approval Responsibility",
+        "role": "reference",
+        "record_count": 3,
+        "field_count": 10,
+        "is_user_object": false,
+        "centrality_score": 0.159,
+        "field_types": {
+          "connection": 4,
+          "rich_text": 1,
+          "concatenation": 4,
+          "short_text": 1
+        },
+        "used_by": [
+          "object_41"
+        ]
+      },
+      {
+        "object_key": "object_41",
+        "name": "Approval Decisions",
+        "role": "reference",
+        "record_count": 1,
+        "field_count": 6,
+        "is_user_object": false,
+        "centrality_score": 0.106,
+        "field_types": {
+          "connection": 2,
+          "multiple_choice": 1,
+          "date_time": 1,
+          "paragraph_text": 1,
+          "concatenation": 1
+        },
+        "used_by": [
+          "object_39"
+        ]
+      },
+      {
+        "object_key": "object_23",
+        "name": "Notes",
+        "role": "reference",
+        "record_count": 0,
+        "field_count": 13,
+        "is_user_object": false,
+        "centrality_score": 0.191,
+        "field_types": {
+          "connection": 6,
+          "short_text": 4,
+          "multiple_choice": 1,
+          "date_time": 1,
+          "boolean": 1
+        },
+        "used_by": []
+      }
+    ],
+    "supporting_entities": [
+      {
+        "object_key": "object_11",
+        "name": "Program Types",
+        "role": "supporting",
+        "record_count": 0,
+        "field_count": 1,
+        "is_user_object": false,
+        "centrality_score": 0.064,
+        "field_types": {
+          "short_text": 1
+        }
+      },
+      {
+        "object_key": "object_12",
+        "name": "Providers",
+        "role": "supporting",
+        "record_count": 0,
+        "field_count": 3,
+        "is_user_object": false,
+        "centrality_score": 0.036,
+        "field_types": {
+          "short_text": 1,
+          "connection": 1,
+          "link": 1
+        }
+      },
+      {
+        "object_key": "object_38",
+        "name": "Host Course",
+        "role": "supporting",
+        "record_count": 1,
+        "field_count": 6,
+        "is_user_object": false,
+        "centrality_score": 0.064,
+        "field_types": {
+          "short_text": 5,
+          "connection": 1
+        }
+      },
+      {
+        "object_key": "object_35",
+        "name": "Category",
+        "role": "supporting",
+        "record_count": 2,
+        "field_count": 1,
+        "is_user_object": false,
+        "centrality_score": 0.032,
+        "field_types": {
+          "short_text": 1
+        }
+      },
+      {
+        "object_key": "object_37",
+        "name": "Study Abroad Program",
+        "role": "supporting",
+        "record_count": 1,
+        "field_count": 3,
+        "is_user_object": false,
+        "centrality_score": 0.069,
+        "field_types": {
+          "short_text": 1,
+          "connection": 2
+        }
+      }
+    ]
+  },
+  "relationship_map": {
+    "connection_graph": {
+      "nodes": [
+        "object_3",
+        "object_7",
+        "object_8",
+        "object_20",
+        "object_29",
+        "object_30",
+        "object_34",
+        "object_1",
+        "object_2",
+        "object_5",
+        "object_11",
+        "object_12",
+        "object_23",
+        "object_31",
+        "object_32",
+        "object_33",
+        "object_38",
+        "object_35",
+        "object_36",
+        "object_37",
+        "object_39",
+        "object_40",
+        "object_41"
+      ],
+      "edges": [
+        {
+          "from": "object_3",
+          "from_name": "Accounts",
+          "to": "object_3",
+          "to_name": "Accounts",
+          "via": "field_548",
+          "connection_name": "Primary Department (Account)",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_3",
+          "from_name": "Accounts",
+          "to": "object_3",
+          "to_name": "Accounts",
+          "via": "field_543",
+          "connection_name": "Secondary Reviewer (Account)",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_3",
+          "from_name": "Accounts",
+          "to": "object_2",
+          "to_name": "Programs",
+          "via": "field_448",
+          "connection_name": "My International Program",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_3",
+          "from_name": "Accounts",
+          "to": "object_3",
+          "to_name": "Accounts",
+          "via": "field_528",
+          "connection_name": "Added by",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_3",
+          "from_name": "Accounts",
+          "to": "object_3",
+          "to_name": "Accounts",
+          "via": "field_529",
+          "connection_name": "Updated by",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_3",
+          "from_name": "Accounts",
+          "to": "object_20",
+          "to_name": "Advising",
+          "via": "field_581",
+          "connection_name": "Dean Connection",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_3",
+          "from_name": "Accounts",
+          "to": "object_31",
+          "to_name": "Institution",
+          "via": "field_620",
+          "connection_name": "Institution",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_8",
+          "from_name": "Approver",
+          "to": "object_33",
+          "to_name": "Department/Program",
+          "via": "field_623",
+          "connection_name": "Departmental Authority for",
+          "type": "many_to_many"
+        },
+        {
+          "from": "object_8",
+          "from_name": "Approver",
+          "to": "object_32",
+          "to_name": "College/School",
+          "via": "field_624",
+          "connection_name": "College Approval For",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_34",
+          "from_name": "Student",
+          "to": "object_32",
+          "to_name": "College/School",
+          "via": "field_618",
+          "connection_name": "College/School",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_34",
+          "from_name": "Student",
+          "to": "object_33",
+          "to_name": "Department/Program",
+          "via": "field_619",
+          "connection_name": "Department/Program",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_1",
+          "from_name": "Courses",
+          "to": "object_3",
+          "to_name": "Accounts",
+          "via": "field_306",
+          "connection_name": "Student Name (Account)",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_1",
+          "from_name": "Courses",
+          "to": "object_3",
+          "to_name": "Accounts",
+          "via": "field_468",
+          "connection_name": "Reviewed by (Courses)",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_1",
+          "from_name": "Courses",
+          "to": "object_2",
+          "to_name": "Programs",
+          "via": "field_39",
+          "connection_name": "Program",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_1",
+          "from_name": "Courses",
+          "to": "object_7",
+          "to_name": "Study Abroad",
+          "via": "field_536",
+          "connection_name": "Updated by",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_1",
+          "from_name": "Courses",
+          "to": "object_31",
+          "to_name": "Institution",
+          "via": "field_669",
+          "connection_name": "Institution",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_1",
+          "from_name": "Courses",
+          "to": "object_32",
+          "to_name": "College/School",
+          "via": "field_670",
+          "connection_name": "College/School",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_1",
+          "from_name": "Courses",
+          "to": "object_33",
+          "to_name": "Department/Program",
+          "via": "field_671",
+          "connection_name": "Department/Program",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_2",
+          "from_name": "Programs",
+          "to": "object_11",
+          "to_name": "Program Types",
+          "via": "field_148",
+          "connection_name": "Program Type",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_5",
+          "from_name": "My Courses",
+          "to": "object_3",
+          "to_name": "Accounts",
+          "via": "field_307",
+          "connection_name": "Student Name (Account)",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_5",
+          "from_name": "My Courses",
+          "to": "object_2",
+          "to_name": "Programs",
+          "via": "field_66",
+          "connection_name": "Programs",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_5",
+          "from_name": "My Courses",
+          "to": "object_3",
+          "to_name": "Accounts",
+          "via": "field_539",
+          "connection_name": "Reviewed by (My Courses)",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_5",
+          "from_name": "My Courses",
+          "to": "object_3",
+          "to_name": "Accounts",
+          "via": "field_541",
+          "connection_name": "Academic Advisor (My Courses)",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_5",
+          "from_name": "My Courses",
+          "to": "object_1",
+          "to_name": "Courses",
+          "via": "field_67",
+          "connection_name": "Courses",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_12",
+          "from_name": "Providers",
+          "to": "object_11",
+          "to_name": "Program Types",
+          "via": "field_151",
+          "connection_name": "Program Type",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_23",
+          "from_name": "Notes",
+          "to": "object_3",
+          "to_name": "Accounts",
+          "via": "field_369",
+          "connection_name": "Student (Account)",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_23",
+          "from_name": "Notes",
+          "to": "object_3",
+          "to_name": "Accounts",
+          "via": "field_370",
+          "connection_name": "Note by (Account)",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_23",
+          "from_name": "Notes",
+          "to": "object_5",
+          "to_name": "My Courses",
+          "via": "field_384",
+          "connection_name": "My Course",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_23",
+          "from_name": "Notes",
+          "to": "object_1",
+          "to_name": "Courses",
+          "via": "field_383",
+          "connection_name": "Course",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_23",
+          "from_name": "Notes",
+          "to": "object_8",
+          "to_name": "Approver",
+          "via": "field_391",
+          "connection_name": "Department Chair",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_23",
+          "from_name": "Notes",
+          "to": "object_20",
+          "to_name": "Advising",
+          "via": "field_392",
+          "connection_name": "Faculty Advisor",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_32",
+          "from_name": "College/School",
+          "to": "object_31",
+          "to_name": "Institution",
+          "via": "field_609",
+          "connection_name": "Institution",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_33",
+          "from_name": "Department/Program",
+          "to": "object_32",
+          "to_name": "College/School",
+          "via": "field_621",
+          "connection_name": "College/School",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_38",
+          "from_name": "Host Course",
+          "to": "object_2",
+          "to_name": "Programs",
+          "via": "field_636",
+          "connection_name": "Host (Program)",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_36",
+          "from_name": "Category Values",
+          "to": "object_35",
+          "to_name": "Category",
+          "via": "field_627",
+          "connection_name": "Category",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_37",
+          "from_name": "Study Abroad Program",
+          "to": "object_36",
+          "to_name": "Category Values",
+          "via": "field_630",
+          "connection_name": "Term",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_37",
+          "from_name": "Study Abroad Program",
+          "to": "object_36",
+          "to_name": "Category Values",
+          "via": "field_631",
+          "connection_name": "Country",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_39",
+          "from_name": "Course Equivalency",
+          "to": "object_1",
+          "to_name": "Courses",
+          "via": "field_651",
+          "connection_name": "Course",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_39",
+          "from_name": "Course Equivalency",
+          "to": "object_38",
+          "to_name": "Host Course",
+          "via": "field_652",
+          "connection_name": "Host Course",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_39",
+          "from_name": "Course Equivalency",
+          "to": "object_41",
+          "to_name": "Approval Decisions",
+          "via": "field_654",
+          "connection_name": "Approval Decisions",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_40",
+          "from_name": "Approval Responsibility",
+          "to": "object_8",
+          "to_name": "Approver",
+          "via": "field_640",
+          "connection_name": "Approver",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_40",
+          "from_name": "Approval Responsibility",
+          "to": "object_31",
+          "to_name": "Institution",
+          "via": "field_641",
+          "connection_name": "Institution",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_40",
+          "from_name": "Approval Responsibility",
+          "to": "object_32",
+          "to_name": "College/School",
+          "via": "field_642",
+          "connection_name": "College/School",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_40",
+          "from_name": "Approval Responsibility",
+          "to": "object_33",
+          "to_name": "Department/Program",
+          "via": "field_643",
+          "connection_name": "Department/Program",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_41",
+          "from_name": "Approval Decisions",
+          "to": "object_39",
+          "to_name": "Course Equivalency",
+          "via": "field_645",
+          "connection_name": "Course Equivalency",
+          "type": "one_to_many"
+        },
+        {
+          "from": "object_41",
+          "from_name": "Approval Decisions",
+          "to": "object_40",
+          "to_name": "Approval Responsibility",
+          "via": "field_646",
+          "connection_name": "Approval Responsibility",
+          "type": "one_to_many"
+        }
+      ],
+      "total_connections": 46
+    },
+    "hub_objects": [
+      {
+        "object": "Accounts",
+        "object_key": "object_3",
+        "inbound_connections": 7,
+        "outbound_connections": 7,
+        "total_connections": 14,
+        "interpretation": "Core hub - high bidirectional connectivity"
+      },
+      {
+        "object": "Courses",
+        "object_key": "object_1",
+        "inbound_connections": 3,
+        "outbound_connections": 7,
+        "total_connections": 10,
+        "interpretation": "Aggregator - depends on many objects"
+      },
+      {
+        "object": "My Courses",
+        "object_key": "object_5",
+        "inbound_connections": 1,
+        "outbound_connections": 5,
+        "total_connections": 6,
+        "interpretation": "Aggregator - depends on many objects"
+      },
+      {
+        "object": "Notes",
+        "object_key": "object_23",
+        "inbound_connections": 0,
+        "outbound_connections": 6,
+        "total_connections": 6,
+        "interpretation": "Aggregator - depends on many objects"
+      },
+      {
+        "object": "College/School",
+        "object_key": "object_32",
+        "inbound_connections": 5,
+        "outbound_connections": 1,
+        "total_connections": 6,
+        "interpretation": "Central dependency - many objects depend on this"
+      },
+      {
+        "object": "Programs",
+        "object_key": "object_2",
+        "inbound_connections": 4,
+        "outbound_connections": 1,
+        "total_connections": 5,
+        "interpretation": "Central dependency - many objects depend on this"
+      },
+      {
+        "object": "Department/Program",
+        "object_key": "object_33",
+        "inbound_connections": 4,
+        "outbound_connections": 1,
+        "total_connections": 5,
+        "interpretation": "Central dependency - many objects depend on this"
+      },
+      {
+        "object": "Approval Responsibility",
+        "object_key": "object_40",
+        "inbound_connections": 1,
+        "outbound_connections": 4,
+        "total_connections": 5,
+        "interpretation": "Aggregator - depends on many objects"
+      },
+      {
+        "object": "Approver",
+        "object_key": "object_8",
+        "inbound_connections": 2,
+        "outbound_connections": 2,
+        "total_connections": 4,
+        "interpretation": "Moderately connected"
+      },
+      {
+        "object": "Institution",
+        "object_key": "object_31",
+        "inbound_connections": 4,
+        "outbound_connections": 0,
+        "total_connections": 4,
+        "interpretation": "Central dependency - many objects depend on this"
+      },
+      {
+        "object": "Course Equivalency",
+        "object_key": "object_39",
+        "inbound_connections": 1,
+        "outbound_connections": 3,
+        "total_connections": 4,
+        "interpretation": "Aggregator - depends on many objects"
+      },
+      {
+        "object": "Category Values",
+        "object_key": "object_36",
+        "inbound_connections": 2,
+        "outbound_connections": 1,
+        "total_connections": 3,
+        "interpretation": "Moderately connected"
+      },
+      {
+        "object": "Approval Decisions",
+        "object_key": "object_41",
+        "inbound_connections": 1,
+        "outbound_connections": 2,
+        "total_connections": 3,
+        "interpretation": "Moderately connected"
+      }
+    ],
+    "dependency_clusters": [
+      {
+        "objects": [
+          "Institution",
+          "Courses",
+          "Accounts",
+          "College/School",
+          "Advising",
+          "Programs",
+          "My Courses",
+          "Notes"
+        ],
+        "object_keys": [
+          "object_31",
+          "object_1",
+          "object_3",
+          "object_32",
+          "object_20",
+          "object_2",
+          "object_5",
+          "object_23"
+        ],
+        "internal_connections": 15,
+        "external_connections": 11,
+        "cohesion": "high"
+      },
+      {
+        "objects": [
+          "Department/Program",
+          "Student",
+          "Approval Responsibility",
+          "Approver"
+        ],
+        "object_keys": [
+          "object_33",
+          "object_34",
+          "object_40",
+          "object_8"
+        ],
+        "internal_connections": 4,
+        "external_connections": 8,
+        "cohesion": "medium"
+      },
+      {
+        "objects": [
+          "Providers",
+          "Program Types"
+        ],
+        "object_keys": [
+          "object_12",
+          "object_11"
+        ],
+        "internal_connections": 1,
+        "external_connections": 1,
+        "cohesion": "medium"
+      },
+      {
+        "objects": [
+          "Host Course",
+          "Course Equivalency"
+        ],
+        "object_keys": [
+          "object_38",
+          "object_39"
+        ],
+        "internal_connections": 1,
+        "external_connections": 3,
+        "cohesion": "low"
+      },
+      {
+        "objects": [
+          "Category",
+          "Study Abroad Program",
+          "Category Values"
+        ],
+        "object_keys": [
+          "object_35",
+          "object_37",
+          "object_36"
+        ],
+        "internal_connections": 2,
+        "external_connections": 0,
+        "cohesion": "high"
+      }
+    ]
+  },
+  "data_patterns": {
+    "scoping_analysis": {
+      "has_multi_tenancy": false,
+      "has_user_scoping": true,
+      "has_date_scoping": true,
+      "scoping_fields_found": [
+        {
+          "field": "Accounts.Primary Department (Account)",
+          "usage": "user-level access"
+        },
+        {
+          "field": "Accounts.Secondary Reviewer (Account)",
+          "usage": "user-level access"
+        },
+        {
+          "field": "Accounts.Added by",
+          "usage": "user-level access"
+        },
+        {
+          "field": "Accounts.Updated by",
+          "usage": "user-level access"
+        },
+        {
+          "field": "Accounts.Dean Connection",
+          "usage": "user-level access"
+        },
+        {
+          "field": "Courses.Student Name (Account)",
+          "usage": "user-level access"
+        },
+        {
+          "field": "Courses.Reviewed by (Courses)",
+          "usage": "user-level access"
+        },
+        {
+          "field": "Courses.Updated by",
+          "usage": "user-level access"
+        },
+        {
+          "field": "My Courses.Student Name (Account)",
+          "usage": "user-level access"
+        },
+        {
+          "field": "My Courses.Reviewed by (My Courses)",
+          "usage": "user-level access"
+        },
+        {
+          "field": "My Courses.Academic Advisor (My Courses)",
+          "usage": "user-level access"
+        },
+        {
+          "field": "Notes.Student (Account)",
+          "usage": "user-level access"
+        },
+        {
+          "field": "Notes.Note by (Account)",
+          "usage": "user-level access"
+        },
+        {
+          "field": "Notes.Department Chair",
+          "usage": "user-level access"
+        },
+        {
+          "field": "Notes.Faculty Advisor",
+          "usage": "user-level access"
+        },
+        {
+          "field": "Approval Responsibility.Approver",
+          "usage": "user-level access"
+        }
+      ],
+      "missing_scoping": [
+        "No organizational/entity level scoping detected"
+      ]
+    },
+    "temporal_objects": [
+      {
+        "object": "Accounts",
+        "object_key": "object_3",
+        "has_created_date": false,
+        "has_modified_date": false,
+        "has_status_field": true,
+        "lifecycle_pattern": "stateful_entity"
+      },
+      {
+        "object": "Study Abroad",
+        "object_key": "object_7",
+        "has_created_date": false,
+        "has_modified_date": false,
+        "has_status_field": true,
+        "lifecycle_pattern": "stateful_entity"
+      },
+      {
+        "object": "Approver",
+        "object_key": "object_8",
+        "has_created_date": false,
+        "has_modified_date": false,
+        "has_status_field": true,
+        "lifecycle_pattern": "stateful_entity"
+      },
+      {
+        "object": "Advising",
+        "object_key": "object_20",
+        "has_created_date": false,
+        "has_modified_date": false,
+        "has_status_field": true,
+        "lifecycle_pattern": "stateful_entity"
+      },
+      {
+        "object": "Registrar",
+        "object_key": "object_29",
+        "has_created_date": false,
+        "has_modified_date": false,
+        "has_status_field": true,
+        "lifecycle_pattern": "stateful_entity"
+      },
+      {
+        "object": "Degree Certifier",
+        "object_key": "object_30",
+        "has_created_date": false,
+        "has_modified_date": false,
+        "has_status_field": true,
+        "lifecycle_pattern": "stateful_entity"
+      },
+      {
+        "object": "Student",
+        "object_key": "object_34",
+        "has_created_date": false,
+        "has_modified_date": false,
+        "has_status_field": true,
+        "lifecycle_pattern": "stateful_entity"
+      },
+      {
+        "object": "Courses",
+        "object_key": "object_1",
+        "has_created_date": false,
+        "has_modified_date": false,
+        "has_status_field": true,
+        "lifecycle_pattern": "stateful_entity"
+      },
+      {
+        "object": "Programs",
+        "object_key": "object_2",
+        "has_created_date": false,
+        "has_modified_date": false,
+        "has_status_field": true,
+        "lifecycle_pattern": "stateful_entity"
+      },
+      {
+        "object": "My Courses",
+        "object_key": "object_5",
+        "has_created_date": false,
+        "has_modified_date": false,
+        "has_status_field": true,
+        "lifecycle_pattern": "stateful_entity"
+      },
+      {
+        "object": "Course Equivalency",
+        "object_key": "object_39",
+        "has_created_date": false,
+        "has_modified_date": false,
+        "has_status_field": true,
+        "lifecycle_pattern": "stateful_entity"
+      },
+      {
+        "object": "Approval Decisions",
+        "object_key": "object_41",
+        "has_created_date": false,
+        "has_modified_date": false,
+        "has_status_field": true,
+        "lifecycle_pattern": "stateful_entity"
+      }
+    ],
+    "calculation_complexity": {
+      "total_formula_fields": 29,
+      "objects_with_formulas": 7,
+      "max_formula_chain_depth": 3,
+      "interpretation": "Moderate formula dependencies"
+    }
+  },
+  "ui_architecture": {
+    "scene_patterns": {
+      "authenticated_scenes": 1,
+      "public_scenes": 96,
+      "total_scenes": 97
+    },
+    "view_patterns": {
+      "login": 22,
+      "registration": 6,
+      "table": 35,
+      "details": 55,
+      "rich_text": 33,
+      "menu": 25,
+      "form": 43,
+      "search": 1
+    },
+    "navigation_depth": {
+      "max_depth": 2,
+      "avg_depth": 1.8,
+      "interpretation": "Simple hierarchy"
+    }
+  },
+  "access_patterns": {
+    "authentication_model": "user_based",
+    "user_objects": [
+      "Accounts",
+      "Study Abroad",
+      "Approver",
+      "Advising",
+      "Registrar",
+      "Degree Certifier",
+      "Student"
+    ],
+    "role_usage": {
+      "scenes_with_role_restrictions": 55,
+      "interpretation": "Role-based access control in use"
+    }
+  },
+  "technical_debt_indicators": {
+    "orphaned_fields": 112,
+    "orphaned_objects": 2,
+    "high_fan_out_objects": [
+      {
+        "object": "Accounts",
+        "object_key": "object_3"
+      },
+      {
+        "object": "Courses",
+        "object_key": "object_1"
+      },
+      {
+        "object": "My Courses",
+        "object_key": "object_5"
+      },
+      {
+        "object": "Notes",
+        "object_key": "object_23"
+      }
+    ],
+    "bottleneck_objects": [
+      {
+        "object": "Accounts",
+        "object_key": "object_3"
+      },
+      {
+        "object": "College/School",
+        "object_key": "object_32"
+      }
+    ],
+    "interpretation": "Some complexity hotspots"
+  },
+  "extensibility_assessment": {
+    "modularity_score": 0.83,
+    "tight_coupling_pairs": [
+      {
+        "obj1": "Accounts",
+        "obj1_key": "object_3",
+        "obj2": "Accounts",
+        "obj2_key": "object_3",
+        "coupling": "high"
+      },
+      {
+        "obj1": "Accounts",
+        "obj1_key": "object_3",
+        "obj2": "Accounts",
+        "obj2_key": "object_3",
+        "coupling": "high"
+      },
+      {
+        "obj1": "Accounts",
+        "obj1_key": "object_3",
+        "obj2": "Accounts",
+        "obj2_key": "object_3",
+        "coupling": "high"
+      },
+      {
+        "obj1": "Accounts",
+        "obj1_key": "object_3",
+        "obj2": "Accounts",
+        "obj2_key": "object_3",
+        "coupling": "high"
+      },
+      {
+        "obj1": "Courses",
+        "obj1_key": "object_1",
+        "obj2": "Accounts",
+        "obj2_key": "object_3",
+        "coupling": "high"
+      }
+    ],
+    "architectural_style": "modular",
+    "interpretation": "Highly modular - easy to extend"
+  }
+}
