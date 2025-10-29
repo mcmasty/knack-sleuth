@@ -217,6 +217,8 @@ knack-sleuth impact-analysis field_116 --app-id YOUR_APP_ID --output impact.json
 
 Generate a comprehensive architectural summary of your entire Knack application:
 
+See [docs/AI_USE_CASE_MULTI_TENANT.md](docs/AI_USE_CASE_MULTI_TENANT.md) for context on the problem that motivated this experimental feature.
+
 ```bash
 # Using a local JSON file
 knack-sleuth app-summary path/to/knack_export.json
