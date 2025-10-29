@@ -52,17 +52,10 @@ def load_app_metadata(
     else:
         # Load from API (with caching)
         final_app_id = app_id or settings.knack_app_id
-        final_api_key = api_key or settings.knack_api_key
         
         if not final_app_id:
             console.print(
                 "[red]Error:[/red] App ID is required. Provide via --app-id or KNACK_APP_ID environment variable."
-            )
-            raise typer.Exit(1)
-        
-        if not final_api_key:
-            console.print(
-                "[red]Error:[/red] API key is required. Provide via --api-key or KNACK_API_KEY environment variable."
             )
             raise typer.Exit(1)
         
@@ -102,7 +95,7 @@ def load_app_metadata(
                 cached_file = None  # Force API fetch
         
         if not cached_file:
-            # Fetch from Knack API
+            # Fetch from Knack API (metadata endpoint doesn't require API key)
             api_url = f"https://api.knack.com/v1/applications/{final_app_id}"
             
             try:
@@ -114,7 +107,6 @@ def load_app_metadata(
                         api_url,
                         headers={
                             "X-Knack-Application-Id": final_app_id,
-                            "X-Knack-REST-API-Key": final_api_key,
                         },
                         timeout=30.0,
                     )
