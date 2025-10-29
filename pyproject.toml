@@ -1,6 +1,6 @@
 [project]
 name = "knack-sleuth"
-version = "0.1.10"
+version = "0.1.11"
 description = "Investigate your Knack.app's metadata to find where data objects and fields are used throughout your application"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -25,7 +25,7 @@ dev = [
 
 
 [tool.bumpversion]
-current_version = "0.1.10"
+current_version = "0.1.11"
 commit = true
 tag = true
 
