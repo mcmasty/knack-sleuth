@@ -768,6 +768,11 @@ def impact_analysis(
             )
             output_content = json.dumps(analysis, indent=2)
     elif output_format == "markdown":
+        # Collect unique scenes for builder URLs
+        settings = Settings()
+        account_slug = app_export.application.account.get('slug', app_export.application.slug)
+        scenes_to_review = set(analysis['cascade_impacts']['affected_scenes'])
+        
         # Generate markdown summary
         md_lines = [
             f"# Impact Analysis: {analysis['target']['name']}",
@@ -850,6 +855,36 @@ def impact_analysis(
             f"- **Total Direct Impacts:** {analysis['metadata']['total_direct_impacts']}",
             f"- **Total Cascade Impacts:** {analysis['metadata']['total_cascade_impacts']}",
         ])
+        
+        # Add Builder Pages to Review section
+        if scenes_to_review:
+            md_lines.extend([
+                "",
+                "## Builder Pages to Review",
+                "",
+                f"**{len(scenes_to_review)} scenes affected**",
+                "",
+            ])
+            
+            # Build URLs based on builder version
+            if settings.knack_next_gen_builder:
+                # Next-Gen builder
+                for scene_key in sorted(scenes_to_review):
+                    url = f"{KNACK_NG_BUILDER_BASE_URL}/{account_slug}/portal/pages/{scene_key}"
+                    scene_name = next(
+                        (s['scene_name'] for s in analysis['direct_impacts']['scenes'] if s['scene_key'] == scene_key),
+                        scene_key
+                    )
+                    md_lines.append(f"- [{scene_name}]({url})")
+            else:
+                # Classic builder
+                for scene_key in sorted(scenes_to_review):
+                    url = f"{KNACK_BUILDER_BASE_URL}/{account_slug}/portal/pages/{scene_key}"
+                    scene_name = next(
+                        (s['scene_name'] for s in analysis['direct_impacts']['scenes'] if s['scene_key'] == scene_key),
+                        scene_key
+                    )
+                    md_lines.append(f"- [{scene_name}]({url})")
 
         output_content = "\n".join(md_lines)
     else:
