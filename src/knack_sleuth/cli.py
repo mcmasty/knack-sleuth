@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta
 import glob
+import json
 
 import typer
 from rich.console import Console
@@ -652,6 +653,68 @@ def download_metadata(
         
     except Exception as e:
         console.print(f"[red]Error:[/red] Failed to save file: {e}")
+        raise typer.Exit(1)
+
+
+@cli.command(name="export-schema")
+def export_schema(
+    output_file: Optional[Path] = typer.Argument(
+        None, help="Output file path (default: knack_metadata_schema.json)"
+    ),
+    mode: str = typer.Option(
+        "validation", "--mode", help="Schema generation mode: validation or serialization"
+    ),
+):
+    """
+    Export the JSON schema for KnackAppMetadata model.
+
+    This generates a JSON schema document that describes the structure
+    of Knack application metadata. Useful for:
+    - API documentation
+    - Validation in other tools
+    - IDE autocomplete for metadata JSON files
+    - Integration with schema-aware editors
+    
+    Modes:
+    - validation: Schema optimized for validating incoming data (default)
+    - serialization: Schema optimized for serialized output
+    
+    Examples:
+        knack-sleuth export-schema                           # Uses default filename
+        knack-sleuth export-schema my_schema.json            # Custom filename
+        knack-sleuth export-schema --mode serialization      # Serialization mode
+    """
+    # Set default output path
+    if not output_file:
+        output_file = Path("knack_metadata_schema.json")
+    
+    # Generate schema based on mode
+    try:
+        if mode == "validation":
+            schema = KnackAppMetadata.model_json_schema(mode="validation")
+        elif mode == "serialization":
+            schema = KnackAppMetadata.model_json_schema(mode="serialization")
+        else:
+            console.print(f"[red]Error:[/red] Unknown mode '{mode}'. Use 'validation' or 'serialization'.")
+            raise typer.Exit(1)
+        
+        # Save schema to file
+        with output_file.open('w') as f:
+            json.dump(schema, f, indent=2)
+        
+        file_size = output_file.stat().st_size
+        file_size_kb = file_size / 1024
+        
+        console.print()
+        console.print(f"[green]✓[/green] JSON schema exported to [bold]{output_file}[/bold]")
+        console.print(f"[dim]  Mode: {mode}[/dim]")
+        console.print(f"[dim]  File size: {file_size_kb:.1f} KB[/dim]")
+        console.print()
+        console.print("[dim]Use this schema for API documentation, validation, or IDE integration[/dim]")
+        console.print()
+        
+    except Exception as e:
+        console.print(f"[red]Error:[/red] Failed to generate or save schema: {e}")
         raise typer.Exit(1)
 
 
