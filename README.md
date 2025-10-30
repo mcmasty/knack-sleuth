@@ -303,7 +303,7 @@ knack-sleuth impact-analysis field_116 --output impact.json
 
 Generate a comprehensive architectural summary of your entire Knack application:
 
-See [docs/AI_USE_CASE_HYPOTHETICAL.md](docs/AI_USE_CASE_HYPOTHETICAL.md) for context on the problem that motivated this experimental feature.
+
 
 ```bash
 # Default JSON output to stdout
@@ -336,6 +336,9 @@ knack-sleuth app-summary --output summary.json
 - AI-assisted architecture discussions and recommendations
 - Documentation generation
 - Complexity assessment for onboarding new developers
+
+See [docs/AI_USE_CASE_HYPOTHETICAL.md](docs/AI_USE_CASE_HYPOTHETICAL.md) for context on the problem that motivated this experimental feature.
+
 
 ---
 
