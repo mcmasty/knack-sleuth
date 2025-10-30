@@ -22,6 +22,8 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "bump-my-version>=1.2.4",
+    "pytest>=8.4.2",
+    "pytest-mock>=3.15.1",
 ]
 
 
@@ -45,3 +47,15 @@ replace = '__version__ = "{new_version}"'
 Homepage = "https://github.com/mcmasty/knack-sleuth"
 Repository = "https://github.com/mcmasty/knack-sleuth"
 Issues = "https://github.com/mcmasty/knack-sleuth/issues"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+]

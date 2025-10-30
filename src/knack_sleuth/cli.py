@@ -1,10 +1,8 @@
-import json
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta
 import glob
 
-import httpx
 import typer
 from rich.console import Console
 from rich.panel import Panel
@@ -14,6 +12,7 @@ from knack_sleuth import __version__
 from knack_sleuth.models import KnackAppMetadata
 from knack_sleuth.sleuth import KnackSleuth
 from knack_sleuth.config import Settings, KNACK_BUILDER_BASE_URL, KNACK_NG_BUILDER_BASE_URL
+from knack_sleuth.core import load_app_metadata as core_load_metadata
 
 cli = typer.Typer()
 console = Console()
@@ -33,45 +32,19 @@ def load_app_metadata(
     refresh: bool = False,
 ) -> KnackAppMetadata:
     """
-    Load Knack application metadata from file or API.
+    CLI wrapper for loading Knack application metadata.
     
-    Handles caching automatically when using API.
+    Adds user-friendly console output and error handling on top of core.load_app_metadata.
+    For library usage, import from knack_sleuth.core instead.
     """
     settings = Settings()
     
-    # Determine source: file or HTTP
-    if file_path:
-        # Load from file
-        if not file_path.exists():
-            console.print(f"[red]Error:[/red] File not found: {file_path}")
-            raise typer.Exit(1)
-        
-        try:
-            with file_path.open() as f:
-                data = json.load(f)
-            return KnackAppMetadata(**data)
-        except json.JSONDecodeError as e:
-            console.print(f"[red]Error:[/red] Invalid JSON: {e}")
-            raise typer.Exit(1)
-        except Exception as e:
-            console.print(f"[red]Error:[/red] Failed to parse metadata: {e}")
-            raise typer.Exit(1)
-    else:
-        # Load from API (with caching)
+    # Show cache status messages for API loads
+    if not file_path:
         final_app_id = app_id or settings.knack_app_id
         
-        if not final_app_id:
-            console.print(
-                "[red]Error:[/red] App ID is required. Provide via --app-id or KNACK_APP_ID environment variable."
-            )
-            raise typer.Exit(1)
-        
-        # Check for cached file
-        cached_file = None
-        cache_age_hours = None
-        
-        if not refresh:
-            # Look for existing cache files for this app
+        if final_app_id and not refresh:
+            # Check for cached file to show status message
             cache_pattern = f"{final_app_id}_app_metadata_*.json"
             cache_files = sorted(glob.glob(cache_pattern), reverse=True)
             
@@ -81,67 +54,97 @@ def load_app_metadata(
                 cache_age = datetime.now() - cache_modified
                 cache_age_hours = cache_age.total_seconds() / 3600
                 
-                # Use cache if less than 24 hours old
+                # Show message if cache will be used
                 if cache_age < timedelta(hours=24):
-                    cached_file = latest_cache
                     console.print(
                         f"[dim]Using cached data from {latest_cache.name} "
                         f"(age: {cache_age_hours:.1f}h)[/dim]"
                     )
         
-        # Load from cache or fetch from API
-        if cached_file:
-            try:
-                with cached_file.open() as f:
-                    data = json.load(f)
-                return KnackAppMetadata(**data)
-            except Exception as e:
-                console.print(
-                    f"[yellow]Warning:[/yellow] Failed to load cache: {e}. Fetching from API..."
-                )
-                cached_file = None  # Force API fetch
-        
-        if not cached_file:
-            # Fetch from Knack API (metadata endpoint doesn't require API key)
-            api_url = f"https://api.knack.com/v1/applications/{final_app_id}"
-            
-            try:
-                if refresh:
-                    console.print("[cyan]Forcing refresh from API...[/cyan]")
+        if refresh:
+            console.print("[cyan]Forcing refresh from API...[/cyan]")
+    
+    # Call core function with error handling and user feedback
+    try:
+        if not file_path and not refresh:
+            # Show status for API fetch
+            final_app_id = app_id or settings.knack_app_id
+            if final_app_id:
+                cache_pattern = f"{final_app_id}_app_metadata_*.json"
+                cache_files = sorted(glob.glob(cache_pattern), reverse=True)
                 
-                with console.status("[cyan]Fetching metadata from Knack API..."):
-                    response = httpx.get(
-                        api_url,
-                        headers={
-                            "X-Knack-Application-Id": final_app_id,
-                        },
-                        timeout=30.0,
+                # Only show fetching status if not using cache
+                if not cache_files or refresh:
+                    with console.status("[cyan]Fetching metadata from Knack API..."):
+                        result = core_load_metadata(
+                            file_path=file_path,
+                            app_id=app_id,
+                            api_key=api_key,
+                            refresh=refresh,
+                        )
+                else:
+                    result = core_load_metadata(
+                        file_path=file_path,
+                        app_id=app_id,
+                        api_key=api_key,
+                        refresh=refresh,
                     )
-                    response.raise_for_status()
-                    data = response.json()
-                
-                app_export = KnackAppMetadata(**data)
-                
-                # Save to cache file
-                timestamp = datetime.now().strftime("%Y%m%d%H%M")
-                cache_filename = f"{final_app_id}_app_metadata_{timestamp}.json"
-                cache_path = Path(cache_filename)
-                
-                with cache_path.open('w') as f:
-                    json.dump(data, f, indent=2)
-                
-                console.print(f"[dim]Cached metadata to {cache_filename}[/dim]")
-                return app_export
-                
-            except httpx.HTTPStatusError as e:
-                console.print(f"[red]Error:[/red] HTTP {e.response.status_code}: {e.response.text}")
-                raise typer.Exit(1)
-            except httpx.RequestError as e:
-                console.print(f"[red]Error:[/red] Failed to connect to Knack API: {e}")
-                raise typer.Exit(1)
-            except Exception as e:
-                console.print(f"[red]Error:[/red] Failed to parse API response: {e}")
-                raise typer.Exit(1)
+            else:
+                result = core_load_metadata(
+                    file_path=file_path,
+                    app_id=app_id,
+                    api_key=api_key,
+                    refresh=refresh,
+                )
+        else:
+            if not file_path:
+                with console.status("[cyan]Fetching metadata from Knack API..."):
+                    result = core_load_metadata(
+                        file_path=file_path,
+                        app_id=app_id,
+                        api_key=api_key,
+                        refresh=refresh,
+                    )
+            else:
+                result = core_load_metadata(
+                    file_path=file_path,
+                    app_id=app_id,
+                    api_key=api_key,
+                    refresh=refresh,
+                )
+        
+        # Show cache creation message for new API fetches
+        if not file_path:
+            final_app_id = app_id or settings.knack_app_id
+            if final_app_id:
+                # Check if a new cache file was created
+                cache_pattern = f"{final_app_id}_app_metadata_*.json"
+                cache_files = sorted(glob.glob(cache_pattern), reverse=True)
+                if cache_files:
+                    latest_cache = Path(cache_files[0])
+                    cache_modified = datetime.fromtimestamp(latest_cache.stat().st_mtime)
+                    # If cache is very recent (< 5 seconds old), we just created it
+                    if (datetime.now() - cache_modified).total_seconds() < 5:
+                        console.print(f"[dim]Cached metadata to {latest_cache.name}[/dim]")
+        
+        return result
+        
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except ValueError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except Exception as e:
+        # Handle httpx errors and other exceptions
+        import httpx
+        if isinstance(e, httpx.HTTPStatusError):
+            console.print(f"[red]Error:[/red] HTTP {e.response.status_code}: {e.response.text}")
+        elif isinstance(e, httpx.RequestError):
+            console.print(f"[red]Error:[/red] Failed to connect to Knack API: {e}")
+        else:
+            console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
 
 
 @cli.callback()

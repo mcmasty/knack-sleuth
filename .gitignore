@@ -153,6 +153,9 @@ venv.bak/
 # Warp AI instructions (may contain project-specific preferences)
 WARP.md
 
+# Agent output directory (summaries, plans, and other AI agent artifacts)
+agent_output/
+
 # Spyder project settings
 .spyderproject
 .spyproject

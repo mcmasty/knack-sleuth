@@ -2,6 +2,7 @@
 
 __version__ = "0.1.19"
 
+from knack_sleuth.core import load_app_metadata
 from knack_sleuth.models import (
     Application,
     Connection,
@@ -30,4 +31,5 @@ __all__ = [
     "Usage",
     "View",
     "ViewSource",
+    "load_app_metadata",
 ]
