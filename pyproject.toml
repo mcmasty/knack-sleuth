@@ -24,6 +24,7 @@ dev = [
     "bump-my-version>=1.2.4",
     "pytest>=8.4.2",
     "pytest-mock>=3.15.1",
+    "ruff>=0.14.2",
 ]
 
 
@@ -47,6 +48,9 @@ replace = '__version__ = "{new_version}"'
 Homepage = "https://github.com/mcmasty/knack-sleuth"
 Repository = "https://github.com/mcmasty/knack-sleuth"
 Issues = "https://github.com/mcmasty/knack-sleuth/issues"
+
+[tool.ruff]
+exclude = ["tests/*"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"

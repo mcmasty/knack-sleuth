@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 import glob
 import json
+import httpx
 
 import typer
 from rich.console import Console
@@ -40,79 +41,42 @@ def load_app_metadata(
     """
     settings = Settings()
     
-    # Show cache status messages for API loads
-    if not file_path:
-        final_app_id = app_id or settings.knack_app_id
-        
-        if final_app_id and not refresh:
-            # Check for cached file to show status message
-            cache_pattern = f"{final_app_id}_app_metadata_*.json"
-            cache_files = sorted(glob.glob(cache_pattern), reverse=True)
-            
-            if cache_files:
-                latest_cache = Path(cache_files[0])
-                cache_modified = datetime.fromtimestamp(latest_cache.stat().st_mtime)
-                cache_age = datetime.now() - cache_modified
-                cache_age_hours = cache_age.total_seconds() / 3600
-                
-                # Show message if cache will be used
-                if cache_age < timedelta(hours=24):
-                    console.print(
-                        f"[dim]Using cached data from {latest_cache.name} "
-                        f"(age: {cache_age_hours:.1f}h)[/dim]"
-                    )
-        
-        if refresh:
-            console.print("[cyan]Forcing refresh from API...[/cyan]")
-    
-    # Call core function with error handling and user feedback
     try:
-        if not file_path and not refresh:
-            # Show status for API fetch
+        # Show cache status messages for API loads
+        if not file_path:
             final_app_id = app_id or settings.knack_app_id
-            if final_app_id:
+            
+            if final_app_id and not refresh:
+                # Check for cached file to show status message
                 cache_pattern = f"{final_app_id}_app_metadata_*.json"
                 cache_files = sorted(glob.glob(cache_pattern), reverse=True)
                 
-                # Only show fetching status if not using cache
-                if not cache_files or refresh:
-                    with console.status("[cyan]Fetching metadata from Knack API..."):
-                        result = core_load_metadata(
-                            file_path=file_path,
-                            app_id=app_id,
-                            api_key=api_key,
-                            refresh=refresh,
+                if cache_files:
+                    latest_cache = Path(cache_files[0])
+                    cache_modified = datetime.fromtimestamp(latest_cache.stat().st_mtime)
+                    cache_age = datetime.now() - cache_modified
+                    cache_age_hours = cache_age.total_seconds() / 3600
+                    
+                    # Show message if cache will be used
+                    if cache_age < timedelta(hours=24):
+                        console.print(
+                            f"[dim]Using cached data from {latest_cache.name} "
+                            f"(age: {cache_age_hours:.1f}h)[/dim]"
                         )
+                    else:
+                        console.print("[cyan]Fetching metadata from Knack API...[/cyan]")
                 else:
-                    result = core_load_metadata(
-                        file_path=file_path,
-                        app_id=app_id,
-                        api_key=api_key,
-                        refresh=refresh,
-                    )
-            else:
-                result = core_load_metadata(
-                    file_path=file_path,
-                    app_id=app_id,
-                    api_key=api_key,
-                    refresh=refresh,
-                )
-        else:
-            if not file_path:
-                with console.status("[cyan]Fetching metadata from Knack API..."):
-                    result = core_load_metadata(
-                        file_path=file_path,
-                        app_id=app_id,
-                        api_key=api_key,
-                        refresh=refresh,
-                    )
-            else:
-                result = core_load_metadata(
-                    file_path=file_path,
-                    app_id=app_id,
-                    api_key=api_key,
-                    refresh=refresh,
-                )
+                    console.print("[cyan]Fetching metadata from Knack API...[/cyan]")
+            elif refresh:
+                console.print("[cyan]Forcing refresh from API...[/cyan]")
+        
+        # Call core function
+        result = core_load_metadata(
+            file_path=file_path,
+            app_id=app_id,
+            api_key=api_key,
+            refresh=refresh,
+        )
         
         # Show cache creation message for new API fetches
         if not file_path:
@@ -138,7 +102,6 @@ def load_app_metadata(
         raise typer.Exit(1)
     except Exception as e:
         # Handle httpx errors and other exceptions
-        import httpx
         if isinstance(e, httpx.HTTPStatusError):
             console.print(f"[red]Error:[/red] HTTP {e.response.status_code}: {e.response.text}")
         elif isinstance(e, httpx.RequestError):

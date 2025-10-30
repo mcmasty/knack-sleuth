@@ -60,7 +60,7 @@ def test_no_cache():
         new_cache_count = len(final_caches) - len(existing_caches)
         
         if new_cache_count > 0:
-            print(f"✓ Cache file created (as expected)")
+            print("✓ Cache file created (as expected)")
             for cache_file in final_caches:
                 if cache_file not in existing_caches:
                     print(f"  Created: {cache_file}")
