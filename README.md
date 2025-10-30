@@ -8,7 +8,7 @@ Whether you're refactoring a complex app, auditing data dependencies, or trying 
 
 ## Installation
 
-### Using uvx (Recommended)
+### Using uvx (Recommended for stand-alone tool usage)
 
 Run KnackSleuth without installation using `uvx`:
 
@@ -16,7 +16,17 @@ Run KnackSleuth without installation using `uvx`:
 uvx knack-sleuth --help
 ```
 
-### Install with uv
+### Add to Project with uv (Recommended for library usage)
+
+Add knack-sleuth as a dependency to your project:
+
+```bash
+uv add knack-sleuth
+```
+
+Then import and use it in your code as shown in the Library Usage section.
+
+### Install as Global Tool with uv
 
 Install as a tool with uv:
 
@@ -38,7 +48,9 @@ knack-sleuth --help
 
 The foundation of knack-sleuth is a generation of a Pydantic model of the Knack Application Metadata.
 
-If you clone/fork the repo you can run examples to see the model "in the wild."
+ℹ️ **Examples are not included in the installed package** — clone/fork the repo to run them from source.
+
+
 
 ```zsh
 uv run examples/parse_example.py
@@ -59,7 +71,7 @@ def main():
     with sample_file.open() as f:
         data = json.load(f)
 
-    # Parse with Pydantic models
+    # Parse with Pydantic models - returns validated Application object
     app = KnackAppMetadata(**data).application
 
 ```
@@ -74,7 +86,8 @@ uv run examples/search_example.py
 import json
 from pathlib import Path
 
-from knack_sleuth import KnackAppMetadata
+from knack_sleuth import KnackAppMetadata, KnackSleuth
+
 
 def main():
     # Load sample data
@@ -82,15 +95,15 @@ def main():
     with sample_file.open() as f:
         data = json.load(f)
 
-    # Create the search engine
+    # Parse metadata and create the search engine
     app_export = KnackAppMetadata(**data)
-    sleuth = KnackSleuth(app_export)
+    sleuth = KnackSleuth(app_export)  # Initialize search engine
 
     print_separator("KNACK SLEUTH - USAGE SEARCH DEMO")
 
-    # Example 1: Search for an object (with cascading to fields)
+    # Example 1: Search for an object by key (with cascading to fields)
     object_key = "object_12"  # Example object from test data
-    obj = sleuth.get_object_info(object_key)
+    obj = sleuth.get_object_info(object_key)  # Returns usage info for this object
 
 ```
 
