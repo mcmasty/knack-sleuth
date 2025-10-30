@@ -111,6 +111,8 @@ def main():
 You can use knack-sleuth as a library in case you wanted to integrate these models or functions into your own scripts.
 
 
+Additional examples in the `examples` directory.
+
 
 ## CLI Usage
 
