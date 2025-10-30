@@ -4,7 +4,7 @@
 
 KnackSleuth investigates your Knack app metadata to uncover where objects, fields, and connections are used throughout your application. Like a good detective, it traces every lead—from data relationships and view dependencies to hidden references in formulas and filters.
 
-Whether you're refactoring a complex app, auditing data dependencies, or trying to understand the ripple effects of a schema change, KnackSleuth does the investigative work so you don't have to.
+Whether you're refactoring a complex app, auditing data dependencies, or trying to understand the ripple effects of a schema change, KnackSleuth can fast track the investigative work.
 
 ## Installation
 
@@ -32,7 +32,74 @@ pip install knack-sleuth
 knack-sleuth --help
 ```
 
-## Usage
+
+
+## Library Usage
+
+The foundation of knack-sleuth is a generation of a Pydantic model of the Knack Application Metadata.
+
+If you clone/fork the repo you can run examples to see the model "in the wild."
+
+```zsh
+uv run examples/parse_example.py
+```
+
+which basically shows off this Pydantic model:
+
+```python
+import json
+from pathlib import Path
+
+from knack_sleuth import KnackAppMetadata
+
+
+def main():
+    # Load a Knack app export JSON file
+    sample_file = Path("tests/data/sample_knack_app_meta.json")
+    with sample_file.open() as f:
+        data = json.load(f)
+
+    # Parse with Pydantic models
+    app = KnackAppMetadata(**data).application
+
+```
+
+Similar usage available for `search-object`
+
+```zsh
+uv run examples/search_example.py
+```
+
+```python
+import json
+from pathlib import Path
+
+from knack_sleuth import KnackAppMetadata
+
+def main():
+    # Load sample data
+    sample_file = Path("tests/data/sample_knack_app_meta.json")
+    with sample_file.open() as f:
+        data = json.load(f)
+
+    # Create the search engine
+    app_export = KnackAppMetadata(**data)
+    sleuth = KnackSleuth(app_export)
+
+    print_separator("KNACK SLEUTH - USAGE SEARCH DEMO")
+
+    # Example 1: Search for an object (with cascading to fields)
+    object_key = "object_12"  # Example object from test data
+    obj = sleuth.get_object_info(object_key)
+
+```
+
+
+You can use knack-sleuth as a library in case you wanted to integrate these models or functions into your own scripts.
+
+
+
+## CLI Usage
 
 > **Note**: If you haven't installed knack-sleuth, replace `knack-sleuth` with `uvx knack-sleuth` in the examples below.
 
@@ -217,7 +284,7 @@ knack-sleuth impact-analysis field_116 --app-id YOUR_APP_ID --output impact.json
 
 Generate a comprehensive architectural summary of your entire Knack application:
 
-See [docs/AI_USE_CASE_MULTI_TENANT.md](docs/AI_USE_CASE_MULTI_TENANT.md) for context on the problem that motivated this experimental feature.
+See [docs/AI_USE_CASE_HYPOTHETICAL.md](docs/AI_USE_CASE_HYPOTHETICAL.md) for context on the problem that motivated this experimental feature.
 
 ```bash
 # Using a local JSON file

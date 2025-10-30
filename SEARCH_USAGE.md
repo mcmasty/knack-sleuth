@@ -8,14 +8,14 @@ KnackSlueth provides powerful search capabilities to find all usages of objects 
 
 ```python
 import json
-from knack_slueth import KnackAppExport, KnackSlueth
+from knack_slueth import KnackAppMetadata, KnackSlueth
 
 # Load your Knack app export
 with open("my_knack_app.json") as f:
     data = json.load(f)
 
 # Create the search engine
-app_export = KnackAppExport(**data)
+app_export = KnackAppMetadata(**data)
 slueth = KnackSlueth(app_export)
 
 # Search for an object (with cascading to all its fields)
@@ -119,11 +119,11 @@ print(f"Type: {field.type}")
 
 ```python
 import json
-from knack_slueth import KnackAppExport, KnackSlueth
+from knack_slueth import KnackAppMetadata, KnackSlueth
 
 # Load data
 with open("knack_app_export.json") as f:
-    app_export = KnackAppExport(**json.load(f))
+    app_export = KnackAppMetadata(**json.load(f))
 
 # Initialize search
 slueth = KnackSlueth(app_export)

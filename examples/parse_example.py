@@ -4,7 +4,7 @@
 import json
 from pathlib import Path
 
-from knack_sleuth import KnackAppExport
+from knack_sleuth import KnackAppMetadata
 
 
 def main():
@@ -14,7 +14,7 @@ def main():
         data = json.load(f)
 
     # Parse with Pydantic models
-    app = KnackAppExport(**data).application
+    app = KnackAppMetadata(**data).application
 
     print(f"Application: {app.name}")
     print(f"Total Objects: {len(app.objects)}")

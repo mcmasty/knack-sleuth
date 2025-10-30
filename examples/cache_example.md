@@ -21,7 +21,7 @@ $ uv run knack-sleuth search-object object_12 --app-id YOUR_APP_ID --api-key YOU
 Fetching metadata from Knack API...
 Cached metadata to YOUR_APP_ID_app_metadata_202510281430.json
 ╭─────────────────── Object Search Results ────────────────────╮
-│ College/School (object_12)                                    │
+│ Object Name 12 (object_12)                                    │
 ╰───────────────────────── 4 fields ────────────────────────────╯
 ...
 ```
@@ -44,7 +44,7 @@ $ uv run knack-sleuth search-object object_12
 ```
 Using cached data from YOUR_APP_ID_app_metadata_202510281430.json (age: 2.5h)
 ╭─────────────────── Object Search Results ────────────────────╮
-│ College/School (object_12)                                    │
+│ Object Name 12 (object_12)                                    │
 ╰───────────────────────── 4 fields ────────────────────────────╯
 ...
 ```
@@ -69,7 +69,7 @@ Forcing refresh from API...
 Fetching metadata from Knack API...
 Cached metadata to YOUR_APP_ID_app_metadata_202510281545.json
 ╭─────────────────── Object Search Results ────────────────────╮
-│ College/School (object_12)                                    │
+│ Object Name 12 (object_12)                                    │
 ╰───────────────────────── 4 fields ────────────────────────────╯
 ...
 ```
@@ -94,7 +94,7 @@ $ uv run knack-sleuth search-object object_12
 Fetching metadata from Knack API...
 Cached metadata to YOUR_APP_ID_app_metadata_202510291415.json
 ╭─────────────────── Object Search Results ────────────────────╮
-│ College/School (object_12)                                    │
+│ Object Name 12 (object_12)                                    │
 ╰───────────────────────── 4 fields ────────────────────────────╯
 ...
 ```

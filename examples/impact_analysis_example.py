@@ -4,7 +4,7 @@
 import json
 from pathlib import Path
 
-from knack_sleuth import KnackAppExport
+from knack_sleuth import KnackAppMetadata
 from knack_sleuth.sleuth import KnackSleuth
 
 
@@ -25,13 +25,13 @@ def main():
         data = json.load(f)
 
     # Create the search engine
-    app_export = KnackAppExport(**data)
+    app_export = KnackAppMetadata(**data)
     sleuth = KnackSleuth(app_export)
 
     print_separator("IMPACT ANALYSIS - AI/AGENT READY OUTPUT")
 
     # Example 1: Analyze an object
-    object_key = "object_12"  # College/School object
+    object_key = "object_12"  # Example object from test data
     obj = sleuth.get_object_info(object_key)
 
     print(f"Analyzing object: {obj.name} ({object_key})")
@@ -85,7 +85,7 @@ def main():
     print("When asking an AI to help design a database change, provide:")
     print()
     print("1. The change you want to make:")
-    print("   'I want to change the Institution connection field to a text field'")
+    print("   'I want to change the connection field to a text field'")
     print()
     print("2. The impact analysis JSON:")
     print("   <impact_analysis>")

@@ -4,7 +4,7 @@
 import json
 from pathlib import Path
 
-from knack_sleuth import KnackAppExport
+from knack_sleuth import KnackAppMetadata
 from knack_sleuth.sleuth import KnackSleuth
 
 
@@ -25,13 +25,13 @@ def main():
         data = json.load(f)
 
     # Create the search engine
-    app_export = KnackAppExport(**data)
+    app_export = KnackAppMetadata(**data)
     sleuth = KnackSleuth(app_export)
 
     print_separator("KNACK SLeutH - USAGE SEARCH DEMO")
 
     # Example 1: Search for an object (with cascading to fields)
-    object_key = "object_12"  # College/School object
+    object_key = "object_12"  # Example object from test data
     obj = sleuth.get_object_info(object_key)
 
     print(f"Searching for object: {obj.name} ({object_key})")
@@ -72,7 +72,7 @@ def main():
 
     # Example 2: Search for a specific field
     print_separator("FIELD-SPECIFIC SEARCH")
-    field_key = "field_116"  # Institution connection field
+    field_key = "field_116"  # Connection field from test data
     obj_info, field_info = sleuth.get_field_info(field_key)
 
     if field_info:

@@ -4,7 +4,7 @@
 import json
 from pathlib import Path
 
-from knack_sleuth import KnackAppExport
+from knack_sleuth import KnackAppMetadata
 from knack_sleuth.sleuth import KnackSleuth
 
 
@@ -25,7 +25,7 @@ def main():
         data = json.load(f)
 
     # Create the search engine
-    app_export = KnackAppExport(**data)
+    app_export = KnackAppMetadata(**data)
     sleuth = KnackSleuth(app_export)
 
     print_separator("APP SUMMARY - COMPREHENSIVE ARCHITECTURE ANALYSIS")

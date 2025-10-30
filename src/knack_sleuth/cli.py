@@ -11,7 +11,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from knack_sleuth import __version__
-from knack_sleuth.models import KnackAppExport
+from knack_sleuth.models import KnackAppMetadata
 from knack_sleuth.sleuth import KnackSleuth
 from knack_sleuth.config import Settings, KNACK_BUILDER_BASE_URL, KNACK_NG_BUILDER_BASE_URL
 
@@ -31,7 +31,7 @@ def load_app_metadata(
     app_id: Optional[str],
     api_key: Optional[str],
     refresh: bool = False,
-) -> KnackAppExport:
+) -> KnackAppMetadata:
     """
     Load Knack application metadata from file or API.
     
@@ -49,7 +49,7 @@ def load_app_metadata(
         try:
             with file_path.open() as f:
                 data = json.load(f)
-            return KnackAppExport(**data)
+            return KnackAppMetadata(**data)
         except json.JSONDecodeError as e:
             console.print(f"[red]Error:[/red] Invalid JSON: {e}")
             raise typer.Exit(1)
@@ -94,7 +94,7 @@ def load_app_metadata(
             try:
                 with cached_file.open() as f:
                     data = json.load(f)
-                return KnackAppExport(**data)
+                return KnackAppMetadata(**data)
             except Exception as e:
                 console.print(
                     f"[yellow]Warning:[/yellow] Failed to load cache: {e}. Fetching from API..."
@@ -120,7 +120,7 @@ def load_app_metadata(
                     response.raise_for_status()
                     data = response.json()
                 
-                app_export = KnackAppExport(**data)
+                app_export = KnackAppMetadata(**data)
                 
                 # Save to cache file
                 timestamp = datetime.now().strftime("%Y%m%d%H%M")
@@ -701,7 +701,7 @@ def impact_analysis(
     Examples:
         knack-sleuth impact-analysis object_12 --format json
         knack-sleuth impact-analysis field_116 --app-id YOUR_APP_ID --output impact.json
-        knack-sleuth impact-analysis "Institution" my_app.json --format markdown
+        knack-sleuth impact-analysis "Organization" my_app.json --format markdown
     """
     # Load metadata
     app_export = load_app_metadata(file_path, app_id, api_key, refresh)

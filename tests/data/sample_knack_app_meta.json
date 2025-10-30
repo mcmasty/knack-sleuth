@@ -1124,7 +1124,7 @@
             "_id": "68e82891d7a6da02dfaed3d1",
             "key": "field_104",
             "meta": {
-              "description": "<p>Short hand for this group/school. e.g. It might be a code or mnemonic embedded in Data Catalog or other materials.\n</p>"
+              "description": "<p>Short hand for this group. e.g. It might be a code or mnemonic embedded in Data Catalog or other materials.\n</p>"
             },
             "name": "Identifier"
           },
@@ -1163,7 +1163,7 @@
             "code": "",
             "_id": "68ec271588213f02e9e7e0be",
             "key": "field_125",
-            "name": "Num. Departments",
+            "name": "Num. Units",
             "format": {
               "pre": "",
               "post": "",
@@ -1351,9 +1351,9 @@
             "_id": "68ec298d96e0fe02c90eea4e",
             "key": "field_127",
             "meta": {
-              "description": "<p>Count of Major, Minors, Certificate programs linked to the department.\n</p>"
+              "description": "<p>Count of Major, Minors, Certificate programs linked to the unit.\n</p>"
             },
-            "name": "Program Count",
+            "name": "Item Count",
             "format": {
               "pre": "",
               "post": "",
@@ -1522,9 +1522,9 @@
               "blank": "Select...",
               "default": "kn-blank",
               "options": [
-                "Major",
-                "Minor",
-                "Certificate"
+                "Type A",
+                "Type B",
+                "Type C"
               ],
               "sorting": "alphabetical"
             }
@@ -3260,8 +3260,8 @@
       },
       {
         "inflections": {
-          "plural": "users Host items Plan (Backpack)s",
-          "singular": "users Host items Plan (Backpack)"
+          "plural": "User Planning Lists",
+          "singular": "User Planning List"
         },
         "connections": {
           "inbound": [],
@@ -3274,7 +3274,7 @@
         "schemaChangeInProgress": false,
         "_id": "68e812a100eb4902f49ef41c",
         "key": "object_23",
-        "name": "users Host items Plan (Backpack)",
+        "name": "User Planning List",
         "uuid": "0199ca88-c798-7aaa-b9cb-5689f9568ad4",
         "fields": [
           {
@@ -3499,15 +3499,15 @@
                 "link_design_active": false
               },
               {
-                "name": "Departments/Programs",
+                "name": "Units/Categories",
                 "type": "scene",
-                "scene": "departmentprogram",
+                "scene": "unitcategory",
                 "link_design_active": false
               },
               {
-                "name": "Majors/Minors",
+                "name": "Primary/Secondary",
                 "type": "scene",
-                "scene": "majorminor",
+                "scene": "primarysecondary",
                 "link_design_active": false
               },
               {
@@ -3523,9 +3523,9 @@
                 "link_design_active": false
               },
               {
-                "name": "Host-Programs",
+                "name": "External-Projects",
                 "type": "scene",
-                "scene": "host-programs",
+                "scene": "external-projects",
                 "link_design_active": false
               }
             ],
@@ -4473,7 +4473,7 @@
                   "units": "px",
                   "amount": "50"
                 },
-                "header": "Num. Departments",
+                "header": "Num. Units",
                 "grouping": false,
                 "conn_link": "",
                 "link_text": "",
@@ -4608,8 +4608,8 @@
         ],
         "_id": "68ea66e3ee280502f411ecb8",
         "key": "scene_8",
-        "name": "Department/Program",
-        "slug": "departmentprogram",
+        "name": "Unit/Category",
+        "slug": "unitcategory",
         "uuid": "0199d3a1-e6c9-7554-b98e-29a98f6c7ab6",
         "views": [
           {
@@ -4718,7 +4718,7 @@
                   "units": "px",
                   "amount": "50"
                 },
-                "header": "Program Count",
+                "header": "Item Count",
                 "grouping": false,
                 "conn_link": "",
                 "link_text": "",
@@ -4767,7 +4767,7 @@
                 "type": "link",
                 "align": "left",
                 "rules": [],
-                "scene": "department-details",
+                "scene": "unit-details",
                 "width": {
                   "type": "default",
                   "units": "px",
@@ -4851,8 +4851,8 @@
         ],
         "_id": "68ea6736c80f320304b182f9",
         "key": "scene_9",
-        "name": "Major/Minor",
-        "slug": "majorminor",
+        "name": "Primary/Secondary",
+        "slug": "primarysecondary",
         "uuid": "0199d3a3-2d8a-7aa4-aa19-fb37c6713220",
         "views": [
           {
@@ -4952,7 +4952,7 @@
                 "type": "link",
                 "align": "left",
                 "rules": [],
-                "scene": "edit-majorprogram2",
+                "scene": "edit-primaryitem2",
                 "width": {
                   "type": "default",
                   "units": "px",
@@ -4980,7 +4980,7 @@
                 "type": "link",
                 "align": "left",
                 "rules": [],
-                "scene": "majorprogram-details2",
+                "scene": "primaryitem-details2",
                 "width": {
                   "type": "default",
                   "units": "px",
@@ -5007,7 +5007,7 @@
             "key": "view_35",
             "name": "Object Name 14",
             "type": "table",
-            "title": "Major/Minor/Certificate Programs",
+            "title": "Primary/Secondary/Tertiary Items",
             "groups": [],
             "source": {
               "sort": [
@@ -6772,7 +6772,7 @@
         "groups": [],
         "_id": "68ec2609ee280502f413e9f5",
         "key": "scene_22",
-        "name": "Edit group/School",
+        "name": "Edit Group",
         "slug": "edit-groupunit",
         "uuid": "0199da74-95e4-7554-b98f-92b252d09dd2",
         "views": [
@@ -6782,7 +6782,7 @@
             "inputs": [],
             "_id": "68ec2609ee280502f413e9f6",
             "key": "view_24",
-            "name": "Edit group/School",
+            "name": "Edit Group",
             "type": "form",
             "alert": "none",
             "rules": {
@@ -6799,7 +6799,7 @@
                 }
               ]
             },
-            "title": "Edit group/School",
+            "title": "Edit Group",
             "action": "update",
             "groups": [
               {
@@ -6874,7 +6874,7 @@
         ],
         "_id": "68ec2609ee280502f413e9f7",
         "key": "scene_23",
-        "name": "group/School Details",
+        "name": "Group Details",
         "slug": "groupunit-details",
         "uuid": "0199da74-95e4-7554-b98f-9ede5b4cc830",
         "views": [
@@ -6953,7 +6953,7 @@
             "rules": {
               "fields": []
             },
-            "title": "group/School Details",
+            "title": "Group Details",
             "groups": [],
             "layout": "full",
             "source": {
@@ -7227,7 +7227,7 @@
           }
         ],
         "object": "object_13",
-        "parent": "departmentprogram"
+        "parent": "unitcategory"
       },
       {
         "groups": [
@@ -7255,7 +7255,7 @@
         "_id": "68ec27d888213f02e9e7e4ac",
         "key": "scene_25",
         "name": "Department Details",
-        "slug": "department-details",
+        "slug": "unit-details",
         "uuid": "0199da7b-a731-7ff0-b24a-957d111f37ef",
         "views": [
           {
@@ -7540,7 +7540,7 @@
           }
         ],
         "object": "object_13",
-        "parent": "departmentprogram"
+        "parent": "unitcategory"
       },
       {
         "groups": [],
@@ -7752,7 +7752,7 @@
           }
         ],
         "object": "object_14",
-        "parent": "department-details"
+        "parent": "unit-details"
       },
       {
         "groups": [],
@@ -7805,14 +7805,14 @@
           }
         ],
         "object": "object_14",
-        "parent": "department-details"
+        "parent": "unit-details"
       },
       {
         "groups": [],
         "_id": "68ec2a7396e0fe02c90eed47",
         "key": "scene_30",
         "name": "Edit Major/Program",
-        "slug": "edit-majorprogram2",
+        "slug": "edit-primaryitem2",
         "uuid": "0199da85-d41e-7bbc-b9ce-0347ca309ba3",
         "views": [
           {
@@ -7886,14 +7886,14 @@
           }
         ],
         "object": "object_14",
-        "parent": "majorminor"
+        "parent": "primarysecondary"
       },
       {
         "groups": [],
         "_id": "68ec2a7396e0fe02c90eed49",
         "key": "scene_31",
         "name": "Major/Program Details",
-        "slug": "majorprogram-details2",
+        "slug": "primaryitem-details2",
         "uuid": "0199da85-d41f-7bbc-b9ce-08aacc170056",
         "views": [
           {
@@ -7943,7 +7943,7 @@
           }
         ],
         "object": "object_14",
-        "parent": "majorminor"
+        "parent": "primarysecondary"
       },
       {
         "groups": [
@@ -8595,7 +8595,7 @@
               {
                 "name": "Object Name 18",
                 "type": "scene",
-                "scene": "host-items",
+                "scene": "external-items",
                 "link_design_active": false
               }
             ],
@@ -9046,7 +9046,7 @@
         "_id": "68ee92e8bc578b02f4046b95",
         "key": "scene_50",
         "name": "Object Name 18",
-        "slug": "host-items",
+        "slug": "external-items",
         "uuid": "0199e3ed-da81-7bbb-8af6-0c2991cdc6d8",
         "views": [
           {
@@ -9205,7 +9205,7 @@
                 "type": "link",
                 "align": "left",
                 "rules": [],
-                "scene": "host-and-program-details2",
+                "scene": "external-project-details2",
                 "width": {
                   "type": "default",
                   "units": "px",
@@ -9599,8 +9599,8 @@
         ],
         "_id": "68ee9678c203ff02aaf12c8a",
         "key": "scene_60",
-        "name": "Host-Programs",
-        "slug": "host-programs",
+        "name": "External-Projects",
+        "slug": "external-projects",
         "uuid": "0199e3fb-c59f-7662-a649-f3899a64061e",
         "views": [
           {
@@ -9609,7 +9609,7 @@
             "inputs": [],
             "_id": "68ee96920bf1dd02fffc4385",
             "key": "view_68",
-            "name": "Add Host and Program",
+            "name": "Add External Project",
             "type": "form",
             "alert": "none",
             "rules": {
@@ -9626,7 +9626,7 @@
                 }
               ]
             },
-            "title": "Add Host and Program",
+            "title": "Add External Project",
             "action": "create",
             "groups": [
               {
@@ -9839,7 +9839,7 @@
                 "type": "link",
                 "align": "left",
                 "rules": [],
-                "scene": "edit-host-and-program",
+                "scene": "edit-external-project",
                 "width": {
                   "type": "default",
                   "units": "px",
@@ -9867,7 +9867,7 @@
                 "type": "link",
                 "align": "left",
                 "rules": [],
-                "scene": "host-and-program-details",
+                "scene": "external-project-details",
                 "width": {
                   "type": "default",
                   "units": "px",
@@ -9955,8 +9955,8 @@
         "groups": [],
         "_id": "68ee96aa4cae8202e743259f",
         "key": "scene_61",
-        "name": "Edit Host and Program",
-        "slug": "edit-host-and-program",
+        "name": "Edit External Project",
+        "slug": "edit-external-project",
         "uuid": "0199e3fc-8adf-7ccd-bfbb-de409232505e",
         "views": [
           {
@@ -9965,7 +9965,7 @@
             "inputs": [],
             "_id": "68ee96aa4cae8202e74325a0",
             "key": "view_70",
-            "name": "Edit Host and Program",
+            "name": "Edit External Project",
             "type": "form",
             "alert": "none",
             "rules": {
@@ -9982,7 +9982,7 @@
                 }
               ]
             },
-            "title": "Edit Host and Program",
+            "title": "Edit External Project",
             "action": "update",
             "groups": [
               {
@@ -10077,14 +10077,14 @@
           }
         ],
         "object": "object_15",
-        "parent": "host-programs"
+        "parent": "external-projects"
       },
       {
         "groups": [],
         "_id": "68ee96aa4cae8202e74325a1",
         "key": "scene_62",
-        "name": "Host and Program Details",
-        "slug": "host-and-program-details",
+        "name": "External Project Details",
+        "slug": "external-project-details",
         "uuid": "0199e3fc-8adf-7ccd-bfbb-e33477c2402f",
         "views": [
           {
@@ -10119,7 +10119,7 @@
             "key": "view_71",
             "name": "Object Name 15",
             "type": "details",
-            "title": "Host and Program Details",
+            "title": "External Project Details",
             "layout": "full",
             "source": {
               "object": "object_15"
@@ -10129,7 +10129,7 @@
           }
         ],
         "object": "object_15",
-        "parent": "host-programs"
+        "parent": "external-projects"
       },
       {
         "groups": [
@@ -11201,8 +11201,8 @@
         ],
         "_id": "68eea7debc578b02f40500bb",
         "key": "scene_72",
-        "name": "Host and Program Details",
-        "slug": "host-and-program-details2",
+        "name": "External Project Details",
+        "slug": "external-project-details2",
         "uuid": "0199e43f-be58-7bbb-8af6-c89b8bc2db49",
         "views": [
           {
@@ -11245,7 +11245,7 @@
             "key": "view_89",
             "name": "Object Name 15",
             "type": "details",
-            "title": "Host and Program Details",
+            "title": "External Project Details",
             "layout": "full",
             "source": {
               "object": "object_15"
@@ -11259,7 +11259,7 @@
             "inputs": [],
             "_id": "68eea849c4dfdb02a97dd574",
             "key": "view_90",
-            "name": "Add Host items",
+            "name": "Add External Items",
             "type": "form",
             "alert": "none",
             "rules": {
@@ -11276,7 +11276,7 @@
                 }
               ]
             },
-            "title": "Add Host items",
+            "title": "Add External Items",
             "action": "create",
             "groups": [
               {
@@ -11553,7 +11553,7 @@
                 "type": "link",
                 "align": "left",
                 "rules": [],
-                "scene": "edit-host-items",
+                "scene": "edit-external-items",
                 "width": {
                   "type": "default",
                   "units": "px",
@@ -11581,7 +11581,7 @@
                 "type": "link",
                 "align": "left",
                 "rules": [],
-                "scene": "host-items-details",
+                "scene": "external-items-details",
                 "width": {
                   "type": "default",
                   "units": "px",
@@ -11644,14 +11644,14 @@
           }
         ],
         "object": "object_15",
-        "parent": "host-items"
+        "parent": "external-items"
       },
       {
         "groups": [],
         "_id": "68eea85ed6cb9902d1ca18fb",
         "key": "scene_73",
-        "name": "Edit Host items",
-        "slug": "edit-host-items",
+        "name": "Edit External Items",
+        "slug": "edit-external-items",
         "uuid": "0199e441-b16a-766b-9374-3157bbbaa8cb",
         "views": [
           {
@@ -11660,7 +11660,7 @@
             "inputs": [],
             "_id": "68eea85ed6cb9902d1ca18fc",
             "key": "view_92",
-            "name": "Edit Host items",
+            "name": "Edit External Items",
             "type": "form",
             "alert": "none",
             "rules": {
@@ -11674,7 +11674,7 @@
                 }
               ]
             },
-            "title": "Edit Host items",
+            "title": "Edit External Items",
             "action": "update",
             "groups": [
               {
@@ -11742,14 +11742,14 @@
           }
         ],
         "object": "object_18",
-        "parent": "host-and-program-details2"
+        "parent": "external-project-details2"
       },
       {
         "groups": [],
         "_id": "68eea85ed6cb9902d1ca18fd",
         "key": "scene_74",
-        "name": "Host items Details",
-        "slug": "host-items-details",
+        "name": "External Items Details",
+        "slug": "external-items-details",
         "uuid": "0199e441-b16a-766b-9374-38afe1eb65e6",
         "views": [
           {
@@ -11800,7 +11800,7 @@
             "key": "view_93",
             "name": "Object Name 18",
             "type": "details",
-            "title": "Host items Details",
+            "title": "External Items Details",
             "layout": "full",
             "source": {
               "object": "object_18"
@@ -11810,7 +11810,7 @@
           }
         ],
         "object": "object_18",
-        "parent": "host-and-program-details2"
+        "parent": "external-project-details2"
       },
       {
         "groups": [],

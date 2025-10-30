@@ -244,7 +244,7 @@ class Application(BaseModel):
     model_config = {"extra": "allow"}
 
 
-class KnackAppExport(BaseModel):
+class KnackAppMetadata(BaseModel):
     """Root model for a Knack application export JSON."""
 
     application: Application
