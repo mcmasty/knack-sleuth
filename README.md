@@ -148,6 +148,7 @@ Most commands can work with metadata in two ways:
 - Use `--refresh` flag to force fetching fresh data from the API and update the cache
 - Cache files are stored in your current working directory
 
+**NOTE:**  To improve readability, most command examples are shown assuming a local cached file with environmental variable set for appplication id.
 
 ### List All Objects
 
@@ -189,44 +190,19 @@ This displays a table showing:
 
 Search for all places where an object is used in your Knack application.
 
-#### Using a Local JSON File
-
 ```bash
 # Search by object key
-knack-sleuth search-object object_12 path/to/knack_export.json
+knack-sleuth search-object object_12
 
 # Search by object name
-knack-sleuth search-object "Object Name" path/to/knack_export.json
+knack-sleuth search-object "Object Name"
 
 # Hide field-level usages (show only object-level)
-knack-sleuth search-object object_12 path/to/knack_export.json --no-fields
-```
-
-#### Fetching from Knack API
-
-You can fetch metadata directly from the Knack API instead of using a local file:
-
-```bash
-# Using command-line options
-knack-sleuth search-object object_12 --app-id YOUR_APP_ID
-
-# Using environment variables
-export KNACK_APP_ID=your_app_id
-knack-sleuth search-object object_12
-
-# Or use a .env file in the project root:
-# KNACK_APP_ID=your_app_id
-knack-sleuth search-object object_12
+knack-sleuth search-object object_12 --no-fields
 
 # Force refresh cached data (ignore cache)
 knack-sleuth search-object object_12 --refresh
 ```
-
-**Caching Behavior:**
-- API responses are automatically cached to `{APP_ID}_app_metadata_{YYYYMMDDHHMM}.json`
-- Cached data is reused for 24 hours to avoid unnecessary API calls
-- Use `--refresh` to force fetching fresh data from the API
-- Cache files are stored in the current working directory
 
 The command will show:
 - **Object-level usages**: Where the object appears in connections, views, and other metadata
@@ -255,13 +231,10 @@ View the coupling relationships for a specific object - see which objects depend
 
 ```bash
 # Using object key
-knack-sleuth show-coupling object_12 path/to/knack_export.json
+knack-sleuth show-coupling object_12
 
 # Using object name
-knack-sleuth show-coupling "Object Name" path/to/knack_export.json
-
-# From API
-knack-sleuth show-coupling object_34 --app-id YOUR_APP_ID
+knack-sleuth show-coupling "Object Name"
 ```
 
 This displays:
@@ -306,13 +279,13 @@ Generate a comprehensive analysis of how changing a specific object or field wou
 
 ```bash
 # Using object key
-knack-sleuth impact-analysis object_12 path/to/knack_export.json --format json
+knack-sleuth impact-analysis object_12 --format json
 
 # Using object name
-knack-sleuth impact-analysis "Object Name" my_app.json --format markdown
+knack-sleuth impact-analysis "Object Name" --format markdown
 
-# From API
-knack-sleuth impact-analysis field_116 --app-id YOUR_APP_ID --output impact.json
+# Using field key with output file
+knack-sleuth impact-analysis field_116 --output impact.json
 ```
 
 **Output Formats:**
@@ -333,14 +306,14 @@ Generate a comprehensive architectural summary of your entire Knack application:
 See [docs/AI_USE_CASE_HYPOTHETICAL.md](docs/AI_USE_CASE_HYPOTHETICAL.md) for context on the problem that motivated this experimental feature.
 
 ```bash
-# Using a local JSON file
-knack-sleuth app-summary path/to/knack_export.json
+# Default JSON output to stdout
+knack-sleuth app-summary
 
-# From API with markdown output
-knack-sleuth app-summary --app-id YOUR_APP_ID --format markdown
+# With markdown output
+knack-sleuth app-summary --format markdown
 
 # Save to file
-knack-sleuth app-summary my_app.json --output summary.json
+knack-sleuth app-summary --output summary.json
 ```
 
 **Output Formats:**
