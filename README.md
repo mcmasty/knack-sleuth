@@ -122,7 +122,7 @@ Additional examples in the `examples` directory.
 
 Most commands can work with metadata in two ways:
 
-1. **From a local JSON file** (fastest, works offline):
+1. **From a local JSON file** (if you don't want the default behavior):
    ```bash
    knack-sleuth <command> path/to/knack_export.json
    ```
