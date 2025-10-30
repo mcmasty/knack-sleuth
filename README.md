@@ -118,50 +118,36 @@ Additional examples in the `examples` directory.
 
 > **Note**: If you haven't installed knack-sleuth, replace `knack-sleuth` with `uvx knack-sleuth` in the examples below.
 
-### Download Metadata
+### Application ID and Local Files
 
-Download and save your Knack application metadata to a local file:
+Most commands can work with metadata in two ways:
 
-```bash
-# Download with default filename ({APP_ID}_metadata.json)
-knack-sleuth download-metadata
+1. **From a local JSON file** (fastest, works offline):
+   ```bash
+   knack-sleuth <command> path/to/knack_export.json
+   ```
 
-# Specify custom filename
-knack-sleuth download-metadata my_app_backup.json
+2. **From the Knack API** (requires Application ID):
+   ```bash
+   # Via command-line option
+   knack-sleuth <command> --app-id YOUR_APP_ID
+   
+   # Via environment variable
+   export KNACK_APP_ID=your_app_id
+   knack-sleuth <command>
+   
+   # Via .env file in your working directory
+   # KNACK_APP_ID=your_app_id
+   knack-sleuth <command>
+   ```
 
-# Force fresh download (ignore cache)
-knack-sleuth download-metadata --refresh
-```
+**Caching Behavior:**
+- When fetching from the API, metadata is automatically cached to `{APP_ID}_app_metadata_{YYYYMMDDHHMM}.json`
+- Cached files are reused for 24 hours to avoid unnecessary API calls
+- If no file path is provided and a valid cache exists, it will be used automatically
+- Use `--refresh` flag to force fetching fresh data from the API and update the cache
+- Cache files are stored in your current working directory
 
-This is useful for:
-- Creating backups of your app structure
-- Working offline with the metadata
-- Sharing app structure with others
-- Version control / tracking changes over time
-
-The file is saved as formatted JSON (indented) for easy reading and version control.
-
-### Show Object Coupling
-
-View the coupling relationships for a specific object - see which objects depend on it and which objects it depends on:
-
-```bash
-# Using object key
-knack-sleuth show-coupling object_12 path/to/knack_export.json
-
-# Using object name
-knack-sleuth show-coupling "Object Name" path/to/knack_export.json
-
-# From API
-knack-sleuth show-coupling object_34 --app-id YOUR_APP_ID
-```
-
-This displays:
-- **Afferent Coupling (Ca)**: Objects that depend on this object (incoming connections with ← arrows)
-- **Efferent Coupling (Ce)**: Objects this object depends on (outgoing connections with → arrows)
-- Connection details: field names, keys, and relationship types
-
-Perfect for understanding an object's role in your data model from its perspective.
 
 ### List All Objects
 
@@ -175,6 +161,7 @@ knack-sleuth list-objects path/to/knack_export.json
 knack-sleuth list-objects --app-id YOUR_APP_ID
 
 # Using environment variables
+export KNACK_APP_ID=your_app_id
 knack-sleuth list-objects
 
 # Sort by row count (largest first)
@@ -262,6 +249,50 @@ knack-sleuth search-object object_12
 # → https://builder-next.knack.com/your-account/portal/pages/scene_7
 ```
 
+### Show Object Coupling
+
+View the coupling relationships for a specific object - see which objects depend on it and which objects it depends on:
+
+```bash
+# Using object key
+knack-sleuth show-coupling object_12 path/to/knack_export.json
+
+# Using object name
+knack-sleuth show-coupling "Object Name" path/to/knack_export.json
+
+# From API
+knack-sleuth show-coupling object_34 --app-id YOUR_APP_ID
+```
+
+This displays:
+- **Afferent Coupling (Ca)**: Objects that depend on this object (incoming connections with ← arrows)
+- **Efferent Coupling (Ce)**: Objects this object depends on (outgoing connections with → arrows)
+- Connection details: field names, keys, and relationship types
+
+Perfect for understanding an object's role in your data model from its perspective.
+
+### Download Metadata
+
+Download and save your Knack application metadata to a local file:
+
+```bash
+# Download with default filename ({APP_ID}_metadata.json)
+knack-sleuth download-metadata
+
+# Specify custom filename
+knack-sleuth download-metadata my_app_backup.json
+
+# Force fresh download (ignore cache)
+knack-sleuth download-metadata --refresh
+```
+
+This is useful for:
+- Creating backups of your app structure
+- Working offline with the metadata
+- Sharing app structure with others
+- Version control / tracking changes over time
+
+The file is saved as formatted JSON (indented) for easy reading and version control.
 
 ## Experimental Commands
 

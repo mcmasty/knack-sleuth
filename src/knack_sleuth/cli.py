@@ -159,6 +159,119 @@ def main(
     pass
 
 
+@cli.command(name="list-objects")
+def list_objects(
+    file_path: Optional[Path] = typer.Argument(
+        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+    ),
+    app_id: Optional[str] = typer.Option(
+        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+    ),
+    api_key: Optional[str] = typer.Option(
+        None, "--api-key", help="Knack API key (can also use KNACK_API_KEY env var)"
+    ),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Force refresh cached API data (ignore cache)"
+    ),
+    sort_by_rows: bool = typer.Option(
+        False, "--sort-by-rows", help="Sort by row count (largest first) instead of by name"
+    ),
+):
+    """
+    List all objects in a Knack application with field and connection counts.
+
+    Shows a table with:
+    - Object key and name
+    - Number of rows (records)
+    - Number of fields
+    - Ca (Afferent coupling): Number of inbound connections (other objects depend on this)
+    - Ce (Efferent coupling): Number of outbound connections (this object depends on others)
+    - Total connections (Ca + Ce)
+    
+    You can either:
+    1. Provide a local JSON file: knack-sleuth list-objects path/to/file.json
+    2. Fetch from API: knack-sleuth list-objects --app-id YOUR_APP_ID --api-key YOUR_KEY
+    3. Use environment variables: KNACK_APP_ID and KNACK_API_KEY
+    
+    When fetching from API, data is automatically cached locally and reused for 24 hours.
+    Use --refresh to force fetching fresh data from the API.
+    """
+    # Load metadata
+    app_export = load_app_metadata(file_path, app_id, api_key, refresh)
+    
+    # Create table
+    table = Table(title=f"[bold cyan]{app_export.application.name}[/bold cyan] - Objects")
+    table.add_column("Key", style="dim")
+    table.add_column("Name", style="bold cyan")
+    table.add_column("Rows", justify="right", style="magenta")
+    table.add_column("Fields", justify="right", style="yellow")
+    table.add_column("Ca", justify="right", style="blue")  # Afferent (inbound)
+    table.add_column("Ce", justify="right", style="red")   # Efferent (outbound)
+    table.add_column("Total", justify="right", style="green")
+    
+    # Add rows and calculate totals
+    total_rows = 0
+    total_fields = 0
+    total_afferent = 0
+    total_efferent = 0
+    total_connections = 0
+    
+    # Sort objects based on flag
+    if sort_by_rows:
+        # Sort by row count (descending), then by name as tiebreaker
+        sorted_objects = sorted(
+            app_export.application.objects,
+            key=lambda o: (-app_export.application.counts.get(o.key, 0), o.name.lower())
+        )
+    else:
+        # Sort by name (default)
+        sorted_objects = sorted(app_export.application.objects, key=lambda o: o.name.lower())
+    
+    for obj in sorted_objects:
+        # Get row count from counts dict
+        row_count = app_export.application.counts.get(obj.key, 0)
+        total_rows += row_count
+        
+        # Count fields
+        field_count = len(obj.fields)
+        total_fields += field_count
+        
+        # Count connections separately
+        afferent_count = 0  # Ca: inbound (other objects depend on this)
+        efferent_count = 0  # Ce: outbound (this object depends on others)
+        if obj.connections:
+            afferent_count = len(obj.connections.inbound)
+            efferent_count = len(obj.connections.outbound)
+        
+        connection_count = afferent_count + efferent_count
+        total_afferent += afferent_count
+        total_efferent += efferent_count
+        total_connections += connection_count
+        
+        table.add_row(
+            obj.key,
+            obj.name,
+            f"{row_count:,}",  # Format with comma separators
+            str(field_count),
+            str(afferent_count),
+            str(efferent_count),
+            str(connection_count),
+        )
+    
+    # Display table
+    console.print()
+    console.print(table)
+    console.print()
+    console.print(
+        f"[dim]Total: {len(app_export.application.objects)} objects | "
+        f"{total_rows:,} rows | "
+        f"{total_fields} fields | "
+        f"Ca: {total_afferent} | Ce: {total_efferent} | "
+        f"{total_connections} connections[/dim]"
+    )
+    console.print()
+
+
 @cli.command(name="search-object")
 def search_object(
     object_identifier: str = typer.Argument(
@@ -302,119 +415,6 @@ def search_object(
         console.print()
         console.print("[dim]Tip: Set KNACK_NEXT_GEN_BUILDER=true to use Next-Gen builder URLs[/dim]")
 
-    console.print()
-
-
-@cli.command(name="list-objects")
-def list_objects(
-    file_path: Optional[Path] = typer.Argument(
-        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
-    ),
-    app_id: Optional[str] = typer.Option(
-        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
-    ),
-    api_key: Optional[str] = typer.Option(
-        None, "--api-key", help="Knack API key (can also use KNACK_API_KEY env var)"
-    ),
-    refresh: bool = typer.Option(
-        False, "--refresh", help="Force refresh cached API data (ignore cache)"
-    ),
-    sort_by_rows: bool = typer.Option(
-        False, "--sort-by-rows", help="Sort by row count (largest first) instead of by name"
-    ),
-):
-    """
-    List all objects in a Knack application with field and connection counts.
-
-    Shows a table with:
-    - Object key and name
-    - Number of rows (records)
-    - Number of fields
-    - Ca (Afferent coupling): Number of inbound connections (other objects depend on this)
-    - Ce (Efferent coupling): Number of outbound connections (this object depends on others)
-    - Total connections (Ca + Ce)
-    
-    You can either:
-    1. Provide a local JSON file: knack-sleuth list-objects path/to/file.json
-    2. Fetch from API: knack-sleuth list-objects --app-id YOUR_APP_ID --api-key YOUR_KEY
-    3. Use environment variables: KNACK_APP_ID and KNACK_API_KEY
-    
-    When fetching from API, data is automatically cached locally and reused for 24 hours.
-    Use --refresh to force fetching fresh data from the API.
-    """
-    # Load metadata
-    app_export = load_app_metadata(file_path, app_id, api_key, refresh)
-    
-    # Create table
-    table = Table(title=f"[bold cyan]{app_export.application.name}[/bold cyan] - Objects")
-    table.add_column("Key", style="dim")
-    table.add_column("Name", style="bold cyan")
-    table.add_column("Rows", justify="right", style="magenta")
-    table.add_column("Fields", justify="right", style="yellow")
-    table.add_column("Ca", justify="right", style="blue")  # Afferent (inbound)
-    table.add_column("Ce", justify="right", style="red")   # Efferent (outbound)
-    table.add_column("Total", justify="right", style="green")
-    
-    # Add rows and calculate totals
-    total_rows = 0
-    total_fields = 0
-    total_afferent = 0
-    total_efferent = 0
-    total_connections = 0
-    
-    # Sort objects based on flag
-    if sort_by_rows:
-        # Sort by row count (descending), then by name as tiebreaker
-        sorted_objects = sorted(
-            app_export.application.objects,
-            key=lambda o: (-app_export.application.counts.get(o.key, 0), o.name.lower())
-        )
-    else:
-        # Sort by name (default)
-        sorted_objects = sorted(app_export.application.objects, key=lambda o: o.name.lower())
-    
-    for obj in sorted_objects:
-        # Get row count from counts dict
-        row_count = app_export.application.counts.get(obj.key, 0)
-        total_rows += row_count
-        
-        # Count fields
-        field_count = len(obj.fields)
-        total_fields += field_count
-        
-        # Count connections separately
-        afferent_count = 0  # Ca: inbound (other objects depend on this)
-        efferent_count = 0  # Ce: outbound (this object depends on others)
-        if obj.connections:
-            afferent_count = len(obj.connections.inbound)
-            efferent_count = len(obj.connections.outbound)
-        
-        connection_count = afferent_count + efferent_count
-        total_afferent += afferent_count
-        total_efferent += efferent_count
-        total_connections += connection_count
-        
-        table.add_row(
-            obj.key,
-            obj.name,
-            f"{row_count:,}",  # Format with comma separators
-            str(field_count),
-            str(afferent_count),
-            str(efferent_count),
-            str(connection_count),
-        )
-    
-    # Display table
-    console.print()
-    console.print(table)
-    console.print()
-    console.print(
-        f"[dim]Total: {len(app_export.application.objects)} objects | "
-        f"{total_rows:,} rows | "
-        f"{total_fields} fields | "
-        f"Ca: {total_afferent} | Ce: {total_efferent} | "
-        f"{total_connections} connections[/dim]"
-    )
     console.print()
 
 
