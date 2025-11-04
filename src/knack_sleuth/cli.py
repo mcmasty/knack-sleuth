@@ -681,6 +681,125 @@ def export_schema(
         raise typer.Exit(1)
 
 
+@cli.command(name="export-db-schema")
+def export_db_schema(
+    file_path: Optional[Path] = typer.Argument(
+        None, help="Path to Knack app export JSON file"
+    ),
+    output_file: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Output file path"
+    ),
+    format: str = typer.Option(
+        "json", "--format", "-f", help="Output format: json, dbml, or yaml"
+    ),
+    app_id: Optional[str] = typer.Option(
+        None, "--app-id", help="Knack app ID (alternative to file)"
+    ),
+    api_key: Optional[str] = typer.Option(
+        None, "--api-key", help="Knack API key (required if using --app-id)"
+    ),
+):
+    """
+    Export the database schema of a Knack application.
+
+    This generates a schema representation of the actual database structure
+    described by the Knack application, analyzing objects (tables), fields (columns),
+    and connections (relationships) to construct the schema.
+
+    Supported formats:
+    - json: JSON Schema format with full relationship metadata
+    - dbml: Database Markup Language for ER diagram generation (dbdiagram.io)
+    - yaml: Human-readable YAML representation
+
+    Examples:
+        # Export from file to JSON Schema
+        knack-sleuth export-db-schema app_export.json
+
+        # Export to DBML for ER diagram
+        knack-sleuth export-db-schema app_export.json --format dbml -o schema.dbml
+
+        # Export to YAML
+        knack-sleuth export-db-schema app_export.json --format yaml -o schema.yaml
+
+        # Load from Knack API and export
+        knack-sleuth export-db-schema --app-id YOUR_APP_ID --api-key YOUR_KEY -f dbml
+    """
+    from knack_sleuth.core import load_app_metadata
+    from knack_sleuth.db_schema import export_database_schema
+
+    # Validate format
+    valid_formats = ["json", "dbml", "yaml"]
+    if format not in valid_formats:
+        console.print(
+            f"[red]Error:[/red] Invalid format '{format}'. "
+            f"Use one of: {', '.join(valid_formats)}"
+        )
+        raise typer.Exit(1)
+
+    # Set default output file based on format
+    if not output_file:
+        extension_map = {"json": "json", "dbml": "dbml", "yaml": "yaml"}
+        output_file = Path(f"knack_db_schema.{extension_map[format]}")
+
+    try:
+        # Load app metadata
+        console.print("[dim]Loading application metadata...[/dim]")
+        app_metadata = load_app_metadata(
+            file_path=file_path, app_id=app_id, api_key=api_key
+        )
+        app = app_metadata.application
+
+        console.print(
+            f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] "
+            f"({len(app.objects)} objects)"
+        )
+        console.print()
+
+        # Generate schema
+        console.print(f"[dim]Generating {format.upper()} schema...[/dim]")
+        schema = export_database_schema(app, format=format)
+
+        # Save to file
+        with output_file.open("w") as f:
+            if format == "json":
+                json.dump(schema, f, indent=2)
+            else:
+                f.write(schema)
+
+        file_size = output_file.stat().st_size
+        file_size_kb = file_size / 1024
+
+        console.print(
+            f"[green]✓[/green] Database schema exported to [bold]{output_file}[/bold]"
+        )
+        console.print(f"[dim]  Format: {format.upper()}[/dim]")
+        console.print(f"[dim]  Objects: {len(app.objects)}[/dim]")
+        console.print(f"[dim]  File size: {file_size_kb:.1f} KB[/dim]")
+        console.print()
+
+        # Format-specific tips
+        if format == "dbml":
+            console.print(
+                "[dim]Tip: Upload this DBML file to https://dbdiagram.io to "
+                "visualize the database ER diagram[/dim]"
+            )
+        elif format == "json":
+            console.print(
+                "[dim]Tip: This JSON Schema describes the actual database structure "
+                "with all relationships[/dim]"
+            )
+        elif format == "yaml":
+            console.print(
+                "[dim]Tip: This YAML file provides a human-readable database structure "
+                "overview[/dim]"
+            )
+        console.print()
+
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
 @cli.command(name="impact-analysis")
 def impact_analysis(
     target_identifier: str = typer.Argument(

@@ -267,6 +267,45 @@ This is useful for:
 
 The file is saved as formatted JSON (indented) for easy reading and version control.
 
+### Export Database Schema
+
+Export your Knack application's database structure as JSON Schema, DBML, or YAML format. This analyzes objects (tables), fields (columns), and connections (relationships) to generate a comprehensive schema representation:
+
+```bash
+# Export as JSON Schema (default)
+knack-sleuth export-db-schema path/to/knack_export.json
+
+# Export as DBML for ER diagram visualization
+knack-sleuth export-db-schema --format dbml -o schema.dbml
+
+# Export as YAML for human-readable overview
+knack-sleuth export-db-schema --format yaml -o schema.yaml
+
+# Fetch from API and export
+knack-sleuth export-db-schema --app-id YOUR_APP_ID --api-key YOUR_KEY -f dbml
+```
+
+**Supported Formats:**
+- `json`: JSON Schema with full relationship metadata, field types, and constraints
+- `dbml`: Database Markup Language for visualizing ER diagrams on [dbdiagram.io](https://dbdiagram.io)
+- `yaml`: Human-readable YAML representation with all database structure details
+
+**What it includes:**
+- Database tables (Knack objects) with all columns (fields)
+- Field types, constraints (required, unique), and SQL type mappings
+- Relationships between tables (one-to-one, one-to-many, many-to-many)
+- Record counts for each table
+- User profile object indicators
+- Computed fields and their relationships
+
+**Use Cases:**
+- Visualizing database structure and relationships as ER diagrams
+- Documentation for database architecture
+- Database migration planning
+- Understanding data model complexity
+- Sharing schema structure with database designers
+- Integration with schema management tools
+
 ## Experimental Commands
 
 ⚠️ **Alpha/Beta Features** — These commands are actively being developed and refined. Results may vary, and as they are used we hope to improve them. Use at your own risk.
