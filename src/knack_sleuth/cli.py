@@ -686,7 +686,7 @@ def export_db_schema(
         "json", "--format", "-f", help="Output format: json, dbml, yaml, or mermaid"
     ),
     detail: str = typer.Option(
-        "standard", "--detail", "-d", help="Detail level: minimal, compact, or standard"
+        "standard", "--detail", "-d", help="Detail level: structural, minimal, compact, or standard"
     ),
     app_id: Optional[str] = typer.Option(
         None, "--app-id", help="Knack app ID (alternative to file)"
@@ -706,6 +706,7 @@ def export_db_schema(
     - mermaid: Mermaid ER diagram syntax (GitHub, GitLab, VS Code compatible)
 
     Detail levels:
+    - structural: Objects/tables and relationships only (no attributes)
     - minimal: Objects and connections only (high-level structure)
     - compact: Key fields (identifier, required, connections)
     - standard: All fields with complete details (default)
@@ -742,7 +743,7 @@ def export_db_schema(
         raise typer.Exit(1)
 
     # Validate detail level
-    valid_details = ["minimal", "compact", "standard"]
+    valid_details = ["structural", "minimal", "compact", "standard"]
     if detail not in valid_details:
         console.print(
             f"[red]Error:[/red] Invalid detail level '{detail}'. "

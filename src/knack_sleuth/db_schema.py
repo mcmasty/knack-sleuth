@@ -17,15 +17,19 @@ def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> b
     Args:
         field: The field to check
         obj: The object containing the field
-        detail: Detail level - "minimal", "compact", or "standard"
+        detail: Detail level - "structural", "minimal", "compact", or "standard"
 
     Returns:
         True if the field should be included
     """
+    if detail == "structural":
+        # No fields - only show object/table structure
+        return False
+
     if detail == "standard":
         return True
 
-    # Connection fields are always included in all detail levels
+    # Connection fields are always included in minimal and compact levels
     if field.type == "connection":
         return True
 
@@ -164,7 +168,7 @@ def export_to_json_schema(app: Application, detail: str = "standard") -> dict[st
 
     Args:
         app: The Knack application metadata
-        detail: Detail level - "minimal", "compact", or "standard"
+        detail: Detail level - "structural", "minimal", "compact", or "standard"
 
     Returns:
         A JSON Schema document describing the database structure
@@ -255,7 +259,7 @@ def export_to_dbml(app: Application, detail: str = "standard") -> str:
 
     Args:
         app: The Knack application metadata
-        detail: Detail level - "minimal", "compact", or "standard"
+        detail: Detail level - "structural", "minimal", "compact", or "standard"
 
     Returns:
         A DBML string representing the database structure
@@ -364,7 +368,7 @@ def export_to_yaml(app: Application, detail: str = "standard") -> str:
 
     Args:
         app: The Knack application metadata
-        detail: Detail level - "minimal", "compact", or "standard"
+        detail: Detail level - "structural", "minimal", "compact", or "standard"
 
     Returns:
         A YAML string representing the database structure
@@ -504,7 +508,7 @@ def _get_mermaid_type(field: KnackField) -> str:
         "name": "string",
         "auto_increment": "int",
         "rating": "int",
-        "connection": "fk",
+        "connection": "string",
         "user_roles": "string",
         "concatenation": "string",
         "equation": "string",
@@ -540,7 +544,7 @@ def _get_mermaid_relationship(has: str, belongs_to: str) -> str:
 def _sanitize_entity_name(name: str) -> str:
     """Convert object name to valid Mermaid entity name.
 
-    Mermaid entity names should be uppercase and use underscores instead of spaces.
+    Mermaid entity names should be uppercase and use dashes instead of spaces.
     Remove or replace special characters to ensure valid syntax.
 
     Args:
@@ -554,21 +558,96 @@ def _sanitize_entity_name(name: str) -> str:
     # Convert to uppercase
     sanitized = name.upper()
 
-    # Replace spaces, dashes, and other separators with underscores
-    sanitized = re.sub(r'[\s\-/]+', '_', sanitized)
+    # Replace spaces, underscores, and other separators with dashes
+    sanitized = re.sub(r'[\s_/]+', '-', sanitized)
 
-    # Remove any characters that aren't alphanumeric or underscore
-    sanitized = re.sub(r'[^\w]', '', sanitized)
+    # Remove any characters that aren't alphanumeric, dash, or underscore
+    sanitized = re.sub(r'[^\w\-]', '', sanitized)
+
+    # Replace multiple consecutive dashes with single dash
+    sanitized = re.sub(r'-+', '-', sanitized)
+
+    # Remove leading/trailing dashes
+    sanitized = sanitized.strip('-')
 
     # Ensure it doesn't start with a number
     if sanitized and sanitized[0].isdigit():
-        sanitized = f"OBJ_{sanitized}"
+        sanitized = f"OBJ-{sanitized}"
 
     # Fallback if name becomes empty
     if not sanitized:
         sanitized = "OBJECT"
 
     return sanitized
+
+
+def _sanitize_field_name(name: str) -> str:
+    """Convert field name to valid camelCase identifier for Mermaid.
+
+    Converts field names to camelCase identifiers suitable for use
+    in Mermaid ER diagrams. Removes special characters and handles edge cases.
+
+    Args:
+        name: The original field name
+
+    Returns:
+        A camelCase identifier suitable for Mermaid
+    """
+    import re
+
+    # Split on spaces, dashes, slashes, parentheses, and underscores
+    words = re.split(r'[\s\-/()_]+', name)
+
+    # Filter out empty strings and remove non-alphanumeric characters
+    words = [re.sub(r'[^\w]', '', word) for word in words if word]
+
+    if not words:
+        return "field"
+
+    # Convert to camelCase: first word lowercase, rest capitalized
+    camel_case = words[0].lower()
+    for word in words[1:]:
+        if word:
+            camel_case += word.capitalize()
+
+    # Ensure it doesn't start with a number
+    if camel_case and camel_case[0].isdigit():
+        camel_case = f"field{camel_case.capitalize()}"
+
+    # Fallback if name becomes empty
+    if not camel_case:
+        camel_case = "field"
+
+    return camel_case
+
+
+def _strip_html(text: str) -> str:
+    """Strip HTML tags and clean up text for use in comments.
+
+    Args:
+        text: Text that may contain HTML tags
+
+    Returns:
+        Cleaned text without HTML tags
+    """
+    import re
+
+    # Remove HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+
+    # Decode common HTML entities
+    text = text.replace('&nbsp;', ' ')
+    text = text.replace('&amp;', '&')
+    text = text.replace('&lt;', '<')
+    text = text.replace('&gt;', '>')
+    text = text.replace('&quot;', '"')
+    text = text.replace('&#39;', "'")
+
+    # Clean up whitespace
+    text = re.sub(r'\s+', ' ', text)
+    text = text.strip()
+
+    return text
 
 
 def export_to_mermaid(app: Application, detail: str = "standard") -> str:
@@ -580,7 +659,7 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
 
     Args:
         app: The Knack application metadata
-        detail: Detail level - "minimal", "compact", or "standard"
+        detail: Detail level - "structural", "minimal", "compact", or "standard"
 
     Returns:
         A Mermaid ER diagram string
@@ -646,7 +725,7 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
         for field in obj.fields:
             if _should_include_field(field, obj, detail):
                 field_type = _get_mermaid_type(field)
-                field_name = field.key
+                field_name = _sanitize_field_name(field.name)
 
                 # Determine primary constraint (Mermaid supports one key constraint)
                 # Priority: PK > FK > UK (unique)
@@ -658,11 +737,23 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
                 elif field.unique:
                     constraint = " UK"
 
-                # Escape quotes in field name for Mermaid syntax
-                comment = field.name.replace('"', '\\"')
-                comment_str = f' "{comment}"'
+                # Add comment from field description if it exists
+                comment = ""
 
-                lines.append(f"        {field_type} {field_name}{constraint}{comment_str}")
+                # Try to get description from field metadata
+                description = None
+                if hasattr(field, 'meta') and field.meta:
+                    meta = field.meta if isinstance(field.meta, dict) else field.meta.__dict__
+                    if 'description' in meta and meta['description']:
+                        description = _strip_html(meta['description'])
+
+                if description:
+                    # Use the field description as comment
+                    escaped_desc = description.replace('"', '\\"')
+                    comment = f' "{escaped_desc}"'
+
+                # Build the attribute line: type name constraints "comment"
+                lines.append(f"        {field_type} {field_name}{constraint}{comment}")
 
         lines.append("    }")
         lines.append("")
@@ -678,7 +769,11 @@ def export_database_schema(
     Args:
         app: The Knack application metadata
         format: Output format - "json", "dbml", "yaml", or "mermaid"
-        detail: Detail level - "minimal", "compact", or "standard"
+        detail: Detail level - "structural", "minimal", "compact", or "standard"
+            - "structural": Only objects/tables and relationships (no attributes)
+            - "minimal": Only connection fields
+            - "compact": Connection fields, identifier fields, and required fields
+            - "standard": All fields
 
     Returns:
         Schema representation in the specified format
@@ -686,9 +781,9 @@ def export_database_schema(
     Raises:
         ValueError: If format or detail is not supported
     """
-    valid_details = ["minimal", "compact", "standard"]
+    valid_details = ["structural", "minimal", "compact", "standard"]
     if detail not in valid_details:
-        raise ValueError(f"Unsupported detail level: {detail}. Use 'minimal', 'compact', or 'standard'")
+        raise ValueError(f"Unsupported detail level: {detail}. Use 'structural', 'minimal', 'compact', or 'standard'")
 
     if format == "json":
         return export_to_json_schema(app, detail=detail)
