@@ -17,15 +17,19 @@ def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> b
     Args:
         field: The field to check
         obj: The object containing the field
-        detail: Detail level - "minimal", "compact", or "standard"
+        detail: Detail level - "structural", "minimal", "compact", or "standard"
 
     Returns:
         True if the field should be included
     """
+    if detail == "structural":
+        # No fields - only show object/table structure
+        return False
+
     if detail == "standard":
         return True
 
-    # Connection fields are always included in all detail levels
+    # Connection fields are always included in minimal and compact levels
     if field.type == "connection":
         return True
 
@@ -164,7 +168,7 @@ def export_to_json_schema(app: Application, detail: str = "standard") -> dict[st
 
     Args:
         app: The Knack application metadata
-        detail: Detail level - "minimal", "compact", or "standard"
+        detail: Detail level - "structural", "minimal", "compact", or "standard"
 
     Returns:
         A JSON Schema document describing the database structure
@@ -255,7 +259,7 @@ def export_to_dbml(app: Application, detail: str = "standard") -> str:
 
     Args:
         app: The Knack application metadata
-        detail: Detail level - "minimal", "compact", or "standard"
+        detail: Detail level - "structural", "minimal", "compact", or "standard"
 
     Returns:
         A DBML string representing the database structure
@@ -364,7 +368,7 @@ def export_to_yaml(app: Application, detail: str = "standard") -> str:
 
     Args:
         app: The Knack application metadata
-        detail: Detail level - "minimal", "compact", or "standard"
+        detail: Detail level - "structural", "minimal", "compact", or "standard"
 
     Returns:
         A YAML string representing the database structure
@@ -613,7 +617,7 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
 
     Args:
         app: The Knack application metadata
-        detail: Detail level - "minimal", "compact", or "standard"
+        detail: Detail level - "structural", "minimal", "compact", or "standard"
 
     Returns:
         A Mermaid ER diagram string
@@ -708,7 +712,11 @@ def export_database_schema(
     Args:
         app: The Knack application metadata
         format: Output format - "json", "dbml", "yaml", or "mermaid"
-        detail: Detail level - "minimal", "compact", or "standard"
+        detail: Detail level - "structural", "minimal", "compact", or "standard"
+            - "structural": Only objects/tables and relationships (no attributes)
+            - "minimal": Only connection fields
+            - "compact": Connection fields, identifier fields, and required fields
+            - "standard": All fields
 
     Returns:
         Schema representation in the specified format
@@ -716,9 +724,9 @@ def export_database_schema(
     Raises:
         ValueError: If format or detail is not supported
     """
-    valid_details = ["minimal", "compact", "standard"]
+    valid_details = ["structural", "minimal", "compact", "standard"]
     if detail not in valid_details:
-        raise ValueError(f"Unsupported detail level: {detail}. Use 'minimal', 'compact', or 'standard'")
+        raise ValueError(f"Unsupported detail level: {detail}. Use 'structural', 'minimal', 'compact', or 'standard'")
 
     if format == "json":
         return export_to_json_schema(app, detail=detail)
