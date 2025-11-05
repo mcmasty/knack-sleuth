@@ -737,10 +737,10 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
                 elif field.unique:
                     constraint = " UK"
 
-                # Add comment from field description or original field name
+                # Add comment from field description if it exists
                 comment = ""
 
-                # First, try to get description from field metadata
+                # Try to get description from field metadata
                 description = None
                 if hasattr(field, 'meta') and field.meta:
                     meta = field.meta if isinstance(field.meta, dict) else field.meta.__dict__
@@ -751,12 +751,6 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
                     # Use the field description as comment
                     escaped_desc = description.replace('"', '\\"')
                     comment = f' "{escaped_desc}"'
-                else:
-                    # Fall back to original field name if it contains special characters
-                    import re
-                    if re.search(r'[\s\-/()A-Z]', field.name):
-                        escaped_name = field.name.replace('"', '\\"')
-                        comment = f' "{escaped_name}"'
 
                 # Build the attribute line: type name constraints "comment"
                 lines.append(f"        {field_type} {field_name}{constraint}{comment}")
