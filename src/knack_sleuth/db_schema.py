@@ -593,22 +593,21 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
                 field_type = _get_mermaid_type(field)
                 field_name = field.key
 
-                # Build field attributes
-                attributes = []
+                # Determine primary constraint (Mermaid supports one key constraint)
+                # Priority: PK > FK > UK (unique)
+                constraint = ""
                 if field.key == obj.identifier:
-                    attributes.append("PK")
-                if field.required:
-                    attributes.append("NOT NULL")
-                if field.unique:
-                    attributes.append("UNIQUE")
-                if field.type == "connection":
-                    attributes.append("FK")
+                    constraint = " PK"
+                elif field.type == "connection":
+                    constraint = " FK"
+                elif field.unique:
+                    constraint = " UK"
 
-                # Format the field line
-                attr_str = f" {','.join(attributes)}" if attributes else ""
-                comment = f" \"{field.name}\""
+                # Escape quotes in field name for Mermaid syntax
+                comment = field.name.replace('"', '\\"')
+                comment_str = f' "{comment}"'
 
-                lines.append(f"        {field_type} {field_name}{attr_str}{comment}")
+                lines.append(f"        {field_type} {field_name}{constraint}{comment_str}")
 
         lines.append("    }")
         lines.append("")
