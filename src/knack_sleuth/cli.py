@@ -638,10 +638,12 @@ def export_schema(
     ),
 ):
     """
-    Export the JSON schema for KnackAppMetadata model.
+    Export Knack's internal metadata schema (how an application looks to Knack itself).
 
-    This generates a JSON schema document that describes the structure
-    of Knack application metadata. Useful for:
+    This generates a JSON schema document that describes the structure of Knack's
+    internal application metadata format - the raw metadata structure that Knack uses
+    internally. This is NOT your application's database schema (use export-db-schema
+    for that). Useful for:
 
     - API documentation
 
@@ -718,11 +720,13 @@ def export_db_schema(
     ),
 ):
     """
-    Export the database schema of a Knack application.
+    Export your application's database schema (how your app looks to you).
 
-    This generates a schema representation of the actual database structure
-    described by the Knack application, analyzing objects (tables), fields (columns),
-    and connections (relationships) to construct the schema.
+    This generates a user-facing schema representation of your database structure,
+    similar to what you see in the Knack builder. It analyzes objects (tables),
+    fields (columns), and connections (relationships) to construct an ER diagram
+    or schema document. This is NOT Knack's internal metadata format (use
+    export-schema for that).
 
     Supported formats:
 
