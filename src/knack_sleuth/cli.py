@@ -821,6 +821,212 @@ def export_db_schema(
         raise typer.Exit(1)
 
 
+@cli.command(name="export-schema-subgraph")
+def export_schema_subgraph(
+    file_path: Optional[Path] = typer.Argument(
+        None, help="Path to Knack app export JSON file"
+    ),
+    object: str = typer.Option(
+        ..., "--object", help="Starting object (key or name, e.g., 'Events' or 'object_12')"
+    ),
+    depth: int = typer.Option(
+        0, "--depth", help="Traversal depth (0=direct connections, 1=one level deeper, 2=max)"
+    ),
+    output_file: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Output file path"
+    ),
+    format: str = typer.Option(
+        "json", "--format", "-f", help="Output format: json, dbml, yaml, or mermaid"
+    ),
+    detail: str = typer.Option(
+        "standard", "--detail", "-d", help="Detail level: structural, minimal, compact, or standard"
+    ),
+    app_id: Optional[str] = typer.Option(
+        None, "--app-id", help="Knack app ID (alternative to file)"
+    ),
+):
+    """
+    Export a subgraph of the database schema starting from a specific object.
+
+    This generates a schema representation of a subset of the database, starting
+    from a specified object and including all objects connected to it up to a
+    specified depth.
+
+    Depth levels:
+    - depth=0: Starting object + all directly connected objects (default)
+    - depth=1: Above + connections of those directly connected objects
+    - depth=2: One more level deep (maximum recommended)
+    - depth>2: Not recommended - use export-db-schema for full schema
+
+    Supported formats:
+    - json: JSON Schema format with full relationship metadata
+    - dbml: Database Markup Language for ER diagram generation (dbdiagram.io)
+    - yaml: Human-readable YAML representation
+    - mermaid: Mermaid ER diagram syntax (GitHub, GitLab, VS Code compatible)
+
+    Detail levels:
+    - structural: Objects/tables and relationships only (no attributes)
+    - minimal: Objects and connections only (high-level structure)
+    - compact: Key fields (identifier, required, connections)
+    - standard: All fields with complete details (default)
+
+    Examples:
+        # Export Events and direct connections to YAML
+        knack-sleuth export-schema-subgraph --object Events -f yaml -o events.yaml
+
+        # Export Events subgraph with depth 2 to Mermaid
+        knack-sleuth export-schema-subgraph --object Events --depth 2 -f mermaid
+
+        # Export from API using object key
+        knack-sleuth export-schema-subgraph --app-id YOUR_APP_ID --object object_12 -f dbml
+
+        # Export with minimal detail level
+        knack-sleuth export-schema-subgraph app.json --object Events --detail minimal -f yaml
+    """
+    from knack_sleuth.core import load_app_metadata
+    from knack_sleuth.db_schema import (
+        export_database_schema,
+        find_object_by_identifier,
+        build_subgraph,
+        filter_app_to_subgraph,
+    )
+
+    # Validate depth
+    if depth > 2:
+        console.print(
+            f"[yellow]Warning:[/yellow] Depth {depth} is not recommended. "
+            "For depth > 2, consider using [cyan]export-db-schema[/cyan] to export the full schema instead."
+        )
+        console.print()
+        console.print("Proceeding with depth=2 (maximum recommended)...")
+        depth = 2
+
+    if depth < 0:
+        console.print("[red]Error:[/red] Depth must be >= 0")
+        raise typer.Exit(1)
+
+    # Validate format
+    valid_formats = ["json", "dbml", "yaml", "mermaid"]
+    if format not in valid_formats:
+        console.print(
+            f"[red]Error:[/red] Invalid format '{format}'. "
+            f"Use one of: {', '.join(valid_formats)}"
+        )
+        raise typer.Exit(1)
+
+    # Validate detail level
+    valid_details = ["structural", "minimal", "compact", "standard"]
+    if detail not in valid_details:
+        console.print(
+            f"[red]Error:[/red] Invalid detail level '{detail}'. "
+            f"Use one of: {', '.join(valid_details)}"
+        )
+        raise typer.Exit(1)
+
+    # Set default output file based on format
+    if not output_file:
+        extension_map = {"json": "json", "dbml": "dbml", "yaml": "yaml", "mermaid": "mmd"}
+        output_file = Path(f"knack_subgraph_{object.lower()}.{extension_map[format]}")
+
+    try:
+        # Load app metadata
+        console.print("[dim]Loading application metadata...[/dim]")
+        app_metadata = load_app_metadata(
+            file_path=file_path, app_id=app_id
+        )
+        app = app_metadata.application
+
+        console.print(
+            f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] "
+            f"({len(app.objects)} objects)"
+        )
+
+        # Find the starting object
+        start_object = find_object_by_identifier(app, object)
+        if not start_object:
+            console.print(
+                f"[red]Error:[/red] Object '{object}' not found. "
+                "Please specify a valid object key or name."
+            )
+            raise typer.Exit(1)
+
+        console.print(
+            f"[green]✓[/green] Starting object: [bold]{start_object.name}[/bold] ({start_object.key})"
+        )
+
+        # Build subgraph
+        console.print(f"[dim]Building subgraph with depth {depth}...[/dim]")
+        subgraph_keys = build_subgraph(app, start_object.key, depth)
+
+        console.print(
+            f"[green]✓[/green] Subgraph contains [bold]{len(subgraph_keys)}[/bold] objects"
+        )
+
+        # List the objects in the subgraph
+        objects_by_key = {obj.key: obj for obj in app.objects}
+        console.print("\n[cyan]Objects in subgraph:[/cyan]")
+        for key in sorted(subgraph_keys):
+            obj = objects_by_key.get(key)
+            if obj:
+                console.print(f"  • {obj.name} ({key})")
+        console.print()
+
+        # Filter application to subgraph
+        filtered_app = filter_app_to_subgraph(app, subgraph_keys)
+
+        # Generate schema
+        console.print(f"[dim]Generating {format.upper()} schema ({detail} detail)...[/dim]")
+        schema = export_database_schema(filtered_app, format=format, detail=detail)
+
+        # Save to file
+        with output_file.open("w") as f:
+            if format == "json":
+                json.dump(schema, f, indent=2)
+            else:
+                f.write(schema)
+
+        file_size = output_file.stat().st_size
+        file_size_kb = file_size / 1024
+
+        console.print(
+            f"[green]✓[/green] Schema subgraph exported to [bold]{output_file}[/bold]"
+        )
+        console.print(f"[dim]  Format: {format.upper()}[/dim]")
+        console.print(f"[dim]  Detail: {detail}[/dim]")
+        console.print(f"[dim]  Starting object: {start_object.name} ({start_object.key})[/dim]")
+        console.print(f"[dim]  Depth: {depth}[/dim]")
+        console.print(f"[dim]  Objects: {len(subgraph_keys)}[/dim]")
+        console.print(f"[dim]  File size: {file_size_kb:.1f} KB[/dim]")
+        console.print()
+
+        # Format-specific tips
+        if format == "dbml":
+            console.print(
+                "[dim]Tip: Upload this DBML file to https://dbdiagram.io to "
+                "visualize the subgraph ER diagram[/dim]"
+            )
+        elif format == "json":
+            console.print(
+                "[dim]Tip: This JSON Schema describes the subgraph database structure "
+                "with all relationships[/dim]"
+            )
+        elif format == "mermaid":
+            console.print(
+                "[dim]Tip: This Mermaid diagram can be rendered in GitHub/GitLab markdown, "
+                "VS Code, or at https://mermaid.live[/dim]"
+            )
+        elif format == "yaml":
+            console.print(
+                "[dim]Tip: This YAML file provides a human-readable subgraph structure "
+                "overview[/dim]"
+            )
+        console.print()
+
+    except Exception as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
 @cli.command(name="impact-analysis")
 def impact_analysis(
     target_identifier: str = typer.Argument(
