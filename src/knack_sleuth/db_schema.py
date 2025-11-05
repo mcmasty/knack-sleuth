@@ -544,7 +544,7 @@ def _get_mermaid_relationship(has: str, belongs_to: str) -> str:
 def _sanitize_entity_name(name: str) -> str:
     """Convert object name to valid Mermaid entity name.
 
-    Mermaid entity names should be uppercase and use underscores instead of spaces.
+    Mermaid entity names should be uppercase and use dashes instead of spaces.
     Remove or replace special characters to ensure valid syntax.
 
     Args:
@@ -558,15 +558,21 @@ def _sanitize_entity_name(name: str) -> str:
     # Convert to uppercase
     sanitized = name.upper()
 
-    # Replace spaces, dashes, and other separators with underscores
-    sanitized = re.sub(r'[\s\-/]+', '_', sanitized)
+    # Replace spaces, underscores, and other separators with dashes
+    sanitized = re.sub(r'[\s_/]+', '-', sanitized)
 
-    # Remove any characters that aren't alphanumeric or underscore
-    sanitized = re.sub(r'[^\w]', '', sanitized)
+    # Remove any characters that aren't alphanumeric, dash, or underscore
+    sanitized = re.sub(r'[^\w\-]', '', sanitized)
+
+    # Replace multiple consecutive dashes with single dash
+    sanitized = re.sub(r'-+', '-', sanitized)
+
+    # Remove leading/trailing dashes
+    sanitized = sanitized.strip('-')
 
     # Ensure it doesn't start with a number
     if sanitized and sanitized[0].isdigit():
-        sanitized = f"OBJ_{sanitized}"
+        sanitized = f"OBJ-{sanitized}"
 
     # Fallback if name becomes empty
     if not sanitized:
@@ -576,43 +582,72 @@ def _sanitize_entity_name(name: str) -> str:
 
 
 def _sanitize_field_name(name: str) -> str:
-    """Convert field name to valid snake_case identifier for Mermaid.
+    """Convert field name to valid camelCase identifier for Mermaid.
 
-    Converts field names to lowercase snake_case identifiers suitable for use
+    Converts field names to camelCase identifiers suitable for use
     in Mermaid ER diagrams. Removes special characters and handles edge cases.
 
     Args:
         name: The original field name
 
     Returns:
-        A snake_case identifier suitable for Mermaid
+        A camelCase identifier suitable for Mermaid
     """
     import re
 
-    # Convert to lowercase
-    sanitized = name.lower()
+    # Split on spaces, dashes, slashes, parentheses, and underscores
+    words = re.split(r'[\s\-/()_]+', name)
 
-    # Replace spaces, dashes, slashes, and parentheses with underscores
-    sanitized = re.sub(r'[\s\-/()]+', '_', sanitized)
+    # Filter out empty strings and remove non-alphanumeric characters
+    words = [re.sub(r'[^\w]', '', word) for word in words if word]
 
-    # Remove any characters that aren't alphanumeric or underscore
-    sanitized = re.sub(r'[^\w]', '', sanitized)
+    if not words:
+        return "field"
 
-    # Replace multiple consecutive underscores with single underscore
-    sanitized = re.sub(r'_+', '_', sanitized)
-
-    # Remove leading/trailing underscores
-    sanitized = sanitized.strip('_')
+    # Convert to camelCase: first word lowercase, rest capitalized
+    camel_case = words[0].lower()
+    for word in words[1:]:
+        if word:
+            camel_case += word.capitalize()
 
     # Ensure it doesn't start with a number
-    if sanitized and sanitized[0].isdigit():
-        sanitized = f"field_{sanitized}"
+    if camel_case and camel_case[0].isdigit():
+        camel_case = f"field{camel_case.capitalize()}"
 
     # Fallback if name becomes empty
-    if not sanitized:
-        sanitized = "field"
+    if not camel_case:
+        camel_case = "field"
 
-    return sanitized
+    return camel_case
+
+
+def _strip_html(text: str) -> str:
+    """Strip HTML tags and clean up text for use in comments.
+
+    Args:
+        text: Text that may contain HTML tags
+
+    Returns:
+        Cleaned text without HTML tags
+    """
+    import re
+
+    # Remove HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+
+    # Decode common HTML entities
+    text = text.replace('&nbsp;', ' ')
+    text = text.replace('&amp;', '&')
+    text = text.replace('&lt;', '<')
+    text = text.replace('&gt;', '>')
+    text = text.replace('&quot;', '"')
+    text = text.replace('&#39;', "'")
+
+    # Clean up whitespace
+    text = re.sub(r'\s+', ' ', text)
+    text = text.strip()
+
+    return text
 
 
 def export_to_mermaid(app: Application, detail: str = "standard") -> str:
@@ -702,14 +737,26 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
                 elif field.unique:
                     constraint = " UK"
 
-                # Add comment with original field name if it contains spaces, special chars, or mixed case
-                # This helps clarify the actual field name when the identifier is sanitized
+                # Add comment from field description or original field name
                 comment = ""
-                import re
-                if re.search(r'[\s\-/()A-Z]', field.name):
-                    # Escape quotes in the comment
-                    escaped_name = field.name.replace('"', '\\"')
-                    comment = f' "{escaped_name}"'
+
+                # First, try to get description from field metadata
+                description = None
+                if hasattr(field, 'meta') and field.meta:
+                    meta = field.meta if isinstance(field.meta, dict) else field.meta.__dict__
+                    if 'description' in meta and meta['description']:
+                        description = _strip_html(meta['description'])
+
+                if description:
+                    # Use the field description as comment
+                    escaped_desc = description.replace('"', '\\"')
+                    comment = f' "{escaped_desc}"'
+                else:
+                    # Fall back to original field name if it contains special characters
+                    import re
+                    if re.search(r'[\s\-/()A-Z]', field.name):
+                        escaped_name = field.name.replace('"', '\\"')
+                        comment = f' "{escaped_name}"'
 
                 # Build the attribute line: type name constraints "comment"
                 lines.append(f"        {field_type} {field_name}{constraint}{comment}")
