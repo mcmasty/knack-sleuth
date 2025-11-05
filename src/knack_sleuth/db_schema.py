@@ -537,6 +537,40 @@ def _get_mermaid_relationship(has: str, belongs_to: str) -> str:
         return "}o--o{"
 
 
+def _sanitize_entity_name(name: str) -> str:
+    """Convert object name to valid Mermaid entity name.
+
+    Mermaid entity names should be uppercase and use underscores instead of spaces.
+    Remove or replace special characters to ensure valid syntax.
+
+    Args:
+        name: The original object name
+
+    Returns:
+        A sanitized entity name suitable for Mermaid
+    """
+    import re
+
+    # Convert to uppercase
+    sanitized = name.upper()
+
+    # Replace spaces, dashes, and other separators with underscores
+    sanitized = re.sub(r'[\s\-/]+', '_', sanitized)
+
+    # Remove any characters that aren't alphanumeric or underscore
+    sanitized = re.sub(r'[^\w]', '', sanitized)
+
+    # Ensure it doesn't start with a number
+    if sanitized and sanitized[0].isdigit():
+        sanitized = f"OBJ_{sanitized}"
+
+    # Fallback if name becomes empty
+    if not sanitized:
+        sanitized = "OBJECT"
+
+    return sanitized
+
+
 def export_to_mermaid(app: Application, detail: str = "standard") -> str:
     """Generate Mermaid ER diagram syntax.
 
@@ -551,6 +585,22 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
     Returns:
         A Mermaid ER diagram string
     """
+    # Build a mapping from object keys to sanitized entity names
+    # Handle duplicate names by appending the key
+    entity_names: dict[str, str] = {}
+    name_counts: dict[str, int] = {}
+
+    for obj in app.objects:
+        sanitized = _sanitize_entity_name(obj.name)
+
+        # Handle duplicate names
+        if sanitized in name_counts:
+            name_counts[sanitized] += 1
+            entity_names[obj.key] = f"{sanitized}_{obj.key.upper()}"
+        else:
+            name_counts[sanitized] = 1
+            entity_names[obj.key] = sanitized
+
     lines = []
     lines.append("erDiagram")
     lines.append(f"    %% Database schema for: {app.name}")
@@ -576,16 +626,21 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
             # Get the relationship notation
             rel_notation = _get_mermaid_relationship(conn.has, conn.belongs_to)
 
+            # Get entity names for source and target
+            source_name = entity_names[obj.key]
+            target_name = entity_names.get(conn.object, conn.object)
+
             # Format: SOURCE_TABLE NOTATION TARGET_TABLE : "relationship_name"
-            lines.append(f'    {obj.key} {rel_notation} {conn.object} : "{conn.name}"')
+            lines.append(f'    {source_name} {rel_notation} {target_name} : "{conn.name}"')
 
     if relationships_added:
         lines.append("")
 
     # Second pass: Define all entities (tables) with their fields
     for obj in app.objects:
-        # Start entity definition
-        lines.append(f"    {obj.key} {{")
+        # Start entity definition with readable name and key as comment
+        entity_name = entity_names[obj.key]
+        lines.append(f"    {entity_name} {{")
 
         # Add fields based on detail level
         for field in obj.fields:
