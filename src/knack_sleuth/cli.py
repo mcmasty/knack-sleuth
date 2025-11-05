@@ -683,7 +683,7 @@ def export_db_schema(
         None, "--output", "-o", help="Output file path"
     ),
     format: str = typer.Option(
-        "json", "--format", "-f", help="Output format: json, dbml, or yaml"
+        "json", "--format", "-f", help="Output format: json, dbml, yaml, or mermaid"
     ),
     detail: str = typer.Option(
         "standard", "--detail", "-d", help="Detail level: minimal, compact, or standard"
@@ -703,6 +703,7 @@ def export_db_schema(
     - json: JSON Schema format with full relationship metadata
     - dbml: Database Markup Language for ER diagram generation (dbdiagram.io)
     - yaml: Human-readable YAML representation
+    - mermaid: Mermaid ER diagram syntax (GitHub, GitLab, VS Code compatible)
 
     Detail levels:
     - minimal: Objects and connections only (high-level structure)
@@ -715,6 +716,9 @@ def export_db_schema(
 
         # Export to DBML for ER diagram with minimal detail
         knack-sleuth export-db-schema app_export.json --format dbml --detail minimal -o schema.dbml
+
+        # Export to Mermaid ER diagram
+        knack-sleuth export-db-schema app_export.json --format mermaid -o schema.mmd
 
         # Export compact view to YAML
         knack-sleuth export-db-schema app_export.json --format yaml --detail compact
@@ -729,7 +733,7 @@ def export_db_schema(
     from knack_sleuth.db_schema import export_database_schema
 
     # Validate format
-    valid_formats = ["json", "dbml", "yaml"]
+    valid_formats = ["json", "dbml", "yaml", "mermaid"]
     if format not in valid_formats:
         console.print(
             f"[red]Error:[/red] Invalid format '{format}'. "
@@ -748,7 +752,7 @@ def export_db_schema(
 
     # Set default output file based on format
     if not output_file:
-        extension_map = {"json": "json", "dbml": "dbml", "yaml": "yaml"}
+        extension_map = {"json": "json", "dbml": "dbml", "yaml": "yaml", "mermaid": "mmd"}
         output_file = Path(f"knack_db_schema.{extension_map[format]}")
 
     try:
@@ -798,6 +802,11 @@ def export_db_schema(
             console.print(
                 "[dim]Tip: This JSON Schema describes the actual database structure "
                 "with all relationships[/dim]"
+            )
+        elif format == "mermaid":
+            console.print(
+                "[dim]Tip: This Mermaid diagram can be rendered in GitHub/GitLab markdown, "
+                "VS Code, or at https://mermaid.live[/dim]"
             )
         elif format == "yaml":
             console.print(
