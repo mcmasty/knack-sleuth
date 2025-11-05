@@ -504,7 +504,7 @@ def _get_mermaid_type(field: KnackField) -> str:
         "name": "string",
         "auto_increment": "int",
         "rating": "int",
-        "connection": "fk",
+        "connection": "string",
         "user_roles": "string",
         "concatenation": "string",
         "equation": "string",
@@ -567,6 +567,39 @@ def _sanitize_entity_name(name: str) -> str:
     # Fallback if name becomes empty
     if not sanitized:
         sanitized = "OBJECT"
+
+    return sanitized
+
+
+def _sanitize_field_name(name: str) -> str:
+    """Convert field name to valid Mermaid field name or quoted string.
+
+    If the field name contains special characters or spaces, it will be quoted.
+    Otherwise, convert to a valid identifier.
+
+    Args:
+        name: The original field name
+
+    Returns:
+        A sanitized field name suitable for Mermaid (may be quoted)
+    """
+    import re
+
+    # Check if the name needs quoting (contains spaces or special chars)
+    if re.search(r'[\s\-/]', name):
+        # Quote the name and escape any internal quotes
+        return f'"{name.replace(chr(34), chr(92) + chr(34))}"'
+
+    # Remove any characters that aren't alphanumeric or underscore
+    sanitized = re.sub(r'[^\w]', '', name)
+
+    # Ensure it doesn't start with a number
+    if sanitized and sanitized[0].isdigit():
+        sanitized = f"field_{sanitized}"
+
+    # Fallback if name becomes empty
+    if not sanitized:
+        sanitized = "field"
 
     return sanitized
 
@@ -646,7 +679,7 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
         for field in obj.fields:
             if _should_include_field(field, obj, detail):
                 field_type = _get_mermaid_type(field)
-                field_name = field.key
+                field_name = _sanitize_field_name(field.name)
 
                 # Determine primary constraint (Mermaid supports one key constraint)
                 # Priority: PK > FK > UK (unique)
@@ -658,11 +691,8 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
                 elif field.unique:
                     constraint = " UK"
 
-                # Escape quotes in field name for Mermaid syntax
-                comment = field.name.replace('"', '\\"')
-                comment_str = f' "{comment}"'
-
-                lines.append(f"        {field_type} {field_name}{constraint}{comment_str}")
+                # Build the attribute line: type name constraints
+                lines.append(f"        {field_type} {field_name}{constraint}")
 
         lines.append("    }")
         lines.append("")
