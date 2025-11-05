@@ -926,7 +926,14 @@ def export_schema_subgraph(
     # Set default output file based on format
     if not output_file:
         extension_map = {"json": "json", "dbml": "dbml", "yaml": "yaml", "mermaid": "mmd"}
-        output_file = Path(f"knack_subgraph_{object.lower()}.{extension_map[format]}")
+        # Sanitize object name for filename: replace spaces and special chars with dashes
+        sanitized_name = object.lower().replace(" ", "-").replace("_", "-")
+        # Remove any other problematic characters
+        import re
+        sanitized_name = re.sub(r'[^\w\-]', '', sanitized_name)
+        # Remove consecutive dashes
+        sanitized_name = re.sub(r'-+', '-', sanitized_name).strip('-')
+        output_file = Path(f"knack_subgraph_{sanitized_name}.{extension_map[format]}")
 
     try:
         # Load app metadata
