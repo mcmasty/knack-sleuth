@@ -4,7 +4,8 @@ This module provides functions to export the actual database structure described
 a Knack application into various schema formats (JSON Schema, DBML, YAML, Mermaid).
 """
 
-from typing import Any
+from typing import Any, Optional
+from collections import deque
 
 import yaml
 
@@ -120,6 +121,118 @@ def _get_field_json_type(field: KnackField) -> str:
         "timer": "integer",
     }
     return type_mapping.get(field.type, "string")
+
+
+def find_object_by_identifier(app: Application, identifier: str) -> Optional[KnackObject]:
+    """Find an object by key or name.
+
+    Args:
+        app: The Knack application metadata
+        identifier: Object key (e.g., 'object_12') or name (e.g., 'Events')
+
+    Returns:
+        The matching KnackObject, or None if not found
+    """
+    # Try to find by key first (case-insensitive)
+    if identifier.lower().startswith("object_"):
+        for obj in app.objects:
+            if obj.key.lower() == identifier.lower():
+                return obj
+
+    # Try to find by name (case-insensitive)
+    for obj in app.objects:
+        if obj.name.lower() == identifier.lower():
+            return obj
+
+    return None
+
+
+def build_subgraph(app: Application, start_object_key: str, depth: int) -> set[str]:
+    """Build a subgraph of connected objects starting from a specific object.
+
+    Uses breadth-first search to traverse connections up to the specified depth.
+
+    Args:
+        app: The Knack application metadata
+        start_object_key: The key of the object to start from
+        depth: Maximum depth to traverse (0 = start + direct connections, 1 = one more level, etc.)
+
+    Returns:
+        A set of object keys included in the subgraph
+    """
+    # Build object lookup
+    objects_by_key = {obj.key: obj for obj in app.objects}
+
+    # Initialize BFS
+    subgraph = {start_object_key}
+    queue = deque([(start_object_key, 0)])  # (object_key, current_depth)
+
+    while queue:
+        current_key, current_depth = queue.popleft()
+
+        # Stop if we've reached max depth
+        if current_depth >= depth + 1:
+            continue
+
+        # Get the current object
+        current_obj = objects_by_key.get(current_key)
+        if not current_obj or not current_obj.connections:
+            continue
+
+        # Add all connected objects (both inbound and outbound)
+        connected_keys = set()
+
+        if current_obj.connections.outbound:
+            for conn in current_obj.connections.outbound:
+                connected_keys.add(conn.object)
+
+        if current_obj.connections.inbound:
+            for conn in current_obj.connections.inbound:
+                connected_keys.add(conn.object)
+
+        # Add new objects to subgraph and queue
+        for key in connected_keys:
+            if key not in subgraph:
+                subgraph.add(key)
+                queue.append((key, current_depth + 1))
+
+    return subgraph
+
+
+def filter_app_to_subgraph(app: Application, subgraph_keys: set[str]) -> Application:
+    """Create a filtered Application containing only objects in the subgraph.
+
+    Args:
+        app: The original Knack application metadata
+        subgraph_keys: Set of object keys to include in the subgraph
+
+    Returns:
+        A new Application instance with only the subgraph objects
+    """
+    # Filter objects
+    filtered_objects = [obj for obj in app.objects if obj.key in subgraph_keys]
+
+    # Create a copy of the application with filtered objects
+    from copy import deepcopy
+    filtered_app = deepcopy(app)
+    filtered_app.objects = filtered_objects
+
+    # Filter connections within each object to only include connections
+    # to other objects in the subgraph
+    for obj in filtered_app.objects:
+        if obj.connections:
+            if obj.connections.outbound:
+                obj.connections.outbound = [
+                    conn for conn in obj.connections.outbound
+                    if conn.object in subgraph_keys
+                ]
+            if obj.connections.inbound:
+                obj.connections.inbound = [
+                    conn for conn in obj.connections.inbound
+                    if conn.object in subgraph_keys
+                ]
+
+    return filtered_app
 
 
 def _build_field_json_schema(field: KnackField) -> dict[str, Any]:
