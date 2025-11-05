@@ -700,18 +700,27 @@ def export_db_schema(
     and connections (relationships) to construct the schema.
 
     Supported formats:
+
     - json: JSON Schema format with full relationship metadata
+
     - dbml: Database Markup Language for ER diagram generation (dbdiagram.io)
+
     - yaml: Human-readable YAML representation
+
     - mermaid: Mermaid ER diagram syntax (GitHub, GitLab, VS Code compatible)
 
     Detail levels:
+
     - structural: Objects/tables and relationships only (no attributes)
+
     - minimal: Objects and connections only (high-level structure)
+
     - compact: Key fields (identifier, required, connections)
+
     - standard: All fields with complete details (default)
 
     Examples:
+
         # Export from file to JSON Schema
         knack-sleuth export-db-schema app_export.json
 
