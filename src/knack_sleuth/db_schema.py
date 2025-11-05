@@ -576,26 +576,33 @@ def _sanitize_entity_name(name: str) -> str:
 
 
 def _sanitize_field_name(name: str) -> str:
-    """Convert field name to valid Mermaid field name or quoted string.
+    """Convert field name to valid snake_case identifier for Mermaid.
 
-    If the field name contains special characters or spaces, it will be quoted.
-    Otherwise, convert to a valid identifier.
+    Converts field names to lowercase snake_case identifiers suitable for use
+    in Mermaid ER diagrams. Removes special characters and handles edge cases.
 
     Args:
         name: The original field name
 
     Returns:
-        A sanitized field name suitable for Mermaid (may be quoted)
+        A snake_case identifier suitable for Mermaid
     """
     import re
 
-    # Check if the name needs quoting (contains spaces or special chars)
-    if re.search(r'[\s\-/]', name):
-        # Quote the name and escape any internal quotes
-        return f'"{name.replace(chr(34), chr(92) + chr(34))}"'
+    # Convert to lowercase
+    sanitized = name.lower()
+
+    # Replace spaces, dashes, slashes, and parentheses with underscores
+    sanitized = re.sub(r'[\s\-/()]+', '_', sanitized)
 
     # Remove any characters that aren't alphanumeric or underscore
-    sanitized = re.sub(r'[^\w]', '', name)
+    sanitized = re.sub(r'[^\w]', '', sanitized)
+
+    # Replace multiple consecutive underscores with single underscore
+    sanitized = re.sub(r'_+', '_', sanitized)
+
+    # Remove leading/trailing underscores
+    sanitized = sanitized.strip('_')
 
     # Ensure it doesn't start with a number
     if sanitized and sanitized[0].isdigit():
@@ -695,8 +702,17 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
                 elif field.unique:
                     constraint = " UK"
 
-                # Build the attribute line: type name constraints
-                lines.append(f"        {field_type} {field_name}{constraint}")
+                # Add comment with original field name if it contains spaces, special chars, or mixed case
+                # This helps clarify the actual field name when the identifier is sanitized
+                comment = ""
+                import re
+                if re.search(r'[\s\-/()A-Z]', field.name):
+                    # Escape quotes in the comment
+                    escaped_name = field.name.replace('"', '\\"')
+                    comment = f' "{escaped_name}"'
+
+                # Build the attribute line: type name constraints "comment"
+                lines.append(f"        {field_type} {field_name}{constraint}{comment}")
 
         lines.append("    }")
         lines.append("")
