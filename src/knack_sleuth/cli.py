@@ -145,18 +145,27 @@ def list_objects(
     List all objects in a Knack application with field and connection counts.
 
     Shows a table with:
+
     - Object key and name
+
     - Number of rows (records)
+
     - Number of fields
+
     - Ca (Afferent coupling): Number of inbound connections (other objects depend on this)
+
     - Ce (Efferent coupling): Number of outbound connections (this object depends on others)
+
     - Total connections (Ca + Ce)
 
     You can either:
+
     1. Provide a local JSON file: knack-sleuth list-objects path/to/file.json
+
     2. Fetch from API: knack-sleuth list-objects --app-id YOUR_APP_ID
+
     3. Use environment variables: KNACK_APP_ID (no API key needed - metadata is public)
-    
+
     When fetching from API, data is automatically cached locally and reused for 24 hours.
     Use --refresh to force fetching fresh data from the API.
     """
@@ -497,16 +506,23 @@ def download_metadata(
     Download and save Knack application metadata to a local file.
 
     This is useful for:
+
     - Creating a backup of your app structure
+
     - Working offline with the metadata
+
     - Sharing app structure with others
+
     - Version control / tracking changes over time
-    
+
     The file will be saved as formatted JSON (indented) for easy reading.
-    
+
     Examples:
+
         knack-sleuth download-metadata                    # Uses default filename
+
         knack-sleuth download-metadata my_backup.json     # Custom filename
+
         knack-sleuth download-metadata --refresh          # Force fresh download
     """
     settings = Settings()
@@ -626,18 +642,27 @@ def export_schema(
 
     This generates a JSON schema document that describes the structure
     of Knack application metadata. Useful for:
+
     - API documentation
+
     - Validation in other tools
+
     - IDE autocomplete for metadata JSON files
+
     - Integration with schema-aware editors
-    
+
     Modes:
+
     - validation: Schema optimized for validating incoming data (default)
+
     - serialization: Schema optimized for serialized output
-    
+
     Examples:
+
         knack-sleuth export-schema                           # Uses default filename
+
         knack-sleuth export-schema my_schema.json            # Custom filename
+
         knack-sleuth export-schema --mode serialization      # Serialization mode
     """
     # Set default output path
@@ -856,26 +881,41 @@ def impact_analysis(
 
     This command analyzes how changing a specific object or field would impact
     your Knack application, providing structured output suitable for:
+
     - AI agents planning database changes
+
     - Human-readable markdown reports (--format markdown)
+
     - Impact assessment documentation
+
     - Change risk analysis
+
     - Migration planning
 
     The output includes:
+
     - Direct impacts (connections, views, forms, formulas)
+
     - Cascade impacts (affected fields, scenes)
+
     - Risk assessment (likelihood, impact score)
+
     - Affected user workflows
 
     Output formats:
+
     - JSON: Structured for AI/agent processing
+
     - Markdown: Human-friendly documentation (--format markdown)
+
     - YAML: Alternative structured format
 
     Examples:
+
         knack-sleuth impact-analysis object_12 --format json
+
         knack-sleuth impact-analysis field_116 --app-id YOUR_APP_ID --output impact.json
+
         knack-sleuth impact-analysis "Organization" my_app.json --format markdown
     """
     # Load metadata
@@ -1102,29 +1142,47 @@ def app_summary(
     This command provides universal context for ANY architectural discussion,
     including domain model, relationships, patterns, and extensibility.
     Perfect for:
+
     - Understanding overall app architecture
+
     - Planning major refactorings
+
     - AI-assisted architecture discussions
+
     - Human-readable documentation (--format markdown)
+
     - Complexity assessment
 
     The output includes:
+
     - Domain model classification (user profiles, core, transactional, reference objects)
+
     - Relationship topology (connections, clusters, hubs)
+
     - Data patterns (temporal, calculations)
+
     - UI architecture (scenes, views, navigation)
+
     - Access patterns (authentication, roles)
+
     - Technical debt indicators (orphaned resources, bottlenecks)
+
     - Extensibility assessment (modularity, coupling)
 
     Output formats:
+
     - JSON: Structured for AI/agent processing (default)
+
     - Markdown: Human-friendly documentation (--format markdown)
+
     - YAML: Alternative structured format
 
     Examples:
+
         knack-sleuth app-summary my_app.json
+
         knack-sleuth app-summary --app-id YOUR_APP_ID --format markdown
+
         knack-sleuth app-summary --app-id YOUR_APP_ID --output summary.json
     """
     # Load metadata
