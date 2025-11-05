@@ -1,7 +1,7 @@
 """Database schema export functionality for Knack applications.
 
 This module provides functions to export the actual database structure described by
-a Knack application into various schema formats (JSON Schema, DBML, YAML).
+a Knack application into various schema formats (JSON Schema, DBML, YAML, Mermaid).
 """
 
 from typing import Any
@@ -481,6 +481,141 @@ def _get_relationship_type(has: str, belongs_to: str) -> str:
         return "many-to-many"
 
 
+def _get_mermaid_type(field: KnackField) -> str:
+    """Map Knack field types to Mermaid-friendly type names."""
+    type_mapping = {
+        "short_text": "string",
+        "paragraph_text": "text",
+        "rich_text": "text",
+        "multiple_choice": "string",
+        "number": "decimal",
+        "currency": "decimal",
+        "boolean": "boolean",
+        "date_time": "datetime",
+        "date": "date",
+        "time": "time",
+        "email": "string",
+        "phone": "string",
+        "address": "text",
+        "link": "string",
+        "image": "string",
+        "file": "string",
+        "signature": "string",
+        "name": "string",
+        "auto_increment": "int",
+        "rating": "int",
+        "connection": "fk",
+        "user_roles": "string",
+        "concatenation": "string",
+        "equation": "string",
+        "count": "int",
+        "sum": "decimal",
+        "min": "decimal",
+        "max": "decimal",
+        "average": "decimal",
+        "timer": "int",
+    }
+    return type_mapping.get(field.type, "string")
+
+
+def _get_mermaid_relationship(has: str, belongs_to: str) -> str:
+    """Convert has/belongs_to to Mermaid relationship notation.
+
+    Mermaid ER syntax:
+    - ||--|| : one-to-one (exactly one)
+    - ||--o{ : one-to-many (zero or more)
+    - }o--|| : many-to-one (zero or more to exactly one)
+    - }o--o{ : many-to-many (zero or more on both sides)
+    """
+    if has == "one" and belongs_to == "one":
+        return "||--||"
+    elif has == "one" and belongs_to == "many":
+        return "||--o{"
+    elif has == "many" and belongs_to == "one":
+        return "}o--||"
+    else:  # many-to-many
+        return "}o--o{"
+
+
+def export_to_mermaid(app: Application, detail: str = "standard") -> str:
+    """Generate Mermaid ER diagram syntax.
+
+    Mermaid is a JavaScript-based diagramming tool that renders markdown-inspired
+    text definitions to create diagrams. This generates an entity-relationship diagram
+    that can be rendered in GitHub, GitLab, VS Code, and many other tools.
+
+    Args:
+        app: The Knack application metadata
+        detail: Detail level - "minimal", "compact", or "standard"
+
+    Returns:
+        A Mermaid ER diagram string
+    """
+    lines = []
+    lines.append("erDiagram")
+    lines.append(f"    %% Database schema for: {app.name}")
+    if app.description:
+        lines.append(f"    %% Description: {app.description}")
+    lines.append(f"    %% Knack App ID: {app.id}")
+    lines.append("")
+
+    # First pass: Define all relationships
+    relationships_added = set()
+    for obj in app.objects:
+        if not obj.connections or not obj.connections.outbound:
+            continue
+
+        for conn in obj.connections.outbound:
+            # Create a unique key to avoid duplicate relationships
+            rel_key = tuple(sorted([obj.key, conn.object]))
+            if rel_key in relationships_added:
+                continue
+
+            relationships_added.add(rel_key)
+
+            # Get the relationship notation
+            rel_notation = _get_mermaid_relationship(conn.has, conn.belongs_to)
+
+            # Format: SOURCE_TABLE NOTATION TARGET_TABLE : "relationship_name"
+            lines.append(f'    {obj.key} {rel_notation} {conn.object} : "{conn.name}"')
+
+    if relationships_added:
+        lines.append("")
+
+    # Second pass: Define all entities (tables) with their fields
+    for obj in app.objects:
+        # Start entity definition
+        lines.append(f"    {obj.key} {{")
+
+        # Add fields based on detail level
+        for field in obj.fields:
+            if _should_include_field(field, obj, detail):
+                field_type = _get_mermaid_type(field)
+                field_name = field.key
+
+                # Build field attributes
+                attributes = []
+                if field.key == obj.identifier:
+                    attributes.append("PK")
+                if field.required:
+                    attributes.append("NOT NULL")
+                if field.unique:
+                    attributes.append("UNIQUE")
+                if field.type == "connection":
+                    attributes.append("FK")
+
+                # Format the field line
+                attr_str = f" {','.join(attributes)}" if attributes else ""
+                comment = f" \"{field.name}\""
+
+                lines.append(f"        {field_type} {field_name}{attr_str}{comment}")
+
+        lines.append("    }")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
 def export_database_schema(
     app: Application, format: str = "json", detail: str = "standard"
 ) -> str | dict[str, Any]:
@@ -488,7 +623,7 @@ def export_database_schema(
 
     Args:
         app: The Knack application metadata
-        format: Output format - "json", "dbml", or "yaml"
+        format: Output format - "json", "dbml", "yaml", or "mermaid"
         detail: Detail level - "minimal", "compact", or "standard"
 
     Returns:
@@ -507,5 +642,7 @@ def export_database_schema(
         return export_to_dbml(app, detail=detail)
     elif format == "yaml":
         return export_to_yaml(app, detail=detail)
+    elif format == "mermaid":
+        return export_to_mermaid(app, detail=detail)
     else:
-        raise ValueError(f"Unsupported format: {format}. Use 'json', 'dbml', or 'yaml'")
+        raise ValueError(f"Unsupported format: {format}. Use 'json', 'dbml', 'yaml', or 'mermaid'")
