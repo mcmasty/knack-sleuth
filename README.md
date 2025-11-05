@@ -278,11 +278,17 @@ knack-sleuth export-db-schema path/to/knack_export.json
 # Export as DBML for ER diagram visualization
 knack-sleuth export-db-schema --format dbml -o schema.dbml
 
-# Export as YAML for human-readable overview
-knack-sleuth export-db-schema --format yaml -o schema.yaml
+# Export minimal detail (objects and connections only)
+knack-sleuth export-db-schema --format dbml --detail minimal -o minimal_schema.dbml
 
-# Fetch from API and export
-knack-sleuth export-db-schema --app-id YOUR_APP_ID --api-key YOUR_KEY -f dbml
+# Export compact detail (key fields: identifier, required, connections)
+knack-sleuth export-db-schema --format yaml --detail compact -o compact_schema.yaml
+
+# Export standard detail (all fields - default)
+knack-sleuth export-db-schema --format yaml --detail standard -o full_schema.yaml
+
+# Fetch from API and export (no API key needed - metadata endpoint is public)
+knack-sleuth export-db-schema --app-id YOUR_APP_ID -f dbml -d minimal
 ```
 
 **Supported Formats:**
@@ -290,13 +296,21 @@ knack-sleuth export-db-schema --app-id YOUR_APP_ID --api-key YOUR_KEY -f dbml
 - `dbml`: Database Markup Language for visualizing ER diagrams on [dbdiagram.io](https://dbdiagram.io)
 - `yaml`: Human-readable YAML representation with all database structure details
 
-**What it includes:**
-- Database tables (Knack objects) with all columns (fields)
-- Field types, constraints (required, unique), and SQL type mappings
-- Relationships between tables (one-to-one, one-to-many, many-to-many)
-- Record counts for each table
-- User profile object indicators
-- Computed fields and their relationships
+**Detail Levels:**
+- `minimal`: Objects and connections only - perfect for high-level architecture overview and ER diagrams
+- `compact`: Key fields only (identifier, required fields, connections) - focused view of essential structure
+- `standard`: All fields with complete details (default) - comprehensive schema documentation
+
+**What it includes (varies by detail level):**
+- Database tables (Knack objects) with metadata
+- Relationships between tables (one-to-one, one-to-many, many-to-many) - all detail levels
+- Record counts for each table - all detail levels
+- User profile object indicators - all detail levels
+- Connection fields - all detail levels
+- Identifier/primary key fields - compact and standard
+- Required fields - compact and standard
+- All fields with types, constraints, and SQL mappings - standard only
+- Computed fields and their relationships - standard only
 
 **Use Cases:**
 - Visualizing database structure and relationships as ER diagrams

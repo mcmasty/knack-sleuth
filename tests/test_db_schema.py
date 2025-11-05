@@ -1,7 +1,5 @@
 """Tests for database schema export functionality."""
 
-import json
-from pathlib import Path
 
 import pytest
 import yaml
@@ -297,3 +295,123 @@ class TestExportDatabaseSchema:
         """Test that invalid format raises ValueError."""
         with pytest.raises(ValueError, match="Unsupported format"):
             export_database_schema(sample_app, format="invalid")
+
+    def test_export_invalid_detail(self, sample_app):
+        """Test that invalid detail level raises ValueError."""
+        with pytest.raises(ValueError, match="Unsupported detail level"):
+            export_database_schema(sample_app, format="json", detail="invalid")
+
+
+class TestDetailLevels:
+    """Tests for detail level filtering."""
+
+    def test_minimal_detail_json(self, sample_app):
+        """Test minimal detail includes only connection fields."""
+        schema = export_to_json_schema(sample_app, detail="minimal")
+
+        # Find an object with both connection and non-connection fields
+        for obj in sample_app.objects:
+            if not obj.fields:
+                continue
+
+            obj_schema = schema["definitions"][obj.key]
+            fields_in_schema = obj_schema["properties"]
+
+            # Check that only connection fields are included
+            for field in obj.fields:
+                if field.type == "connection":
+                    assert field.key in fields_in_schema, f"Connection field {field.key} should be in minimal detail"
+                else:
+                    assert field.key not in fields_in_schema, f"Non-connection field {field.key} should not be in minimal detail"
+
+    def test_compact_detail_json(self, sample_app):
+        """Test compact detail includes identifier, required, and connection fields."""
+        schema = export_to_json_schema(sample_app, detail="compact")
+
+        # Find an object with various field types
+        for obj in sample_app.objects:
+            if not obj.fields:
+                continue
+
+            obj_schema = schema["definitions"][obj.key]
+            fields_in_schema = obj_schema["properties"]
+
+            # Check field inclusion rules
+            for field in obj.fields:
+                should_include = (
+                    field.type == "connection" or
+                    field.key == obj.identifier or
+                    field.required
+                )
+
+                if should_include:
+                    assert field.key in fields_in_schema, f"Field {field.key} should be in compact detail"
+                else:
+                    assert field.key not in fields_in_schema, f"Field {field.key} should not be in compact detail"
+
+    def test_standard_detail_json(self, sample_app):
+        """Test standard detail includes all fields."""
+        schema = export_to_json_schema(sample_app, detail="standard")
+
+        # Verify all fields are included for all objects
+        for obj in sample_app.objects:
+            obj_schema = schema["definitions"][obj.key]
+            fields_in_schema = obj_schema["properties"]
+
+            # All fields should be present
+            for field in obj.fields:
+                assert field.key in fields_in_schema, f"All fields should be in standard detail, missing {field.key}"
+
+    def test_minimal_detail_dbml(self, sample_app):
+        """Test minimal detail DBML includes only connection fields."""
+        dbml = export_to_dbml(sample_app, detail="minimal")
+
+        # Verify DBML contains tables
+        assert "Table" in dbml
+
+        # Check that connections are still present
+        if any(obj.connections and obj.connections.outbound for obj in sample_app.objects):
+            assert "Ref:" in dbml
+
+    def test_compact_detail_yaml(self, sample_app):
+        """Test compact detail YAML structure."""
+        yaml_str = export_to_yaml(sample_app, detail="compact")
+        data = yaml.safe_load(yaml_str)
+
+        # Verify basic structure
+        assert "application" in data
+        assert "objects" in data
+
+        # Check that fields are filtered
+        for obj_data in data["objects"]:
+            if not obj_data["fields"]:
+                continue
+
+            # Find corresponding object in sample_app
+            obj = next(o for o in sample_app.objects if o.key == obj_data["key"])
+
+            # Verify only appropriate fields are included
+            field_keys_in_export = {f["key"] for f in obj_data["fields"]}
+
+            for field in obj.fields:
+                should_include = (
+                    field.type == "connection" or
+                    field.key == obj.identifier or
+                    field.required
+                )
+
+                if should_include:
+                    assert field.key in field_keys_in_export
+                else:
+                    assert field.key not in field_keys_in_export
+
+    def test_detail_levels_preserve_connections(self, sample_app):
+        """Test that all detail levels preserve connection metadata."""
+        for detail in ["minimal", "compact", "standard"]:
+            schema = export_to_json_schema(sample_app, detail=detail)
+
+            # Verify connections are preserved for all objects
+            for obj in sample_app.objects:
+                if obj.connections:
+                    obj_schema = schema["definitions"][obj.key]
+                    assert "x-connections" in obj_schema, f"Connections should be preserved in {detail} detail"

@@ -19,7 +19,6 @@ from knack_sleuth.config import Settings
 def load_app_metadata(
     file_path: Optional[Path] = None,
     app_id: Optional[str] = None,
-    api_key: Optional[str] = None,
     refresh: bool = False,
     no_cache: bool = False,
 ) -> KnackAppMetadata:
@@ -31,7 +30,7 @@ def load_app_metadata(
     Args:
         file_path: Path to a local JSON metadata file. If provided, loads from file.
         app_id: Knack application ID. If provided without file_path, fetches from API.
-        api_key: Knack API key (currently unused - metadata endpoint is public).
+                Note: The Knack metadata endpoint is public and does not require an API key.
         refresh: Force refresh from API, ignoring cache (only applies when using API).
         no_cache: Skip cache entirely - don't read from cache and don't write to cache.
                   Useful for library usage where you don't want filesystem side effects.

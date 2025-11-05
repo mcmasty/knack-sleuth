@@ -8,7 +8,40 @@ from typing import Any
 
 import yaml
 
-from knack_sleuth.models import Application, KnackField
+from knack_sleuth.models import Application, KnackField, KnackObject
+
+
+def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> bool:
+    """Determine if a field should be included based on detail level.
+
+    Args:
+        field: The field to check
+        obj: The object containing the field
+        detail: Detail level - "minimal", "compact", or "standard"
+
+    Returns:
+        True if the field should be included
+    """
+    if detail == "standard":
+        return True
+
+    # Connection fields are always included in all detail levels
+    if field.type == "connection":
+        return True
+
+    if detail == "minimal":
+        # Only connection fields
+        return False
+
+    if detail == "compact":
+        # Include identifier fields, required fields, and connection fields
+        if field.key == obj.identifier:
+            return True
+        if field.required:
+            return True
+        return False
+
+    return True
 
 
 def _get_field_sql_type(field: KnackField) -> str:
@@ -126,11 +159,12 @@ def _build_field_json_schema(field: KnackField) -> dict[str, Any]:
     return schema
 
 
-def export_to_json_schema(app: Application) -> dict[str, Any]:
+def export_to_json_schema(app: Application, detail: str = "standard") -> dict[str, Any]:
     """Generate JSON Schema representing the actual database structure.
 
     Args:
         app: The Knack application metadata
+        detail: Detail level - "minimal", "compact", or "standard"
 
     Returns:
         A JSON Schema document describing the database structure
@@ -162,12 +196,13 @@ def export_to_json_schema(app: Application) -> dict[str, Any]:
         if obj.identifier:
             obj_schema["x-identifier-field"] = obj.identifier
 
-        # Add all fields
+        # Add fields based on detail level
         required_fields = []
         for field in obj.fields:
-            obj_schema["properties"][field.key] = _build_field_json_schema(field)
-            if field.required:
-                required_fields.append(field.key)
+            if _should_include_field(field, obj, detail):
+                obj_schema["properties"][field.key] = _build_field_json_schema(field)
+                if field.required:
+                    required_fields.append(field.key)
 
         if required_fields:
             obj_schema["required"] = required_fields
@@ -212,7 +247,7 @@ def export_to_json_schema(app: Application) -> dict[str, Any]:
     return schema
 
 
-def export_to_dbml(app: Application) -> str:
+def export_to_dbml(app: Application, detail: str = "standard") -> str:
     """Generate DBML (Database Markup Language) schema.
 
     DBML is a simple, readable DSL language designed to define database schemas.
@@ -220,6 +255,7 @@ def export_to_dbml(app: Application) -> str:
 
     Args:
         app: The Knack application metadata
+        detail: Detail level - "minimal", "compact", or "standard"
 
     Returns:
         A DBML string representing the database structure
@@ -257,23 +293,24 @@ def export_to_dbml(app: Application) -> str:
 
         lines.append("")
 
-        # Add fields
+        # Add fields based on detail level
         for field in obj.fields:
-            field_line = f"  {field.key} {_get_field_sql_type(field)}"
+            if _should_include_field(field, obj, detail):
+                field_line = f"  {field.key} {_get_field_sql_type(field)}"
 
-            attributes = []
-            if field.required:
-                attributes.append("not null")
-            if field.unique:
-                attributes.append("unique")
-            if field.key == obj.identifier:
-                attributes.append("pk")
+                attributes = []
+                if field.required:
+                    attributes.append("not null")
+                if field.unique:
+                    attributes.append("unique")
+                if field.key == obj.identifier:
+                    attributes.append("pk")
 
-            if attributes:
-                field_line += f" [{', '.join(attributes)}]"
+                if attributes:
+                    field_line += f" [{', '.join(attributes)}]"
 
-            field_line += f"  // {field.name} ({field.type})"
-            lines.append(field_line)
+                field_line += f"  // {field.name} ({field.type})"
+                lines.append(field_line)
 
         lines.append("")
 
@@ -322,11 +359,12 @@ def export_to_dbml(app: Application) -> str:
     return "\n".join(lines)
 
 
-def export_to_yaml(app: Application) -> str:
+def export_to_yaml(app: Application, detail: str = "standard") -> str:
     """Generate YAML representation of the database structure.
 
     Args:
         app: The Knack application metadata
+        detail: Detail level - "minimal", "compact", or "standard"
 
     Returns:
         A YAML string representing the database structure
@@ -358,34 +396,35 @@ def export_to_yaml(app: Application) -> str:
                 "plural": obj.inflections.plural,
             }
 
-        # Add fields
+        # Add fields based on detail level
         for field in obj.fields:
-            field_data: dict[str, Any] = {
-                "key": field.key,
-                "name": field.name,
-                "type": field.type,
-                "sql_type": _get_field_sql_type(field),
-                "required": field.required,
-                "unique": field.unique,
-            }
-
-            if field.user:
-                field_data["is_user_field"] = True
-
-            if field.conditional:
-                field_data["conditional"] = True
-
-            if field.relationship:
-                field_data["relationship"] = {
-                    "has": field.relationship.has,
-                    "object": field.relationship.object,
-                    "belongs_to": field.relationship.belongs_to,
+            if _should_include_field(field, obj, detail):
+                field_data: dict[str, Any] = {
+                    "key": field.key,
+                    "name": field.name,
+                    "type": field.type,
+                    "sql_type": _get_field_sql_type(field),
+                    "required": field.required,
+                    "unique": field.unique,
                 }
 
-            if field.format:
-                field_data["format"] = field.format.model_dump(exclude_none=True)
+                if field.user:
+                    field_data["is_user_field"] = True
 
-            obj_data["fields"].append(field_data)
+                if field.conditional:
+                    field_data["conditional"] = True
+
+                if field.relationship:
+                    field_data["relationship"] = {
+                        "has": field.relationship.has,
+                        "object": field.relationship.object,
+                        "belongs_to": field.relationship.belongs_to,
+                    }
+
+                if field.format:
+                    field_data["format"] = field.format.model_dump(exclude_none=True)
+
+                obj_data["fields"].append(field_data)
 
         # Add connections
         if obj.connections:
@@ -443,25 +482,30 @@ def _get_relationship_type(has: str, belongs_to: str) -> str:
 
 
 def export_database_schema(
-    app: Application, format: str = "json"
+    app: Application, format: str = "json", detail: str = "standard"
 ) -> str | dict[str, Any]:
     """Export database schema in the specified format.
 
     Args:
         app: The Knack application metadata
         format: Output format - "json", "dbml", or "yaml"
+        detail: Detail level - "minimal", "compact", or "standard"
 
     Returns:
         Schema representation in the specified format
 
     Raises:
-        ValueError: If format is not supported
+        ValueError: If format or detail is not supported
     """
+    valid_details = ["minimal", "compact", "standard"]
+    if detail not in valid_details:
+        raise ValueError(f"Unsupported detail level: {detail}. Use 'minimal', 'compact', or 'standard'")
+
     if format == "json":
-        return export_to_json_schema(app)
+        return export_to_json_schema(app, detail=detail)
     elif format == "dbml":
-        return export_to_dbml(app)
+        return export_to_dbml(app, detail=detail)
     elif format == "yaml":
-        return export_to_yaml(app)
+        return export_to_yaml(app, detail=detail)
     else:
         raise ValueError(f"Unsupported format: {format}. Use 'json', 'dbml', or 'yaml'")

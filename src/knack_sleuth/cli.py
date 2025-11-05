@@ -30,14 +30,15 @@ def version_callback(value: bool):
 def load_app_metadata(
     file_path: Optional[Path],
     app_id: Optional[str],
-    api_key: Optional[str],
     refresh: bool = False,
 ) -> KnackAppMetadata:
     """
     CLI wrapper for loading Knack application metadata.
-    
+
     Adds user-friendly console output and error handling on top of core.load_app_metadata.
     For library usage, import from knack_sleuth.core instead.
+
+    Note: The Knack metadata endpoint is public and does not require an API key.
     """
     settings = Settings()
     
@@ -74,7 +75,6 @@ def load_app_metadata(
         result = core_load_metadata(
             file_path=file_path,
             app_id=app_id,
-            api_key=api_key,
             refresh=refresh,
         )
         
@@ -134,9 +134,6 @@ def list_objects(
     app_id: Optional[str] = typer.Option(
         None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
     ),
-    api_key: Optional[str] = typer.Option(
-        None, "--api-key", help="Knack API key (can also use KNACK_API_KEY env var)"
-    ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
     ),
@@ -154,18 +151,18 @@ def list_objects(
     - Ca (Afferent coupling): Number of inbound connections (other objects depend on this)
     - Ce (Efferent coupling): Number of outbound connections (this object depends on others)
     - Total connections (Ca + Ce)
-    
+
     You can either:
     1. Provide a local JSON file: knack-sleuth list-objects path/to/file.json
-    2. Fetch from API: knack-sleuth list-objects --app-id YOUR_APP_ID --api-key YOUR_KEY
-    3. Use environment variables: KNACK_APP_ID and KNACK_API_KEY
+    2. Fetch from API: knack-sleuth list-objects --app-id YOUR_APP_ID
+    3. Use environment variables: KNACK_APP_ID (no API key needed - metadata is public)
     
     When fetching from API, data is automatically cached locally and reused for 24 hours.
     Use --refresh to force fetching fresh data from the API.
     """
     # Load metadata
-    app_export = load_app_metadata(file_path, app_id, api_key, refresh)
-    
+    app_export = load_app_metadata(file_path, app_id, refresh)
+
     # Create table
     table = Table(title=f"[bold cyan]{app_export.application.name}[/bold cyan] - Objects")
     table.add_column("Key", style="dim")
@@ -250,9 +247,6 @@ def search_object(
     app_id: Optional[str] = typer.Option(
         None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
     ),
-    api_key: Optional[str] = typer.Option(
-        None, "--api-key", help="Knack API key (can also use KNACK_API_KEY env var)"
-    ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
     ),
@@ -268,14 +262,14 @@ def search_object(
 
     You can either:
     1. Provide a local JSON file: knack-sleuth search-object object_12 path/to/file.json
-    2. Fetch from API: knack-sleuth search-object object_12 --app-id YOUR_APP_ID --api-key YOUR_KEY
-    3. Use environment variables: KNACK_APP_ID and KNACK_API_KEY
+    2. Fetch from API: knack-sleuth search-object object_12 --app-id YOUR_APP_ID
+    3. Use environment variables: KNACK_APP_ID (no API key needed - metadata is public)
     
     When fetching from API, data is automatically cached locally and reused for 24 hours.
     Use --refresh to force fetching fresh data from the API.
     """
     # Load metadata
-    app_export = load_app_metadata(file_path, app_id, api_key, refresh)
+    app_export = load_app_metadata(file_path, app_id, refresh)
 
     # Create search engine
     sleuth = KnackSleuth(app_export)
@@ -396,9 +390,6 @@ def show_coupling(
     app_id: Optional[str] = typer.Option(
         None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
     ),
-    api_key: Optional[str] = typer.Option(
-        None, "--api-key", help="Knack API key (can also use KNACK_API_KEY env var)"
-    ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
     ),
@@ -409,11 +400,13 @@ def show_coupling(
     Displays:
     - Afferent Coupling (Ca): Objects that depend on this object (inbound connections)
     - Efferent Coupling (Ce): Objects this object depends on (outbound connections)
-    
+
     This provides a focused view of an object's dependencies from its perspective.
+
+    Note: The Knack metadata endpoint is public and does not require an API key.
     """
     # Load metadata
-    app_export = load_app_metadata(file_path, app_id, api_key, refresh)
+    app_export = load_app_metadata(file_path, app_id, refresh)
     
     # Find the object (support both key and name lookup)
     target_object = None
@@ -692,11 +685,11 @@ def export_db_schema(
     format: str = typer.Option(
         "json", "--format", "-f", help="Output format: json, dbml, or yaml"
     ),
+    detail: str = typer.Option(
+        "standard", "--detail", "-d", help="Detail level: minimal, compact, or standard"
+    ),
     app_id: Optional[str] = typer.Option(
         None, "--app-id", help="Knack app ID (alternative to file)"
-    ),
-    api_key: Optional[str] = typer.Option(
-        None, "--api-key", help="Knack API key (required if using --app-id)"
     ),
 ):
     """
@@ -711,18 +704,26 @@ def export_db_schema(
     - dbml: Database Markup Language for ER diagram generation (dbdiagram.io)
     - yaml: Human-readable YAML representation
 
+    Detail levels:
+    - minimal: Objects and connections only (high-level structure)
+    - compact: Key fields (identifier, required, connections)
+    - standard: All fields with complete details (default)
+
     Examples:
         # Export from file to JSON Schema
         knack-sleuth export-db-schema app_export.json
 
-        # Export to DBML for ER diagram
-        knack-sleuth export-db-schema app_export.json --format dbml -o schema.dbml
+        # Export to DBML for ER diagram with minimal detail
+        knack-sleuth export-db-schema app_export.json --format dbml --detail minimal -o schema.dbml
+
+        # Export compact view to YAML
+        knack-sleuth export-db-schema app_export.json --format yaml --detail compact
 
         # Export to YAML
         knack-sleuth export-db-schema app_export.json --format yaml -o schema.yaml
 
-        # Load from Knack API and export
-        knack-sleuth export-db-schema --app-id YOUR_APP_ID --api-key YOUR_KEY -f dbml
+        # Load from Knack API and export (no API key needed for public metadata)
+        knack-sleuth export-db-schema --app-id YOUR_APP_ID -f dbml
     """
     from knack_sleuth.core import load_app_metadata
     from knack_sleuth.db_schema import export_database_schema
@@ -736,6 +737,15 @@ def export_db_schema(
         )
         raise typer.Exit(1)
 
+    # Validate detail level
+    valid_details = ["minimal", "compact", "standard"]
+    if detail not in valid_details:
+        console.print(
+            f"[red]Error:[/red] Invalid detail level '{detail}'. "
+            f"Use one of: {', '.join(valid_details)}"
+        )
+        raise typer.Exit(1)
+
     # Set default output file based on format
     if not output_file:
         extension_map = {"json": "json", "dbml": "dbml", "yaml": "yaml"}
@@ -745,7 +755,7 @@ def export_db_schema(
         # Load app metadata
         console.print("[dim]Loading application metadata...[/dim]")
         app_metadata = load_app_metadata(
-            file_path=file_path, app_id=app_id, api_key=api_key
+            file_path=file_path, app_id=app_id
         )
         app = app_metadata.application
 
@@ -756,8 +766,8 @@ def export_db_schema(
         console.print()
 
         # Generate schema
-        console.print(f"[dim]Generating {format.upper()} schema...[/dim]")
-        schema = export_database_schema(app, format=format)
+        console.print(f"[dim]Generating {format.upper()} schema ({detail} detail)...[/dim]")
+        schema = export_database_schema(app, format=format, detail=detail)
 
         # Save to file
         with output_file.open("w") as f:
@@ -773,6 +783,7 @@ def export_db_schema(
             f"[green]✓[/green] Database schema exported to [bold]{output_file}[/bold]"
         )
         console.print(f"[dim]  Format: {format.upper()}[/dim]")
+        console.print(f"[dim]  Detail: {detail}[/dim]")
         console.print(f"[dim]  Objects: {len(app.objects)}[/dim]")
         console.print(f"[dim]  File size: {file_size_kb:.1f} KB[/dim]")
         console.print()
@@ -810,9 +821,6 @@ def impact_analysis(
     ),
     app_id: Optional[str] = typer.Option(
         None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
-    ),
-    api_key: Optional[str] = typer.Option(
-        None, "--api-key", help="Knack API key (can also use KNACK_API_KEY env var)"
     ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
@@ -852,7 +860,7 @@ def impact_analysis(
         knack-sleuth impact-analysis "Organization" my_app.json --format markdown
     """
     # Load metadata
-    app_export = load_app_metadata(file_path, app_id, api_key, refresh)
+    app_export = load_app_metadata(file_path, app_id, refresh)
 
     # Create search engine
     sleuth = KnackSleuth(app_export)
@@ -1059,9 +1067,6 @@ def app_summary(
     app_id: Optional[str] = typer.Option(
         None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
     ),
-    api_key: Optional[str] = typer.Option(
-        None, "--api-key", help="Knack API key (can also use KNACK_API_KEY env var)"
-    ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
     ),
@@ -1104,7 +1109,7 @@ def app_summary(
         knack-sleuth app-summary --app-id YOUR_APP_ID --output summary.json
     """
     # Load metadata
-    app_export = load_app_metadata(file_path, app_id, api_key, refresh)
+    app_export = load_app_metadata(file_path, app_id, refresh)
 
     # Create search engine and generate summary
     sleuth = KnackSleuth(app_export)
