@@ -224,6 +224,8 @@ record = {
 
 **Separate embeddings for different field groups**
 
+⚠️ **Important:** If your records have semantically distinct sections for different audiences (e.g., client info vs performer info in event planning), you should use this approach. See [MULTI_EMBEDDING_EXAMPLE.md](MULTI_EMBEDDING_EXAMPLE.md) for a complete example.
+
 ```python
 # Example: Support ticket with multiple text areas
 record = {
@@ -275,9 +277,11 @@ combined = merge_and_rerank(public_results, internal_results)
 - ❌ Slower (multiple searches or custom logic)
 
 **Use when:**
-- Large records with distinct sections (e.g., support tickets: title, description, resolution)
+- **Different audiences search different sections** (e.g., event planning: clients search wedding info, performers search equipment info)
+- Large records with distinct semantic sections (e.g., support tickets: title, description, resolution)
 - Need to separate public vs internal content
 - Want field-specific search (search titles only, then descriptions)
+- Single embedding would dilute search quality by mixing unrelated contexts
 
 ### Option 3: Hybrid Multi-Column (Best of Both)
 
