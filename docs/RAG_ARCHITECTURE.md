@@ -6,11 +6,12 @@ This document outlines the recommended architecture for providing chat and RAG a
 
 ## Design Philosophy
 
-**Schema = Static Context** | **Data = Dynamic MCP Tools**
+**Schema = Static Context** | **Data = Dynamic MCP Tools** | **Freshness = Hybrid Strategy**
 
 - Schema information is relatively static and fits in modern LLM context windows (200k+ tokens)
 - Data is dynamic, large, and requires querying infrastructure
 - Don't over-engineer: Use simple file reads for schema, MCP only for data operations
+- **Data freshness matters:** Use LanceDB for discovery, Knack API for authoritative data (see [DATA_FRESHNESS_STRATEGY.md](DATA_FRESHNESS_STRATEGY.md))
 
 ## Architecture Layers
 
@@ -166,16 +167,25 @@ for obj in app.objects:
     print(f"✓ Created table {table_name} with {len(lance_records)} records")
 ```
 
-### Phase 3: MCP Server (Data Operations Only)
+### Phase 3: MCP Server (Hybrid Strategy)
+
+**Key Insight:** Use LanceDB for discovery (semantic search), Knack API for fresh data
 
 ```python
 import lancedb
+import httpx
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 import mcp.types as types
 
 # Initialize LanceDB connection
 db = lancedb.connect("./lancedb")
+
+# Initialize Knack API client
+knack_client = httpx.AsyncClient(
+    base_url="https://api.knack.com/v1",
+    headers={"X-Knack-Application-Id": KNACK_APP_ID, "X-Knack-REST-API-Key": KNACK_API_KEY}
+)
 
 # Initialize MCP server
 app = Server("knack-data-server")
@@ -184,14 +194,14 @@ app = Server("knack-data-server")
 async def list_tools() -> list[types.Tool]:
     return [
         types.Tool(
-            name="search_records",
-            description="Semantic search across records in a Knack object",
+            name="search_and_fetch",
+            description="Semantic search in LanceDB, return fresh data from Knack API. Best for exploratory queries.",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string", "description": "Search query"},
+                    "query": {"type": "string", "description": "Semantic search query"},
                     "object_key": {"type": "string", "description": "Knack object key (e.g., 'object_1')"},
-                    "limit": {"type": "integer", "default": 10}
+                    "limit": {"type": "integer", "default": 5}
                 },
                 "required": ["query", "object_key"]
             }
@@ -225,24 +235,39 @@ async def list_tools() -> list[types.Tool]:
 
 @app.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
-    if name == "search_records":
+    if name == "search_and_fetch":
+        # Phase 1: Semantic search in LanceDB (find relevant records)
         table = db.open_table(f"knack_{arguments['object_key']}")
 
-        # Generate embedding for query
         from sentence_transformers import SentenceTransformer
         embedder = SentenceTransformer('all-MiniLM-L6-v2')
         query_embedding = embedder.encode(arguments['query']).tolist()
 
-        # Vector search
-        results = (
+        # Find similar records
+        matches = (
             table.search(query_embedding)
-            .limit(arguments.get('limit', 10))
+            .limit(arguments.get('limit', 5))
             .to_list()
         )
 
+        # Phase 2: Fetch fresh data from Knack API
+        fresh_records = []
+        for match in matches:
+            response = await knack_client.get(
+                f"/objects/{arguments['object_key']}/records/{match['id']}"
+            )
+            fresh_record = response.json()
+            fresh_record['_similarity_score'] = 1 - match.get('_distance', 0)
+            fresh_records.append(fresh_record)
+
         return [types.TextContent(
             type="text",
-            text=json.dumps(results, indent=2)
+            text=json.dumps({
+                "query": arguments['query'],
+                "records": fresh_records,
+                "data_source": "hybrid (search: lancedb, data: knack api)",
+                "freshness": "real-time"
+            }, indent=2)
         )]
 
     elif name == "query_records":
@@ -301,15 +326,17 @@ if __name__ == "__main__":
 
 **No network calls. No MCP. Just file reads.**
 
-### Example 2: Searching Data (Uses MCP)
+### Example 2: Searching Data (Hybrid MCP)
 
 **User:** "Find all customers from Acme Corporation"
 
 **Agent Process:**
 1. Reads `.knack/schema.yaml` to understand Customers object structure
 2. Identifies that Customers is `object_1` with a `Company` field
-3. Calls MCP tool: `search_records(query="Acme Corporation", object_key="object_1")`
-4. Returns results from LanceDB
+3. Calls MCP tool: `search_and_fetch(query="Acme Corporation", object_key="object_1")`
+   - Searches LanceDB for semantic matches
+   - Fetches fresh data from Knack API for found records
+4. Returns fresh, authoritative data with similarity scores
 
 ### Example 3: Complex Query (Hybrid)
 
@@ -346,6 +373,53 @@ if __name__ == "__main__":
 4. **Versioning**: Built-in data versioning (useful for temporal queries)
 
 5. **Embedded & Serverless**: Can run locally or in cloud
+
+## Data Freshness Strategy
+
+**Critical consideration:** LanceDB is a read replica - it will always lag behind the live Knack database.
+
+### When to Use Each Data Source
+
+| Query Type | Use | Reason | Example |
+|------------|-----|--------|---------|
+| **Semantic/fuzzy search** | LanceDB → Knack API | Find with vectors, fetch fresh data | "customers who mentioned refunds" |
+| **Single record lookup** | Knack API only | Direct fetch faster | "Get customer ID 12345" |
+| **Analytics/aggregations** | LanceDB only | Staleness acceptable | "Average revenue by region" |
+| **Write operations** | Knack API only | Only source of truth can write | "Update customer email" |
+| **Financial/compliance** | Knack API only | Zero staleness tolerance | "Current account balance" |
+
+### Recommended Hybrid Pattern
+
+**Best practice:** Search in LanceDB (for discovery), fetch from Knack API (for fresh data)
+
+```python
+# User asks: "Find customers with billing issues"
+
+# Step 1: Semantic search in LanceDB (uses embeddings)
+matches = lancedb.search(embed("billing issues"))  # Returns IDs
+
+# Step 2: Fetch fresh data from Knack API
+for match in matches:
+    fresh_data = knack_api.get_record(match['id'])  # Real-time data
+```
+
+**Why this works:**
+- ✅ Leverage semantic search (impossible on Knack API)
+- ✅ Always return authoritative, fresh data
+- ✅ Staleness only affects which records are found, not the data shown
+
+### Sync Strategies
+
+Choose based on your needs:
+
+| Strategy | Latency | Complexity | Best For |
+|----------|---------|------------|----------|
+| **Nightly full refresh** | 24h | Low | Small datasets, infrequent changes |
+| **Incremental (15min)** | 15min | Medium | Medium datasets, frequent updates |
+| **Webhook-triggered** | Seconds | High | Need near real-time search |
+| **On-demand refresh** | Variable | Low | User-initiated refresh |
+
+**See [DATA_FRESHNESS_STRATEGY.md](DATA_FRESHNESS_STRATEGY.md) for detailed implementation guidance.**
 
 ## Maintenance Workflow
 
