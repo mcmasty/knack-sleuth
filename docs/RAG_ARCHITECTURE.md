@@ -110,6 +110,8 @@ objects:
 
 ### Phase 2: Data Export & Ingestion (knack-elt → LanceDB)
 
+**Key insight:** Store ALL fields as columns, embed SELECTED text fields for semantic search. See [EMBEDDING_STRATEGY.md](EMBEDDING_STRATEGY.md) for details.
+
 ```python
 from knack_sleuth import load_app_metadata
 from knack_elt import export_data  # your library
@@ -135,29 +137,33 @@ for obj in app.objects:
     # Transform for LanceDB
     lance_records = []
     for record in records:
-        # Identify text fields for embedding
+        # Identify text fields for embedding (not numbers, dates, connections)
         text_fields = [
             f for f in obj.fields
-            if f.type in ['short_text', 'paragraph_text', 'rich_text', 'email']
+            if f.type in ['short_text', 'paragraph_text', 'rich_text', 'email', 'name', 'address']
         ]
 
-        # Concatenate text content
+        # Concatenate embeddable text content only
         content = " ".join([
             str(record.get(f.key, ""))
             for f in text_fields
         ])
 
-        # Create embedding
+        # Create embedding (only for text content)
         embedding = embedder.encode(content).tolist()
 
-        # Build LanceDB record
+        # Build LanceDB record - preserves ALL original fields
         lance_record = {
-            "id": record["id"],
-            "content": content,
-            "vector": embedding,
+            # All original Knack fields as columns (for SQL queries/display)
+            **record,
+
+            # Generated fields for semantic search
+            "content": content,        # Concatenated text
+            "vector": embedding,       # Embedding vector
+
+            # Metadata
             "_object_key": obj.key,
             "_object_name": obj.name,
-            **record  # Include all original fields for SQL queries
         }
         lance_records.append(lance_record)
 
