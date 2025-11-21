@@ -155,7 +155,7 @@ def build_subgraph(app: Application, start_object_key: str, depth: int) -> set[s
     Args:
         app: The Knack application metadata
         start_object_key: The key of the object to start from
-        depth: Maximum depth to traverse (0 = start + direct connections, 1 = one more level, etc.)
+        depth: Maximum depth to traverse (0 = start object only, 1 = start + direct connections, 2 = one more level, etc.)
 
     Returns:
         A set of object keys included in the subgraph
@@ -171,7 +171,7 @@ def build_subgraph(app: Application, start_object_key: str, depth: int) -> set[s
         current_key, current_depth = queue.popleft()
 
         # Stop if we've reached max depth
-        if current_depth >= depth + 1:
+        if current_depth >= depth:
             continue
 
         # Get the current object

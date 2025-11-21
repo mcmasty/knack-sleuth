@@ -895,7 +895,7 @@ def export_schema_subgraph(
         ..., "--object", help="Starting object (key or name, e.g., 'Events' or 'object_12')"
     ),
     depth: int = typer.Option(
-        0, "--depth", help="Traversal depth (0=direct connections, 1=one level deeper, 2=max)"
+        1, "--depth", help="Traversal depth (0=object only, 1=direct connections, 2=one level deeper)"
     ),
     output_file: Optional[Path] = typer.Option(
         None, "--output", "-o", help="Output file path"
@@ -920,11 +920,11 @@ def export_schema_subgraph(
 
     Depth levels:
 
-    - depth=0: Starting object + all directly connected objects (default)
+    - depth=0: Starting object only (no connections)
 
-    - depth=1: Above + connections of those directly connected objects
+    - depth=1: Starting object + all directly connected objects (default)
 
-    - depth=2: One more level deep (maximum recommended)
+    - depth=2: Above + connections of those directly connected objects
 
     - depth>2: Not recommended - use export-db-schema for full schema
 
