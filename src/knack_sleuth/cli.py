@@ -1624,5 +1624,162 @@ def app_summary(
         console.print(output_content)
 
 
+@cli.command(name="role-access-review")
+def role_access_review(
+    file_path: Optional[Path] = typer.Argument(
+        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+    ),
+    app_id: Optional[str] = typer.Option(
+        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+    ),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Force refresh cached API data (ignore cache)"
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Output CSV file path (default: role_access_review.csv in current directory)"
+    ),
+    summary_only: bool = typer.Option(
+        False, "--summary-only", help="Show only top-level and login pages with child counts (exclude individual child pages)"
+    ),
+):
+    """
+    Generate a role access review showing which user profiles can access which scenes.
+    
+    This command analyzes:
+
+    - Scene navigation hierarchy (menus, login pages, utility pages)
+
+    - Parent-child security inheritance
+
+    - Profile (role) restrictions on each scene
+
+    - Public vs authenticated access
+    
+    The output CSV shows:
+
+    - Navigation structure (menu > parent > child)
+
+    - Which roles have access to each scene
+
+    - Security inheritance relationships
+
+    - Public scenes and potential concerns
+    
+    Examples:
+
+        knack-sleuth role-access-review app.json
+
+        knack-sleuth role-access-review --app-id YOUR_APP_ID
+
+        knack-sleuth role-access-review app.json -o my_review.csv
+
+        knack-sleuth role-access-review app.json --summary-only  # Show only top-level pages
+    """
+    from pathlib import Path
+    import csv
+    from knack_sleuth.security import generate_security_report, count_children
+    
+    # Load metadata
+    app_export = load_app_metadata(file_path, app_id, refresh)
+    
+    # Generate security report
+    console.print("[dim]Analyzing scene security with navigation hierarchy...[/dim]")
+    report = generate_security_report(app_export.application)
+    
+    # Filter for summary mode if requested
+    scenes_to_export = report.scene_analyses
+    if summary_only:
+        # Only include Menu and Top-Level scenes
+        scenes_to_export = [
+            s for s in report.scene_analyses
+            if s.nav_level in ["Menu", "Top-Level"]
+        ]
+        # Calculate child counts for each top-level scene
+        for scene in scenes_to_export:
+            scene.child_count = count_children(scene.scene_key, report.scene_analyses)
+    
+    # Print summary to console
+    console.print()
+    console.print("=" * 80)
+    console.print(f"[bold cyan]ROLE ACCESS REVIEW: {report.app_name}[/bold cyan]")
+    console.print("=" * 80)
+    console.print(f"\nTotal Scenes: {report.total_scenes}")
+    console.print(f"  Menu Scenes: {report.menu_scenes}")
+    console.print(f"  Utility Pages (Require Knack Account): {report.utility_pages}")
+    console.print(f"  Scenes with Parent (Inherit Security): {report.scenes_with_parents}")
+    console.print(f"  Scenes Inheriting Security from Parent: {report.scenes_inheriting_security}")
+    console.print(f"  Top-Level Scenes (No Parent): {report.total_scenes - report.scenes_with_parents}")
+    console.print(f"\nPublic Scenes (No Login Required): {report.public_scenes}")
+    console.print(f"Login Required Scenes: {report.login_required_scenes}")
+    console.print(f"Unrestricted Authenticated Scenes: {report.unrestricted_authenticated_scenes}")
+    console.print(f"\nTotal User Profiles (Roles): {report.total_profiles}")
+    
+    console.print("\n" + "=" * 80)
+    console.print("[bold cyan]USER PROFILES (ROLES)[/bold cyan]")
+    console.print("=" * 80)
+    for profile_key, profile_name in report.profiles.items():
+        access_count = report.profile_access_counts.get(profile_name, 0)
+        console.print(f"  {profile_name:30} ({profile_key:20}) - Access to {access_count} scenes")
+    
+    console.print("\n" + "=" * 80)
+    console.print("[bold cyan]SECURITY CONCERNS[/bold cyan]")
+    console.print("=" * 80)
+    if report.public_scenes > 0:
+        console.print(f"⚠️  {report.public_scenes} scenes are publicly accessible without login")
+    if report.unrestricted_authenticated_scenes > 0:
+        console.print(f"⚠️  {report.unrestricted_authenticated_scenes} scenes require login but have no profile restrictions")
+    if report.public_scenes == 0 and report.unrestricted_authenticated_scenes == 0:
+        console.print("✓ No obvious security concerns in scene access controls")
+    
+    # Determine output path with timestamp
+    if not output:
+        from datetime import datetime, timezone
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        output = Path(f"role_access_review_{timestamp}.csv")
+
+    # Export to CSV
+    fieldnames = [
+        'root_nav',
+        'scene_name',
+        'nav_level',
+        'allowed_profile_count',
+        'allowed_profiles',
+        'page_nav',
+        'scene_key',
+        'scene_slug',
+        'scene_type',
+        'security_concern',
+        'requires_login',
+        'inherits_security',
+    ]
+
+    # Add child_count column if in summary mode
+    if summary_only:
+        fieldnames.insert(fieldnames.index('page_nav') + 1, 'child_count')
+
+    with output.open('w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for scene in scenes_to_export:
+            row = scene.model_dump()
+            # Convert list to comma-separated string
+            row['allowed_profiles'] = ', '.join(scene.allowed_profiles)
+            # Remove fields not in fieldnames
+            if not summary_only:
+                row.pop('child_count', None)
+            writer.writerow({k: v for k, v in row.items() if k in fieldnames})
+    
+    console.print()
+    if summary_only:
+        children_omitted = report.total_scenes - len(scenes_to_export)
+        console.print(f"[green]✓[/green] Summary report exported to [bold]{output}[/bold]")
+        console.print(f"[dim]  {len(scenes_to_export)} top-level scenes ({children_omitted} children omitted)[/dim]")
+    else:
+        console.print(f"[green]✓[/green] Report exported to [bold]{output}[/bold]")
+        console.print(f"[dim]  {len(scenes_to_export)} scenes[/dim]")
+    console.print()
+
+
 if __name__ == "__main__":
     cli()

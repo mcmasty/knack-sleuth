@@ -267,6 +267,53 @@ This is useful for:
 
 The file is saved as formatted JSON (indented) for easy reading and version control.
 
+### Role Access Review
+
+Generate a comprehensive role access review showing which user profiles (roles) can access which scenes (pages) in your Knack application:
+
+```bash
+# Basic usage - generates CSV report
+knack-sleuth role-access-review
+
+# Using a local file
+knack-sleuth role-access-review path/to/knack_export.json
+
+# Custom output location
+knack-sleuth role-access-review -o reports/access_review.csv
+
+# Summary mode - show only top-level pages with child counts
+knack-sleuth role-access-review --summary-only
+```
+
+**What it analyzes:**
+- Scene navigation hierarchy (menus, login pages, utility pages)
+- Parent-child security inheritance
+- Profile (role) restrictions on each scene
+- Public vs authenticated access
+- View-level security settings
+
+**Output includes:**
+- Navigation structure (menu > parent > child)
+- Which roles have access to each scene
+- Security inheritance relationships
+- Public scenes and potential security concerns
+- Child page counts (in summary mode)
+
+**Summary Mode (`--summary-only`):**
+- Shows only Menu and Top-Level scenes
+- Includes `child_count` column showing number of descendant pages
+- Perfect for getting an overview of large applications
+- Example: 274 total scenes → 73 top-level scenes in summary mode
+
+**Use Cases:**
+- Security audits and compliance reviews
+- Understanding role-based access control (RBAC)
+- Identifying public scenes that may need protection
+- Documenting which roles can access which features
+- Planning security model changes
+
+**Default Output:** `role_access_review.csv` in your current directory
+
 ### Export Database Schema
 
 Export your Knack application's database structure as JSON Schema, DBML, or YAML format. This analyzes objects (tables), fields (columns), and connections (relationships) to generate a comprehensive schema representation:

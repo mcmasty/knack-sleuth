@@ -248,3 +248,44 @@ class KnackAppMetadata(BaseModel):
     """Root model for a Knack application export JSON."""
 
     application: Application
+
+
+# ============================================================================
+# Security Analysis Models
+# ============================================================================
+
+
+class SceneSecurity(BaseModel):
+    """Security analysis for a single scene."""
+
+    root_nav: str  # Top-level navigation (Menu name, Login Page name, "Utility Page", or "Direct")
+    scene_name: str
+    nav_level: str  # "Menu", "Top-Level", or "Child"
+    allowed_profile_count: int
+    allowed_profiles: list[str]  # List of profile names that have access
+    page_nav: str  # Full navigation path (e.g., "Menu > Parent > Child")
+    scene_key: str
+    scene_slug: str
+    scene_type: str
+    security_concern: str  # Description of issues or "OK"
+    requires_login: bool  # Whether login is actually required (considering inheritance)
+    inherits_security: bool  # Whether security is inherited from parent
+    child_count: int | None = None  # Only populated in summary mode
+
+
+class SecurityReport(BaseModel):
+    """Complete security analysis report for an application."""
+
+    app_name: str
+    total_scenes: int
+    public_scenes: int
+    login_required_scenes: int
+    unrestricted_authenticated_scenes: int
+    scenes_with_parents: int
+    scenes_inheriting_security: int
+    menu_scenes: int
+    utility_pages: int
+    total_profiles: int
+    profiles: dict[str, str]  # profile_key -> profile_name
+    profile_access_counts: dict[str, int]  # profile_name -> scene_count
+    scene_analyses: list[SceneSecurity]
