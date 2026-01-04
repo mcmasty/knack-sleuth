@@ -1748,6 +1748,8 @@ def role_access_review(
         'scene_key',
         'scene_slug',
         'scene_type',
+        'view_names',
+        'view_keys',
         'security_concern',
         'requires_login',
         'inherits_security',
@@ -1763,8 +1765,10 @@ def role_access_review(
 
         for scene in scenes_to_export:
             row = scene.model_dump()
-            # Convert list to comma-separated string
+            # Convert lists to comma-separated strings
             row['allowed_profiles'] = ', '.join(scene.allowed_profiles)
+            row['view_names'] = ', '.join(scene.view_names)
+            row['view_keys'] = ', '.join(scene.view_keys)
             # Remove fields not in fieldnames
             if not summary_only:
                 row.pop('child_count', None)
@@ -1778,6 +1782,182 @@ def role_access_review(
     else:
         console.print(f"[green]✓[/green] Report exported to [bold]{output}[/bold]")
         console.print(f"[dim]  {len(scenes_to_export)} scenes[/dim]")
+    console.print()
+
+
+@cli.command(name="role-access-summary")
+def role_access_summary(
+    file_path: Optional[Path] = typer.Argument(
+        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+    ),
+    role: Optional[str] = typer.Option(
+        None, "--role", help="User profile (role) name to filter by (e.g., 'Admin', 'Manager')"
+    ),
+    profile_key: Optional[str] = typer.Option(
+        None, "--profile-key", help="Profile key to filter by (e.g., 'profile_1')"
+    ),
+    app_id: Optional[str] = typer.Option(
+        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+    ),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Force refresh cached API data (ignore cache)"
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Output CSV file path (default: role_access_summary_<role>_<timestamp>.csv)"
+    ),
+):
+    """
+    Show all pages and views accessible by a specific user profile (role).
+
+    This command helps troubleshoot access issues by showing exactly which pages
+    and views a particular role can access. Perfect for answering questions like:
+    "Why can't Joe (Manager role) see the Inventory List view?"
+
+    You must specify either --role (profile name) or --profile-key.
+
+    The output shows:
+    - Navigation hierarchy (menu > parent > child)
+    - All scenes (pages) the role can access
+    - All views within each scene that the role can access
+    - Scene keys and slugs for reference
+
+    Examples:
+        knack-sleuth role-access-summary --role "Manager" app.json
+        knack-sleuth role-access-summary --profile-key "profile_1" --app-id YOUR_APP_ID
+        knack-sleuth role-access-summary --role "Admin" app.json -o admin_access.csv
+    """
+    from pathlib import Path
+    import csv
+    from knack_sleuth.security import generate_security_report, get_views_for_profile
+
+    # Validate that at least one of role or profile_key is provided
+    if not role and not profile_key:
+        console.print("[red]Error:[/red] You must specify either --role or --profile-key")
+        raise typer.Exit(1)
+
+    # Load metadata
+    app_export = load_app_metadata(file_path, app_id, refresh)
+
+    # Generate security report
+    console.print("[dim]Analyzing scene security with navigation hierarchy...[/dim]")
+    report = generate_security_report(app_export.application)
+
+    # Find the target profile
+    target_profile_key = None
+    target_profile_name = None
+
+    if profile_key:
+        # Look up profile name from key
+        target_profile_name = report.profiles.get(profile_key)
+        if not target_profile_name:
+            console.print(f"[red]Error:[/red] Profile key '{profile_key}' not found in application")
+            console.print("\n[cyan]Available profiles:[/cyan]")
+            for pk, pn in report.profiles.items():
+                console.print(f"  {pk}: {pn}")
+            raise typer.Exit(1)
+        target_profile_key = profile_key
+    else:
+        # Look up profile key from name
+        matching_profiles = [(k, v) for k, v in report.profiles.items() if v == role]
+        if not matching_profiles:
+            # Try case-insensitive match
+            matching_profiles = [(k, v) for k, v in report.profiles.items() if v.lower() == role.lower()]
+
+        if not matching_profiles:
+            console.print(f"[red]Error:[/red] Role '{role}' not found in application")
+            console.print("\n[cyan]Available roles:[/cyan]")
+            for pk, pn in report.profiles.items():
+                console.print(f"  {pn} ({pk})")
+            raise typer.Exit(1)
+
+        if len(matching_profiles) > 1:
+            console.print(f"[yellow]Warning:[/yellow] Multiple profiles match '{role}':")
+            for pk, pn in matching_profiles:
+                console.print(f"  {pk}: {pn}")
+            console.print("\nUsing first match. Use --profile-key to specify exactly.")
+
+        target_profile_key, target_profile_name = matching_profiles[0]
+
+    # Filter scenes accessible by this profile
+    console.print(f"[dim]Filtering scenes accessible by '{target_profile_name}' ({target_profile_key})...[/dim]")
+
+    accessible_scenes = []
+    scenes_by_key = {s.key: s for s in app_export.application.scenes}
+
+    for scene_analysis in report.scene_analyses:
+        # Check if profile has access to this scene
+        # Profile has access if:
+        # 1. Scene is public (no login required), OR
+        # 2. Scene has no profile restrictions (unrestricted authenticated), OR
+        # 3. Profile is in the allowed_profiles list
+        has_access = (
+            not scene_analysis.requires_login or
+            (scene_analysis.requires_login and scene_analysis.allowed_profile_count == 0) or
+            target_profile_name in scene_analysis.allowed_profiles
+        )
+
+        if has_access:
+            # Get the actual scene object to check views
+            scene = scenes_by_key.get(scene_analysis.scene_key)
+            if scene:
+                # Get views accessible by this profile
+                view_names, view_keys = get_views_for_profile(scene, target_profile_key, target_profile_name)
+
+                accessible_scenes.append({
+                    'root_nav': scene_analysis.root_nav,
+                    'scene_name': scene_analysis.scene_name,
+                    'page_nav': scene_analysis.page_nav,
+                    'scene_key': scene_analysis.scene_key,
+                    'scene_slug': scene_analysis.scene_slug,
+                    'view_names': ', '.join(view_names) if view_names else '',
+                    'view_keys': ', '.join(view_keys) if view_keys else '',
+                    'view_count': len(view_names),
+                })
+
+    # Print summary to console
+    console.print()
+    console.print("=" * 80)
+    console.print(f"[bold cyan]ROLE ACCESS SUMMARY: {report.app_name}[/bold cyan]")
+    console.print("=" * 80)
+    console.print(f"\nProfile: [bold]{target_profile_name}[/bold] ({target_profile_key})")
+    console.print(f"Accessible Scenes: {len(accessible_scenes)}")
+
+    total_views = sum(s['view_count'] for s in accessible_scenes)
+    console.print(f"Accessible Views: {total_views}")
+
+    scenes_with_views = sum(1 for s in accessible_scenes if s['view_count'] > 0)
+    scenes_without_views = len(accessible_scenes) - scenes_with_views
+    console.print(f"  Scenes with Views: {scenes_with_views}")
+    console.print(f"  Scenes without Views: {scenes_without_views}")
+
+    # Determine output path with timestamp
+    if not output:
+        from datetime import datetime, timezone
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        safe_role_name = target_profile_name.replace(' ', '_').replace('/', '_')
+        output = Path(f"role_access_summary_{safe_role_name}_{timestamp}.csv")
+
+    # Export to CSV
+    fieldnames = [
+        'root_nav',
+        'scene_name',
+        'page_nav',
+        'scene_key',
+        'scene_slug',
+        'view_names',
+        'view_keys',
+    ]
+
+    with output.open('w', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for scene in accessible_scenes:
+            writer.writerow({k: v for k, v in scene.items() if k in fieldnames})
+
+    console.print()
+    console.print(f"[green]✓[/green] Summary exported to [bold]{output}[/bold]")
+    console.print(f"[dim]  {len(accessible_scenes)} scenes, {total_views} views[/dim]")
     console.print()
 
 

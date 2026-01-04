@@ -310,7 +310,11 @@ def analyze_scene_security(
         security_note = f"Inherits security from parent: {parent_name}"
     
     security_concern = "; ".join(concerns) if concerns else security_note or "OK"
-    
+
+    # Extract all view names and keys from this scene
+    view_names = [view.name for view in scene.views]
+    view_keys = [view.key for view in scene.views]
+
     return SceneSecurity(
         root_nav=nav_info['root_nav'],
         scene_name=scene_name,
@@ -324,6 +328,8 @@ def analyze_scene_security(
         security_concern=security_concern,
         requires_login=requires_login,
         inherits_security=inherits_security,
+        view_names=view_names,
+        view_keys=view_keys,
     )
 
 
@@ -349,23 +355,71 @@ def count_children(scene_key: str, all_scenes: list[SceneSecurity]) -> int:
     return count
 
 
+def get_views_for_profile(scene: Scene, profile_key: str, profile_name: str) -> tuple[list[str], list[str]]:
+    """Get views accessible by a specific profile on a scene.
+
+    Args:
+        scene: Scene to analyze
+        profile_key: Profile key (e.g., "profile_1")
+        profile_name: Profile name (e.g., "Admin")
+
+    Returns:
+        Tuple of (view_names, view_keys) that the profile can access
+    """
+    accessible_views_names = []
+    accessible_views_keys = []
+
+    # Check scene-level security first
+    scene_allowed_profiles = []
+    if hasattr(scene, 'model_extra') and scene.model_extra:
+        scene_allowed_profiles = scene.model_extra.get('allowed_profiles', [])
+
+    # If scene has no restrictions, all views are accessible (if no view-level restrictions)
+    # If scene has restrictions, profile must be in the list
+    scene_accessible = not scene_allowed_profiles or profile_key in scene_allowed_profiles
+
+    for view in scene.views:
+        view_accessible = False
+
+        # Check view-level security
+        view_allowed_profiles = []
+        limit_profile_access = False
+
+        if hasattr(view, 'model_extra') and view.model_extra:
+            view_allowed_profiles = view.model_extra.get('allowed_profiles', [])
+            limit_profile_access = view.model_extra.get('limit_profile_access', False)
+
+        if limit_profile_access and view_allowed_profiles:
+            # View has explicit restrictions
+            view_accessible = profile_key in view_allowed_profiles
+        elif scene_accessible:
+            # View inherits scene-level access (no view-level restrictions)
+            view_accessible = True
+
+        if view_accessible:
+            accessible_views_names.append(view.name)
+            accessible_views_keys.append(view.key)
+
+    return accessible_views_names, accessible_views_keys
+
+
 def generate_security_report(app: Application) -> SecurityReport:
     """Generate comprehensive security report for an application.
-    
+
     Args:
         app: Knack application metadata
-        
+
     Returns:
         SecurityReport with complete analysis
     """
     profiles = get_profile_mapping(app)
     hierarchy = build_navigation_hierarchy(app.scenes)
-    
+
     scene_analyses = []
     for scene in app.scenes:
         analysis = analyze_scene_security(scene, profiles, hierarchy)
         scene_analyses.append(analysis)
-    
+
     # Sort by navigation path for better readability
     # Put "Direct" and "Utility Page" pages after menu pages
     def sort_key(scene: SceneSecurity) -> tuple:
@@ -376,9 +430,9 @@ def generate_security_report(app: Application) -> SecurityReport:
         elif root_nav == "Utility Page":
             return ("zzzz_Utility Page", scene.page_nav)
         return (root_nav, scene.page_nav)
-    
+
     scene_analyses.sort(key=sort_key)
-    
+
     # Calculate summary statistics
     total_scenes = len(scene_analyses)
     public_scenes = sum(1 for s in scene_analyses if not s.requires_login)
@@ -388,7 +442,7 @@ def generate_security_report(app: Application) -> SecurityReport:
     scenes_inheriting_security = sum(1 for s in scene_analyses if s.inherits_security)
     menu_scenes = sum(1 for s in scene_analyses if s.nav_level == 'Menu')
     utility_pages = sum(1 for s in scene_analyses if s.scene_type == 'user')
-    
+
     # Profile access summary
     profile_access = defaultdict(int)
     for scene in scene_analyses:
