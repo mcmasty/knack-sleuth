@@ -367,6 +367,27 @@ knack-sleuth export-db-schema --app-id YOUR_APP_ID -f dbml -d minimal
 - Sharing schema structure with database designers
 - Integration with schema management tools
 
+### Install Claude Code Skill
+
+KnackSleuth includes a [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill called **knack-explorer** that lets Claude run knack-sleuth commands on your behalf when analyzing Knack apps.
+
+**For `uvx` / pip users** — install the skill to your local Claude Code configuration:
+
+```bash
+# One-liner with uvx
+uvx knack-sleuth install-skill
+
+# Or if globally installed
+knack-sleuth install-skill
+
+# Overwrite an existing installation
+knack-sleuth install-skill --force
+```
+
+This copies the skill definition to `~/.claude/skills/knack-explorer/SKILL.md`, making it available as a Claude Code skill in any project.
+
+**For repo contributors** — the skill is already available as a project-level skill in `.claude/skills/knack-explorer/SKILL.md`. No installation needed when working inside the repo.
+
 ## Experimental Commands
 
 ⚠️ **Alpha/Beta Features** — These commands are actively being developed and refined. Results may vary, and as they are used we hope to improve them. Use at your own risk.
