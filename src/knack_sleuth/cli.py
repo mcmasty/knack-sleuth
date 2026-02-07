@@ -1,3 +1,4 @@
+from importlib import resources
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta
@@ -1958,6 +1959,70 @@ def role_access_summary(
     console.print()
     console.print(f"[green]✓[/green] Summary exported to [bold]{output}[/bold]")
     console.print(f"[dim]  {len(accessible_scenes)} scenes, {total_views} views[/dim]")
+    console.print()
+
+
+@cli.command(name="install-skill")
+def install_skill(
+    target_dir: Optional[Path] = typer.Option(
+        None, "--target", "-t", help="Target directory (default: ~/.claude/skills/knack-explorer)"
+    ),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Overwrite existing skill file"
+    ),
+):
+    """
+    Install the knack-explorer skill for Claude Code.
+
+    This copies the knack-explorer skill definition to your local
+    Claude Code skills directory (~/.claude/skills/knack-explorer/),
+    making it available as a Claude Code skill in any project.
+
+    Once installed, Claude Code can use the knack-explorer skill to
+    run knack-sleuth commands on your behalf when analyzing Knack apps.
+
+    Examples:
+
+        uvx knack-sleuth install-skill
+
+        knack-sleuth install-skill --force
+
+        knack-sleuth install-skill --target ~/custom/skills/knack-explorer
+    """
+    # Determine target path
+    if not target_dir:
+        target_dir = Path.home() / ".claude" / "skills" / "knack-explorer"
+
+    target_file = target_dir / "SKILL.md"
+
+    # Check if already installed
+    if target_file.exists() and not force:
+        console.print(
+            f"[yellow]Skill already installed at[/yellow] {target_file}"
+        )
+        console.print("[dim]Use --force to overwrite[/dim]")
+        raise typer.Exit(0)
+
+    # Read SKILL.md from package data
+    try:
+        skill_content = resources.files("knack_sleuth").joinpath("data/SKILL.md").read_text()
+    except Exception as e:
+        console.print(f"[red]Error:[/red] Could not read skill file from package: {e}")
+        raise typer.Exit(1)
+
+    # Create directory and write file
+    try:
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target_file.write_text(skill_content)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] Could not write skill file: {e}")
+        raise typer.Exit(1)
+
+    console.print()
+    console.print(f"[green]✓[/green] Installed knack-explorer skill to [bold]{target_file}[/bold]")
+    console.print()
+    console.print("[dim]Claude Code will now offer the knack-explorer skill in any project.[/dim]")
+    console.print("[dim]The skill lets Claude run knack-sleuth commands when analyzing Knack apps.[/dim]")
     console.print()
 
 
