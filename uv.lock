@@ -176,7 +176,7 @@ wheels = [
 
 [[package]]
 name = "knack-sleuth"
-version = "0.2.5"
+version = "0.2.6"
 source = { editable = "." }
 dependencies = [
     { name = "httpx", extra = ["http2"] },
