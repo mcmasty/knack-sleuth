@@ -712,6 +712,9 @@ def export_db_schema(
     app_id: Optional[str] = typer.Option(
         None, "--app-id", help="Knack app ID (alternative to file)"
     ),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Force refresh cached API data (ignore cache)"
+    ),
 ):
     """
     Export your application's database schema (how your app looks to you).
@@ -765,7 +768,6 @@ def export_db_schema(
         # Load from Knack API and export (no API key needed for public metadata)
         knack-sleuth export-db-schema --app-id YOUR_APP_ID -f dbml
     """
-    from knack_sleuth.core import load_app_metadata
     from knack_sleuth.db_schema import export_database_schema
 
     # Validate format
@@ -791,20 +793,18 @@ def export_db_schema(
         extension_map = {"json": "json", "dbml": "dbml", "yaml": "yaml", "mermaid": "mmd"}
         output_file = Path(f"knack_db_schema.{extension_map[format]}")
 
+    # Load app metadata (the CLI wrapper handles cache messaging + error reporting)
+    console.print("[dim]Loading application metadata...[/dim]")
+    app_metadata = load_app_metadata(file_path, app_id, refresh)
+    app = app_metadata.application
+
+    console.print(
+        f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] "
+        f"({len(app.objects)} objects)"
+    )
+    console.print()
+
     try:
-        # Load app metadata
-        console.print("[dim]Loading application metadata...[/dim]")
-        app_metadata = load_app_metadata(
-            file_path=file_path, app_id=app_id
-        )
-        app = app_metadata.application
-
-        console.print(
-            f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] "
-            f"({len(app.objects)} objects)"
-        )
-        console.print()
-
         # Generate schema
         console.print(f"[dim]Generating {format.upper()} schema ({detail} detail)...[/dim]")
         schema = export_database_schema(app, format=format, detail=detail)
@@ -879,6 +879,9 @@ def export_schema_subgraph(
     app_id: Optional[str] = typer.Option(
         None, "--app-id", help="Knack app ID (alternative to file)"
     ),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Force refresh cached API data (ignore cache)"
+    ),
 ):
     """
     Export a subgraph of the database schema starting from a specific object.
@@ -935,7 +938,6 @@ def export_schema_subgraph(
         # Export with minimal detail level
         knack-sleuth export-schema-subgraph app.json --object Events --detail minimal -f yaml
     """
-    from knack_sleuth.core import load_app_metadata
     from knack_sleuth.db_schema import (
         export_database_schema,
         find_object_by_identifier,
@@ -987,19 +989,17 @@ def export_schema_subgraph(
         sanitized_name = re.sub(r'-+', '-', sanitized_name).strip('-')
         output_file = Path(f"knack_subgraph_{sanitized_name}.{extension_map[format]}")
 
+    # Load app metadata (the CLI wrapper handles cache messaging + error reporting)
+    console.print("[dim]Loading application metadata...[/dim]")
+    app_metadata = load_app_metadata(file_path, app_id, refresh)
+    app = app_metadata.application
+
+    console.print(
+        f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] "
+        f"({len(app.objects)} objects)"
+    )
+
     try:
-        # Load app metadata
-        console.print("[dim]Loading application metadata...[/dim]")
-        app_metadata = load_app_metadata(
-            file_path=file_path, app_id=app_id
-        )
-        app = app_metadata.application
-
-        console.print(
-            f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] "
-            f"({len(app.objects)} objects)"
-        )
-
         # Find the starting object
         start_object = find_object_by_identifier(app, object)
         if not start_object:
@@ -1081,6 +1081,9 @@ def export_schema_subgraph(
             )
         console.print()
 
+    except typer.Exit:
+        # Let intentional exits (e.g. object not found) propagate unchanged.
+        raise
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
