@@ -4,11 +4,13 @@ This demonstrates how the caching feature works when fetching from the Knack API
 
 ## First Run (No Cache)
 
-When you run the command for the first time with API credentials:
+When you run the command for the first time with an app ID:
 
 ```bash
-$ uv run knack-sleuth search-object object_12 --app-id YOUR_APP_ID --api-key YOUR_KEY
+$ uv run knack-sleuth search-object object_12 --app-id YOUR_APP_ID
 ```
+
+> Note: The Knack metadata endpoint is public, so no API key is required.
 
 **What happens:**
 1. No cache file exists

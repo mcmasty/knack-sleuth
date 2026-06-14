@@ -1,8 +1,6 @@
 from importlib import resources
 from pathlib import Path
 from typing import Optional
-from datetime import datetime, timedelta
-import glob
 import json
 import httpx
 
@@ -15,7 +13,12 @@ from knack_sleuth import __version__
 from knack_sleuth.models import KnackAppMetadata
 from knack_sleuth.sleuth import KnackSleuth
 from knack_sleuth.config import Settings, KNACK_BUILDER_BASE_URL, KNACK_NG_BUILDER_BASE_URL
-from knack_sleuth.core import load_app_metadata as core_load_metadata
+from knack_sleuth.core import (
+    load_app_metadata as core_load_metadata,
+    find_valid_cache,
+    fetch_metadata_from_api,
+    write_cache,
+)
 
 cli = typer.Typer()
 console = Console()
@@ -36,65 +39,54 @@ def load_app_metadata(
     """
     CLI wrapper for loading Knack application metadata.
 
-    Adds user-friendly console output and error handling on top of core.load_app_metadata.
-    For library usage, import from knack_sleuth.core instead.
+    Adds user-friendly console output and error handling on top of the core
+    cache primitives. For library usage, import from knack_sleuth.core instead.
 
     Note: The Knack metadata endpoint is public and does not require an API key.
     """
     settings = Settings()
-    
+
     try:
-        # Show cache status messages for API loads
-        if not file_path:
-            final_app_id = app_id or settings.knack_app_id
-            
-            if final_app_id and not refresh:
-                # Check for cached file to show status message
-                cache_pattern = f"{final_app_id}_app_metadata_*.json"
-                cache_files = sorted(glob.glob(cache_pattern), reverse=True)
-                
-                if cache_files:
-                    latest_cache = Path(cache_files[0])
-                    cache_modified = datetime.fromtimestamp(latest_cache.stat().st_mtime)
-                    cache_age = datetime.now() - cache_modified
-                    cache_age_hours = cache_age.total_seconds() / 3600
-                    
-                    # Show message if cache will be used
-                    if cache_age < timedelta(hours=24):
-                        console.print(
-                            f"[dim]Using cached data from {latest_cache.name} "
-                            f"(age: {cache_age_hours:.1f}h)[/dim]"
-                        )
-                    else:
-                        console.print("[cyan]Fetching metadata from Knack API...[/cyan]")
-                else:
-                    console.print("[cyan]Fetching metadata from Knack API...[/cyan]")
-            elif refresh:
-                console.print("[cyan]Forcing refresh from API...[/cyan]")
-        
-        # Call core function
-        result = core_load_metadata(
-            file_path=file_path,
-            app_id=app_id,
-            refresh=refresh,
-        )
-        
-        # Show cache creation message for new API fetches
-        if not file_path:
-            final_app_id = app_id or settings.knack_app_id
-            if final_app_id:
-                # Check if a new cache file was created
-                cache_pattern = f"{final_app_id}_app_metadata_*.json"
-                cache_files = sorted(glob.glob(cache_pattern), reverse=True)
-                if cache_files:
-                    latest_cache = Path(cache_files[0])
-                    cache_modified = datetime.fromtimestamp(latest_cache.stat().st_mtime)
-                    # If cache is very recent (< 5 seconds old), we just created it
-                    if (datetime.now() - cache_modified).total_seconds() < 5:
-                        console.print(f"[dim]Cached metadata to {latest_cache.name}[/dim]")
-        
-        return result
-        
+        # File source: load directly, no caching involved.
+        if file_path:
+            return core_load_metadata(file_path=file_path)
+
+        final_app_id = app_id or settings.knack_app_id
+        if not final_app_id:
+            raise ValueError(
+                "App ID is required. Provide via --app-id or KNACK_APP_ID environment variable."
+            )
+
+        # Reuse a fresh cache file unless a refresh was explicitly requested.
+        if not refresh:
+            cached = find_valid_cache(final_app_id)
+            if cached:
+                cache_path, cache_age_hours = cached
+                try:
+                    with cache_path.open() as f:
+                        data = json.load(f)
+                    console.print(
+                        f"[dim]Using cached data from {cache_path.name} "
+                        f"(age: {cache_age_hours:.1f}h)[/dim]"
+                    )
+                    return KnackAppMetadata(**data)
+                except Exception:
+                    # Corrupt/unreadable cache: fall through to a fresh API fetch.
+                    console.print(
+                        f"[yellow]Warning:[/yellow] Failed to read cache "
+                        f"{cache_path.name}; fetching fresh data..."
+                    )
+
+        if refresh:
+            console.print("[cyan]Forcing refresh from API...[/cyan]")
+
+        with console.status("[cyan]Fetching metadata from Knack API..."):
+            data = fetch_metadata_from_api(final_app_id)
+
+        cache_path = write_cache(final_app_id, data)
+        console.print(f"[dim]Cached metadata to {cache_path.name}[/dim]")
+        return KnackAppMetadata(**data)
+
     except FileNotFoundError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -557,58 +549,35 @@ def download_metadata(
     if not output_file:
         output_file = Path(f"{final_app_id}_metadata.json")
     
-    # Check for cached file
-    cached_file = None
-    
+    # Reuse a fresh cache file when available, otherwise fetch from the API.
+    data = None
+
     if not refresh:
-        # Look for existing cache files for this app
-        cache_pattern = f"{final_app_id}_app_metadata_*.json"
-        cache_files = sorted(glob.glob(cache_pattern), reverse=True)
-        
-        if cache_files:
-            latest_cache = Path(cache_files[0])
-            cache_modified = datetime.fromtimestamp(latest_cache.stat().st_mtime)
-            cache_age = datetime.now() - cache_modified
-            cache_age_hours = cache_age.total_seconds() / 3600
-            
-            # Use cache if less than 24 hours old
-            if cache_age < timedelta(hours=24):
-                cached_file = latest_cache
+        cached = find_valid_cache(final_app_id)
+        if cached:
+            cache_path, cache_age_hours = cached
+            try:
+                with cache_path.open() as f:
+                    data = json.load(f)
                 console.print(
-                    f"[dim]Using cached data from {latest_cache.name} "
+                    f"[dim]Using cached data from {cache_path.name} "
                     f"(age: {cache_age_hours:.1f}h)[/dim]"
                 )
-    
-    # Load from cache or fetch from API
-    if cached_file:
-        try:
-            with cached_file.open() as f:
-                data = json.load(f)
-        except Exception as e:
-            console.print(
-                f"[yellow]Warning:[/yellow] Failed to load cache: {e}. Fetching from API..."
-            )
-            cached_file = None  # Force API fetch
-    
-    if not cached_file:
-        # Fetch from Knack API (no authentication required for metadata endpoint)
-        api_url = f"https://api.knack.com/v1/applications/{final_app_id}"
-        
+            except Exception as e:
+                console.print(
+                    f"[yellow]Warning:[/yellow] Failed to load cache: {e}. Fetching from API..."
+                )
+                data = None  # Force API fetch
+
+    if data is None:
+        # Fetch from the public Knack metadata endpoint (no API key required).
         try:
             if refresh:
                 console.print("[cyan]Forcing refresh from API...[/cyan]")
-            
+
             with console.status("[cyan]Fetching metadata from Knack API..."):
-                response = httpx.get(
-                    api_url,
-                    headers={
-                        "X-Knack-Application-Id": final_app_id,
-                    },
-                    timeout=30.0,
-                )
-                response.raise_for_status()
-                data = response.json()
-            
+                data = fetch_metadata_from_api(final_app_id)
+
         except httpx.HTTPStatusError as e:
             console.print(f"[red]Error:[/red] HTTP {e.response.status_code}: {e.response.text}")
             raise typer.Exit(1)
@@ -743,6 +712,9 @@ def export_db_schema(
     app_id: Optional[str] = typer.Option(
         None, "--app-id", help="Knack app ID (alternative to file)"
     ),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Force refresh cached API data (ignore cache)"
+    ),
 ):
     """
     Export your application's database schema (how your app looks to you).
@@ -796,7 +768,6 @@ def export_db_schema(
         # Load from Knack API and export (no API key needed for public metadata)
         knack-sleuth export-db-schema --app-id YOUR_APP_ID -f dbml
     """
-    from knack_sleuth.core import load_app_metadata
     from knack_sleuth.db_schema import export_database_schema
 
     # Validate format
@@ -822,20 +793,18 @@ def export_db_schema(
         extension_map = {"json": "json", "dbml": "dbml", "yaml": "yaml", "mermaid": "mmd"}
         output_file = Path(f"knack_db_schema.{extension_map[format]}")
 
+    # Load app metadata (the CLI wrapper handles cache messaging + error reporting)
+    console.print("[dim]Loading application metadata...[/dim]")
+    app_metadata = load_app_metadata(file_path, app_id, refresh)
+    app = app_metadata.application
+
+    console.print(
+        f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] "
+        f"({len(app.objects)} objects)"
+    )
+    console.print()
+
     try:
-        # Load app metadata
-        console.print("[dim]Loading application metadata...[/dim]")
-        app_metadata = load_app_metadata(
-            file_path=file_path, app_id=app_id
-        )
-        app = app_metadata.application
-
-        console.print(
-            f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] "
-            f"({len(app.objects)} objects)"
-        )
-        console.print()
-
         # Generate schema
         console.print(f"[dim]Generating {format.upper()} schema ({detail} detail)...[/dim]")
         schema = export_database_schema(app, format=format, detail=detail)
@@ -910,6 +879,9 @@ def export_schema_subgraph(
     app_id: Optional[str] = typer.Option(
         None, "--app-id", help="Knack app ID (alternative to file)"
     ),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Force refresh cached API data (ignore cache)"
+    ),
 ):
     """
     Export a subgraph of the database schema starting from a specific object.
@@ -966,7 +938,6 @@ def export_schema_subgraph(
         # Export with minimal detail level
         knack-sleuth export-schema-subgraph app.json --object Events --detail minimal -f yaml
     """
-    from knack_sleuth.core import load_app_metadata
     from knack_sleuth.db_schema import (
         export_database_schema,
         find_object_by_identifier,
@@ -1018,19 +989,17 @@ def export_schema_subgraph(
         sanitized_name = re.sub(r'-+', '-', sanitized_name).strip('-')
         output_file = Path(f"knack_subgraph_{sanitized_name}.{extension_map[format]}")
 
+    # Load app metadata (the CLI wrapper handles cache messaging + error reporting)
+    console.print("[dim]Loading application metadata...[/dim]")
+    app_metadata = load_app_metadata(file_path, app_id, refresh)
+    app = app_metadata.application
+
+    console.print(
+        f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] "
+        f"({len(app.objects)} objects)"
+    )
+
     try:
-        # Load app metadata
-        console.print("[dim]Loading application metadata...[/dim]")
-        app_metadata = load_app_metadata(
-            file_path=file_path, app_id=app_id
-        )
-        app = app_metadata.application
-
-        console.print(
-            f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] "
-            f"({len(app.objects)} objects)"
-        )
-
         # Find the starting object
         start_object = find_object_by_identifier(app, object)
         if not start_object:
@@ -1112,6 +1081,9 @@ def export_schema_subgraph(
             )
         console.print()
 
+    except typer.Exit:
+        # Let intentional exits (e.g. object not found) propagate unchanged.
+        raise
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)

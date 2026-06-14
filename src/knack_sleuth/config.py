@@ -6,7 +6,6 @@ class Settings(BaseSettings):
     """Settings loaded from environment variables."""
     
     knack_app_id: str = Field(default='', alias='KNACK_APP_ID')
-    knack_api_key: str = Field(default='', alias='KNACK_API_KEY')
     knack_next_gen_builder: bool = Field(default=False, alias='KNACK_NEXT_GEN_BUILDER')
     
     model_config = SettingsConfigDict(
