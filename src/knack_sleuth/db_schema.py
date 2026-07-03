@@ -9,6 +9,7 @@ from collections import deque
 
 import yaml
 
+from knack_sleuth.lookup import resolve_object
 from knack_sleuth.models import Application, KnackField, KnackObject
 
 
@@ -126,6 +127,8 @@ def _get_field_json_type(field: KnackField) -> str:
 def find_object_by_identifier(app: Application, identifier: str) -> Optional[KnackObject]:
     """Find an object by key or name.
 
+    Kept for backward compatibility; delegates to knack_sleuth.lookup.
+
     Args:
         app: The Knack application metadata
         identifier: Object key (e.g., 'object_12') or name (e.g., 'Events')
@@ -133,18 +136,7 @@ def find_object_by_identifier(app: Application, identifier: str) -> Optional[Kna
     Returns:
         The matching KnackObject, or None if not found
     """
-    # Try to find by key first (case-insensitive)
-    if identifier.lower().startswith("object_"):
-        for obj in app.objects:
-            if obj.key.lower() == identifier.lower():
-                return obj
-
-    # Try to find by name (case-insensitive)
-    for obj in app.objects:
-        if obj.name.lower() == identifier.lower():
-            return obj
-
-    return None
+    return resolve_object(app, identifier)
 
 
 def build_subgraph(app: Application, start_object_key: str, depth: int) -> set[str]:

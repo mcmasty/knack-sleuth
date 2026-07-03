@@ -337,6 +337,45 @@ class KnackSleuth:
 
         return obj, None
 
+    def find_orphaned_fields(self) -> list[tuple[KnackObject, Any]]:
+        """Find fields with no usages anywhere (views, equations, connections).
+
+        Returns a list of (object, field) pairs. Note that system fields and
+        identifier fields can legitimately appear here — callers should let
+        users judge those rather than auto-flagging them for deletion.
+        """
+        orphans: list[tuple[KnackObject, Any]] = []
+        for obj in self.app.objects:
+            for field in obj.fields:
+                if not self._find_field_usages(field.key):
+                    orphans.append((obj, field))
+        return orphans
+
+    def find_orphaned_objects(self) -> list[KnackObject]:
+        """Find objects with no connections and no views displaying them.
+
+        User profile objects (those with a profile_key) are excluded — they are
+        referenced through Knack's auth system rather than connections/views.
+        """
+        orphans: list[KnackObject] = []
+        for obj in self.app.objects:
+            if obj.profile_key:
+                continue
+
+            if obj.connections and (
+                obj.connections.inbound or obj.connections.outbound
+            ):
+                continue
+
+            used_in_views = any(
+                view.source and view.source.object == obj.key
+                for scene in self.app.scenes
+                for view in scene.views
+            )
+            if not used_in_views:
+                orphans.append(obj)
+        return orphans
+
     def generate_impact_analysis(
         self, target_key: str, target_type: str = "auto"
     ) -> dict[str, Any]:
@@ -1212,40 +1251,13 @@ class KnackSleuth:
 
     def _analyze_technical_debt(self) -> dict[str, Any]:
         """Identify orphaned resources and complexity hotspots."""
-        # Find orphaned fields (not used in views, equations, or connections)
-        orphaned_fields = 0
-        for obj in self.app.objects:
-            for field in obj.fields:
-                # Check if field is used anywhere
-                field_usages = self._find_field_usages(field.key)
-                if len(field_usages) == 0:
-                    orphaned_fields += 1
+        orphaned_fields = len(self.find_orphaned_fields())
 
-        # Find orphaned objects (no connections, no views)
-        # Exclude user profiles (objects with profile_key)
-        orphaned_objects_count = 0
-        orphaned_objects_list = []
-        for obj in self.app.objects:
-            # Skip user profile objects
-            if obj.profile_key:
-                continue
-            
-            if not obj.connections or (
-                len(obj.connections.inbound) == 0 and len(obj.connections.outbound) == 0
-            ):
-                # Check if used in any views
-                used_in_views = False
-                for scene in self.app.scenes:
-                    for view in scene.views:
-                        if view.source and view.source.object == obj.key:
-                            used_in_views = True
-                            break
-                    if used_in_views:
-                        break
-
-                if not used_in_views:
-                    orphaned_objects_count += 1
-                    orphaned_objects_list.append({"name": obj.name, "object_key": obj.key})
+        orphaned_objects = self.find_orphaned_objects()
+        orphaned_objects_count = len(orphaned_objects)
+        orphaned_objects_list = [
+            {"name": obj.name, "object_key": obj.key} for obj in orphaned_objects
+        ]
 
         # Identify bottleneck objects
         bottlenecks = []

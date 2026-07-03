@@ -10,7 +10,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from knack_sleuth import __version__
-from knack_sleuth.models import KnackAppMetadata
+from knack_sleuth.models import KnackAppMetadata, KnackObject
 from knack_sleuth.sleuth import KnackSleuth
 from knack_sleuth.config import Settings, KNACK_BUILDER_BASE_URL, KNACK_NG_BUILDER_BASE_URL
 from knack_sleuth.core import (
@@ -18,6 +18,12 @@ from knack_sleuth.core import (
     find_valid_cache,
     fetch_metadata_from_api,
     write_cache,
+)
+from knack_sleuth.lookup import (
+    resolve_object,
+    resolve_fields,
+    suggest_object_names,
+    suggest_field_names,
 )
 
 cli = typer.Typer()
@@ -104,6 +110,41 @@ def load_app_metadata(
         raise typer.Exit(1)
 
 
+def resolve_object_or_exit(app_export: KnackAppMetadata, identifier: str) -> KnackObject:
+    """Resolve an object by key or name, or exit with suggestions."""
+    obj = resolve_object(app_export.application, identifier)
+    if obj:
+        return obj
+
+    console.print(f"[red]Error:[/red] Object '{identifier}' not found in application")
+    suggestions = suggest_object_names(app_export.application, identifier)
+    if suggestions:
+        console.print(f"Did you mean: [cyan]{'[/cyan], [cyan]'.join(suggestions)}[/cyan]?")
+    raise typer.Exit(1)
+
+
+def print_builder_pages(app_export: KnackAppMetadata, scenes_to_review: set) -> None:
+    """Print clickable Knack builder URLs for a set of scene keys."""
+    if not scenes_to_review:
+        return
+
+    settings = Settings()
+    # Use account slug for builder URLs (not application slug)
+    account_slug = app_export.application.account.get('slug', app_export.application.slug)
+    base_url = (
+        KNACK_NG_BUILDER_BASE_URL if settings.knack_next_gen_builder
+        else KNACK_BUILDER_BASE_URL
+    )
+
+    console.print(f"\n[bold cyan]Builder Pages to Review:[/bold cyan] {len(scenes_to_review)} scenes")
+    console.print()
+    for scene_key in sorted(scenes_to_review):
+        url = f"{base_url}/{account_slug}/portal/pages/{scene_key}"
+        console.print(f"  [link={url}]{url}[/link]")
+    console.print()
+    console.print("[dim]Tip: Set KNACK_NEXT_GEN_BUILDER=true to use Next-Gen builder URLs[/dim]")
+
+
 @cli.callback()
 def main(
     version: Optional[bool] = typer.Option(
@@ -152,6 +193,8 @@ def list_objects(
 
     - Total connections (Ca + Ce)
 
+    - I (Instability): Ce / (Ca + Ce), from 0 (stable, depended-upon) to 1 (unstable, dependent)
+
 
     You can either:
 
@@ -177,6 +220,7 @@ def list_objects(
     table.add_column("Ca", justify="right", style="blue")  # Afferent (inbound)
     table.add_column("Ce", justify="right", style="red")   # Efferent (outbound)
     table.add_column("Total", justify="right", style="green")
+    table.add_column("I", justify="right", style="cyan")   # Instability: Ce / (Ca + Ce)
     
     # Add rows and calculate totals
     total_rows = 0
@@ -216,7 +260,11 @@ def list_objects(
         total_afferent += afferent_count
         total_efferent += efferent_count
         total_connections += connection_count
-        
+
+        instability = (
+            f"{efferent_count / connection_count:.2f}" if connection_count else "-"
+        )
+
         table.add_row(
             obj.key,
             obj.name,
@@ -225,6 +273,7 @@ def list_objects(
             str(afferent_count),
             str(efferent_count),
             str(connection_count),
+            instability,
         )
     
     # Display table
@@ -284,28 +333,9 @@ def search_object(
     # Create search engine
     sleuth = KnackSleuth(app_export)
 
-    # Find the object (support both key and name lookup)
-    target_object = None
-    if object_identifier.lower().startswith("object_"):
-        # Search by key (case insensitive)
-        for obj in sleuth.app.objects:
-            if obj.key.lower() == object_identifier.lower():
-                target_object = obj
-                object_identifier = obj.key
-                break
-    else:
-        # Search by name
-        for obj in sleuth.app.objects:
-            if obj.name.lower() == object_identifier.lower():
-                target_object = obj
-                object_identifier = obj.key
-                break
-
-    if not target_object:
-        console.print(
-            f"[red]Error:[/red] Object '{object_identifier}' not found in application"
-        )
-        raise typer.Exit(1)
+    # Find the object (supports both key and name lookup)
+    target_object = resolve_object_or_exit(app_export, object_identifier)
+    object_identifier = target_object.key
 
     # Perform search
     results = sleuth.search_object(object_identifier)
@@ -325,7 +355,7 @@ def search_object(
 
     if object_usages:
         for usage in object_usages:
-            console.print(f"  [yellow]•[/yellow] [{usage.location_type}] {usage.context}")
+            console.print(f"  [yellow]•[/yellow] \\[{usage.location_type}] {usage.context}")
     else:
         console.print("  [dim]No direct object usages found[/dim]")
 
@@ -344,21 +374,16 @@ def search_object(
                         f"\n  [bold cyan]{field_info.name}[/bold cyan] ({field_key}) - {field_info.type} - {len(usages)} usages"
                     )
                     for usage in usages:
-                        console.print(f"    [yellow]•[/yellow] [{usage.location_type}] {usage.context}")
+                        console.print(f"    [yellow]•[/yellow] \\[{usage.location_type}] {usage.context}")
         else:
             console.print("\n[dim]No field usages found[/dim]")
 
-    # Builder Pages to Review
-    settings = Settings()
-    # Use account slug for builder URLs (not application slug)
-    account_slug = app_export.application.account.get('slug', app_export.application.slug)
-    
-    # Collect unique scenes from all usages
+    # Builder Pages to Review — collect unique scenes from all usages
     scenes_to_review = set()
     for usage in object_usages:
         if 'scene_key' in usage.details:
             scenes_to_review.add(usage.details['scene_key'])
-    
+
     # Also collect scenes from field usages
     if show_fields:
         for field_key, usages in results.items():
@@ -366,25 +391,106 @@ def search_object(
                 for usage in usages:
                     if 'scene_key' in usage.details:
                         scenes_to_review.add(usage.details['scene_key'])
-    
-    if scenes_to_review:
-        console.print(f"\n[bold cyan]Builder Pages to Review:[/bold cyan] {len(scenes_to_review)} scenes")
-        console.print()
-        
-        # Build URLs based on builder version
-        if settings.knack_next_gen_builder:
-            # Next-Gen builder
-            for scene_key in sorted(scenes_to_review):
-                url = f"{KNACK_NG_BUILDER_BASE_URL}/{account_slug}/portal/pages/{scene_key}"
-                console.print(f"  [link={url}]{url}[/link]")
-        else:
-            # Classic builder
-            for scene_key in sorted(scenes_to_review):
-                url = f"{KNACK_BUILDER_BASE_URL}/{account_slug}/portal/pages/{scene_key}"
-                console.print(f"  [link={url}]{url}[/link]")
-        
-        console.print()
-        console.print("[dim]Tip: Set KNACK_NEXT_GEN_BUILDER=true to use Next-Gen builder URLs[/dim]")
+
+    print_builder_pages(app_export, scenes_to_review)
+
+    console.print()
+
+
+@cli.command(name="search-field")
+def search_field(
+    field_identifier: str = typer.Argument(
+        ..., help="Field key (e.g., 'field_116') or name to search for"
+    ),
+    file_path: Optional[Path] = typer.Argument(
+        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+    ),
+    app_id: Optional[str] = typer.Option(
+        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+    ),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Force refresh cached API data (ignore cache)"
+    ),
+):
+    """
+    Search for all usages of a single field in a Knack application.
+
+    This finds where the field is used in views, columns, sorts, formulas,
+    connections, and other places — without cascading through the whole
+    parent object like search-object does.
+
+
+    Field names are not unique across objects. If a name matches multiple
+    fields, all candidates are listed so you can re-run with the field key.
+
+
+    You can either:
+
+    1. Provide a local JSON file: knack-sleuth search-field field_116 path/to/file.json
+
+    2. Fetch from API: knack-sleuth search-field field_116 --app-id YOUR_APP_ID
+
+    3. Use environment variables: KNACK_APP_ID (no API key needed - metadata is public)
+
+
+    Examples:
+
+        knack-sleuth search-field field_116 my_app.json
+
+        knack-sleuth search-field "Organization ID" --app-id YOUR_APP_ID
+    """
+    # Load metadata
+    app_export = load_app_metadata(file_path, app_id, refresh)
+
+    # Resolve the field (key or name)
+    matches = resolve_fields(app_export.application, field_identifier)
+
+    if not matches:
+        console.print(
+            f"[red]Error:[/red] Field '{field_identifier}' not found in application"
+        )
+        suggestions = suggest_field_names(app_export.application, field_identifier)
+        if suggestions:
+            console.print(f"Did you mean: [cyan]{'[/cyan], [cyan]'.join(suggestions)}[/cyan]?")
+        raise typer.Exit(1)
+
+    if len(matches) > 1:
+        console.print(
+            f"[yellow]Ambiguous:[/yellow] field name '{field_identifier}' matches "
+            f"{len(matches)} fields:"
+        )
+        for obj, field in matches:
+            console.print(f"  {field.key} — {obj.name} → {field.name} ({field.type})")
+        console.print("\nRe-run with the field key to disambiguate.")
+        raise typer.Exit(1)
+
+    target_object, target_field = matches[0]
+
+    # Perform search
+    sleuth = KnackSleuth(app_export)
+    usages = sleuth.search_field(target_field.key)
+
+    # Display results
+    console.print(
+        Panel(
+            f"[bold cyan]{target_object.name} → {target_field.name}[/bold cyan] ({target_field.key})",
+            title="Field Search Results",
+            subtitle=f"type: {target_field.type}",
+        )
+    )
+
+    console.print(f"\n[bold cyan]Usages:[/bold cyan] {len(usages)}")
+    if usages:
+        for usage in usages:
+            console.print(f"  [yellow]•[/yellow] \\[{usage.location_type}] {usage.context}")
+    else:
+        console.print("  [dim]No usages found — this field may be an orphan[/dim]")
+
+    # Builder Pages to Review
+    scenes_to_review = {
+        usage.details['scene_key'] for usage in usages if 'scene_key' in usage.details
+    }
+    print_builder_pages(app_export, scenes_to_review)
 
     console.print()
 
@@ -422,37 +528,22 @@ def show_coupling(
     """
     # Load metadata
     app_export = load_app_metadata(file_path, app_id, refresh)
-    
-    # Find the object (support both key and name lookup)
-    target_object = None
-    if object_identifier.lower().startswith("object_"):
-        # Search by key (case insensitive)
-        for obj in app_export.application.objects:
-            if obj.key.lower() == object_identifier.lower():
-                target_object = obj
-                object_identifier = obj.key
-                break
-    else:
-        # Search by name
-        for obj in app_export.application.objects:
-            if obj.name.lower() == object_identifier.lower():
-                target_object = obj
-                object_identifier = obj.key
-                break
-    
-    if not target_object:
-        console.print(
-            f"[red]Error:[/red] Object '{object_identifier}' not found in application"
-        )
-        raise typer.Exit(1)
-    
+
+    # Find the object (supports both key and name lookup)
+    target_object = resolve_object_or_exit(app_export, object_identifier)
+    object_identifier = target_object.key
+
+    ca = len(target_object.connections.inbound) if target_object.connections else 0
+    ce = len(target_object.connections.outbound) if target_object.connections else 0
+    instability = f"{ce / (ca + ce):.2f}" if (ca + ce) else "-"
+
     # Display header
     console.print()
     console.print(
         Panel(
             f"[bold cyan]{target_object.name}[/bold cyan] ({object_identifier})",
             title="Object Coupling",
-            subtitle=f"Ca: {len(target_object.connections.inbound) if target_object.connections else 0} | Ce: {len(target_object.connections.outbound) if target_object.connections else 0}",
+            subtitle=f"Ca: {ca} | Ce: {ce} | I: {instability}",
         )
     )
     
@@ -464,7 +555,7 @@ def show_coupling(
         console.print(f"\n[bold cyan]Afferent Coupling (Ca):[/bold cyan] {len(target_object.connections.inbound)} objects depend on this")
         console.print("[dim]Objects that have connections pointing TO this object[/dim]\n")
         
-        for conn in sorted(target_object.connections.inbound, key=lambda c: objects_by_key.get(c.object, type('obj', (), {'name': ''})).name):
+        for conn in sorted(target_object.connections.inbound, key=lambda c: getattr(objects_by_key.get(c.object), "name", "")):
             source_obj = objects_by_key.get(conn.object)
             if source_obj:
                 relationship = f"{conn.has} → {conn.belongs_to}"
@@ -481,7 +572,7 @@ def show_coupling(
         console.print(f"\n[bold cyan]Efferent Coupling (Ce):[/bold cyan] {len(target_object.connections.outbound)} objects this depends on")
         console.print("[dim]Objects that this object connects TO[/dim]\n")
         
-        for conn in sorted(target_object.connections.outbound, key=lambda c: objects_by_key.get(c.object, type('obj', (), {'name': ''})).name):
+        for conn in sorted(target_object.connections.outbound, key=lambda c: getattr(objects_by_key.get(c.object), "name", "")):
             target_obj = objects_by_key.get(conn.object)
             if target_obj:
                 relationship = f"{conn.has} → {conn.belongs_to}"
@@ -492,7 +583,123 @@ def show_coupling(
     else:
         console.print("\n[bold cyan]Efferent Coupling (Ce):[/bold cyan] 0 objects")
         console.print("[dim]This object does not depend on other objects[/dim]")
-    
+
+    console.print()
+
+
+@cli.command(name="find-orphans")
+def find_orphans(
+    file_path: Optional[Path] = typer.Argument(
+        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+    ),
+    app_id: Optional[str] = typer.Option(
+        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+    ),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Force refresh cached API data (ignore cache)"
+    ),
+    include_system: bool = typer.Option(
+        False, "--include-system", help="Include Knack system fields in the orphaned fields list"
+    ),
+):
+    """
+    List orphaned fields and objects — defined but not used anywhere.
+
+    An orphaned field has no usages in views, columns, sorts, formulas, or
+    connections. An orphaned object has no connections and no views displaying
+    it (user profile objects are excluded — they are referenced through Knack's
+    auth system).
+
+
+    These are the same orphans app-summary counts in its technical debt
+    section, listed individually so you can act on them.
+
+
+    Note: identifier fields and system fields can legitimately show up here —
+    review before deleting anything.
+
+
+    Examples:
+
+        knack-sleuth find-orphans my_app.json
+
+        knack-sleuth find-orphans --app-id YOUR_APP_ID
+
+        knack-sleuth find-orphans my_app.json --include-system
+    """
+    # Load metadata
+    app_export = load_app_metadata(file_path, app_id, refresh)
+
+    sleuth = KnackSleuth(app_export)
+
+    with console.status("[cyan]Analyzing field and object usages..."):
+        orphaned_fields = sleuth.find_orphaned_fields()
+        orphaned_objects = sleuth.find_orphaned_objects()
+
+    # Optionally hide system fields (they are rarely actionable)
+    hidden_system_count = 0
+    if not include_system:
+        visible_fields = [(o, f) for o, f in orphaned_fields if not f.isSystemField]
+        hidden_system_count = len(orphaned_fields) - len(visible_fields)
+    else:
+        visible_fields = orphaned_fields
+
+    # Orphaned fields table
+    console.print()
+    if visible_fields:
+        table = Table(
+            title=f"[bold cyan]{app_export.application.name}[/bold cyan] - Orphaned Fields"
+        )
+        table.add_column("Object", style="bold cyan")
+        table.add_column("Field", style="yellow")
+        table.add_column("Key", style="dim")
+        table.add_column("Type", style="magenta")
+        table.add_column("Notes", style="dim")
+
+        for obj, field in sorted(
+            visible_fields, key=lambda pair: (pair[0].name.lower(), pair[1].name.lower())
+        ):
+            notes = []
+            if obj.identifier == field.key:
+                notes.append("identifier")
+            if field.isSystemField:
+                notes.append("system")
+            if field.required:
+                notes.append("required")
+            table.add_row(obj.name, field.name, field.key, field.type, ", ".join(notes))
+
+        console.print(table)
+    else:
+        console.print("[green]✓[/green] No orphaned fields found")
+
+    if hidden_system_count:
+        console.print(
+            f"[dim]({hidden_system_count} orphaned system fields hidden — "
+            f"use --include-system to show them)[/dim]"
+        )
+
+    # Orphaned objects
+    console.print()
+    if orphaned_objects:
+        console.print(f"[bold cyan]Orphaned Objects:[/bold cyan] {len(orphaned_objects)}")
+        for obj in sorted(orphaned_objects, key=lambda o: o.name.lower()):
+            row_count = app_export.application.counts.get(obj.key, 0)
+            console.print(
+                f"  [yellow]•[/yellow] [bold cyan]{obj.name}[/bold cyan] ({obj.key}) - "
+                f"{len(obj.fields)} fields, {row_count:,} rows"
+            )
+    else:
+        console.print("[green]✓[/green] No orphaned objects found")
+
+    # Summary
+    console.print()
+    console.print(
+        f"[dim]Total: {len(orphaned_fields)} orphaned fields | "
+        f"{len(orphaned_objects)} orphaned objects[/dim]"
+    )
+    console.print(
+        "[dim]Review before deleting: identifier/system fields can be orphans by design[/dim]"
+    )
     console.print()
 
 
@@ -1164,7 +1371,7 @@ def impact_analysis(
     # Create search engine
     sleuth = KnackSleuth(app_export)
 
-    # Find the target (support both key and name lookup)
+    # Find the target (supports both key and name lookup)
     target_key = None
     target_type = "auto"
 
@@ -1178,27 +1385,36 @@ def impact_analysis(
         target_type = "field"
     else:
         # Search by name - try object first, then field
-        for obj in sleuth.app.objects:
-            if obj.name.lower() == target_identifier.lower():
-                target_key = obj.key
-                target_type = "object"
-                break
-
-        if not target_key:
-            # Search fields
-            for obj in sleuth.app.objects:
-                for field in obj.fields:
-                    if field.name.lower() == target_identifier.lower():
-                        target_key = field.key
-                        target_type = "field"
-                        break
-                if target_key:
-                    break
+        matched_object = resolve_object(app_export.application, target_identifier)
+        if matched_object:
+            target_key = matched_object.key
+            target_type = "object"
+        else:
+            field_matches = resolve_fields(app_export.application, target_identifier)
+            if len(field_matches) > 1:
+                console.print(
+                    f"[yellow]Ambiguous:[/yellow] field name '{target_identifier}' "
+                    f"matches {len(field_matches)} fields:"
+                )
+                for match_obj, match_field in field_matches:
+                    console.print(
+                        f"  {match_field.key} — {match_obj.name} → {match_field.name} ({match_field.type})"
+                    )
+                console.print("\nRe-run with the field key to disambiguate.")
+                raise typer.Exit(1)
+            if field_matches:
+                target_key = field_matches[0][1].key
+                target_type = "field"
 
     if not target_key:
         console.print(
             f"[red]Error:[/red] Could not find object or field '{target_identifier}'"
         )
+        suggestions = suggest_object_names(
+            app_export.application, target_identifier
+        ) or suggest_field_names(app_export.application, target_identifier)
+        if suggestions:
+            console.print(f"Did you mean: [cyan]{'[/cyan], [cyan]'.join(suggestions)}[/cyan]?")
         raise typer.Exit(1)
 
     # Generate analysis
