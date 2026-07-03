@@ -176,6 +176,7 @@ This displays a table showing:
 - **Ca** (Afferent coupling): Number of inbound connections - how many other objects depend on this one
 - **Ce** (Efferent coupling): Number of outbound connections - how many other objects this one depends on
 - Total connections (Ca + Ce)
+- **I** (Instability): Ce / (Ca + Ce) - from 0.00 (stable, depended-upon) to 1.00 (unstable, dependent); shown as `-` for unconnected objects
 
 **Sorting:**
 - Default: Alphabetically by object name
@@ -225,6 +226,29 @@ knack-sleuth search-object object_12
 # → https://builder-next.knack.com/your-account/portal/pages/scene_7
 ```
 
+### Search for Field Usages
+
+Search for all places where a single field is used — without cascading through the whole parent object:
+
+```bash
+# Search by field key
+knack-sleuth search-field field_116
+
+# Search by field name
+knack-sleuth search-field "Organization ID"
+```
+
+The command shows every usage (views, columns, sorts, formulas, connections) plus Builder Pages to Review links.
+
+Field names are not unique across objects. If a name matches multiple fields, all candidates are listed with their keys so you can re-run with the exact key:
+
+```
+Ambiguous: field name 'Name' matches 12 fields:
+  field_4 — Object Name 2 → Name (name)
+  field_9 — Object Name 3 → Name (name)
+  ...
+```
+
 ### Show Object Coupling
 
 View the coupling relationships for a specific object - see which objects depend on it and which objects it depends on:
@@ -243,6 +267,23 @@ This displays:
 - Connection details: field names, keys, and relationship types
 
 Perfect for understanding an object's role in your data model from its perspective.
+
+### Find Orphaned Fields and Objects
+
+List fields and objects that are defined but not used anywhere — the actionable version of the orphan counts in `app-summary`:
+
+```bash
+knack-sleuth find-orphans my_app.json
+
+# Include Knack system fields in the listing
+knack-sleuth find-orphans my_app.json --include-system
+```
+
+This shows:
+- **Orphaned fields**: No usages in views, columns, sorts, formulas, or connections — with notes flagging identifier, system, and required fields
+- **Orphaned objects**: No connections and no views displaying them (user profile objects are excluded — they're referenced through Knack's auth system)
+
+⚠️ Review before deleting: identifier and system fields can be orphans by design.
 
 ### Download Metadata
 
