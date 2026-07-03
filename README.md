@@ -304,9 +304,37 @@ This is useful for:
 - Creating backups of your app structure
 - Working offline with the metadata
 - Sharing app structure with others
-- Version control / tracking changes over time
+- Version control / tracking changes over time (see `diff` below)
 
 The file is saved as formatted JSON (indented) for easy reading and version control.
+
+### Diff Metadata Snapshots
+
+Compare two metadata snapshots — or a snapshot against the live app — and report structural changes:
+
+```bash
+# Compare two snapshots
+knack-sleuth diff backup_january.json backup_june.json
+
+# Compare a snapshot against the live app
+knack-sleuth diff backup_january.json --app-id YOUR_APP_ID
+
+# Machine-readable output, exit 1 when something changed (CI-friendly)
+knack-sleuth diff old.json new.json --format json --exit-code
+
+# Markdown change report
+knack-sleuth diff old.json new.json --format markdown -o changes.md
+```
+
+Entities are matched by their stable Knack keys, so a rename shows up as a rename — not as a removal plus an addition. Detected changes:
+- **Objects**: added, removed, renamed
+- **Fields**: added, removed, changed (name, type, required, unique, connection relationship)
+- **Scenes**: added, removed, renamed
+- **Views**: added, removed, changed (name, type)
+
+To keep the signal high, fields of an added/removed object (and views of an added/removed scene) aren't repeated in the field/view sections, and record counts are excluded (data, not structure).
+
+Knack has no native schema history — pairing `download-metadata` on a schedule with `diff` gives you one.
 
 ### Role Access Review
 

@@ -21,6 +21,7 @@ Each command is invoked via `uvx knack-sleuth <command> ...`.
 - `show-coupling` — Show coupling relationships for a specific object.
 - `find-orphans` — List orphaned fields and objects (defined but not used anywhere).
 - `download-metadata` — Download and save Knack application metadata to a local file.
+- `diff` — Compare two metadata snapshots (or a snapshot vs the live app) and report structural changes.
 - `export-schema` — Export Knack's internal metadata schema (how an application looks to Knack itself).
 - `export-db-schema` — Export your application's database schema (how your app looks to you).
 - `export-schema-subgraph` — Export a subgraph of the database schema starting from a specific object.
@@ -52,6 +53,10 @@ name is ambiguous, the CLI lists all candidate keys; re-run with the exact key.
   - `uvx knack-sleuth find-orphans --app-id YOUR_APP_ID`
 - Download metadata for reuse (output file is a positional argument):
   - `uvx knack-sleuth download-metadata app.json --app-id YOUR_APP_ID`
+- Diff two snapshots (structural changes only; `--format json` for machine-readable output):
+  - `uvx knack-sleuth diff old.json new.json`
+- Diff a snapshot against the live app:
+  - `uvx knack-sleuth diff old.json --app-id YOUR_APP_ID`
 - Export DB schema (e.g. DBML):
   - `uvx knack-sleuth export-db-schema --app-id YOUR_APP_ID -f dbml --output schema.dbml`
 - Role access review (CSV output):
@@ -65,7 +70,8 @@ name is ambiguous, the CLI lists all candidate keys; re-run with the exact key.
 2. Use search and coupling tools to understand usage and relationships (`search-object`, `search-field`, `show-coupling`, `export-schema-subgraph`).
 3. Generate schema exports and summaries for deeper analysis or documentation (`export-db-schema`, `impact-analysis`, `app-summary`).
 4. For cleanup or refactoring questions, list unused resources (`find-orphans`) — but flag identifier/system fields, which can be orphans by design.
-5. When questions involve permissions or UX, use role access commands (`role-access-review`, `role-access-summary`).
+5. For "what changed?" questions, compare snapshots or snapshot-vs-live (`diff`).
+6. When questions involve permissions or UX, use role access commands (`role-access-review`, `role-access-summary`).
 
 ## Output:
 

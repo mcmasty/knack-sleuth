@@ -1,5 +1,7 @@
 """Smoke tests for CLI commands via Typer's test runner."""
 
+import copy
+import json
 import re
 
 from typer.testing import CliRunner
@@ -76,3 +78,62 @@ class TestShowCoupling:
         )
         assert result.exit_code == 0
         assert "I:" in result.output
+
+
+class TestDiff:
+    @staticmethod
+    def _write(tmp_path, name, data):
+        path = tmp_path / name
+        path.write_text(json.dumps(data))
+        return path
+
+    def test_identical_files_no_changes_exit_zero(self, sample_metadata_dict, tmp_path):
+        old = self._write(tmp_path, "old.json", sample_metadata_dict)
+        new = self._write(tmp_path, "new.json", sample_metadata_dict)
+        result = runner.invoke(
+            cli, ["diff", str(old), str(new), "--exit-code"], env=WIDE
+        )
+        assert result.exit_code == 0
+        assert "No structural changes" in result.output
+
+    def test_changed_files_exit_code(self, sample_metadata_dict, tmp_path):
+        mutated = copy.deepcopy(sample_metadata_dict)
+        mutated["application"]["objects"][0]["name"] = "Renamed For Diff Test"
+
+        old = self._write(tmp_path, "old.json", sample_metadata_dict)
+        new = self._write(tmp_path, "new.json", mutated)
+
+        # Without --exit-code, differences still exit 0
+        result = runner.invoke(cli, ["diff", str(old), str(new)], env=WIDE)
+        assert result.exit_code == 0
+        assert "Renamed For Diff Test" in result.output
+
+        # With --exit-code, differences exit 1 (git-diff style)
+        result = runner.invoke(
+            cli, ["diff", str(old), str(new), "--exit-code"], env=WIDE
+        )
+        assert result.exit_code == 1
+
+    def test_json_format_is_parseable(self, sample_metadata_dict, tmp_path):
+        mutated = copy.deepcopy(sample_metadata_dict)
+        mutated["application"]["objects"][0]["name"] = "Renamed For Diff Test"
+
+        old = self._write(tmp_path, "old.json", sample_metadata_dict)
+        new = self._write(tmp_path, "new.json", mutated)
+
+        result = runner.invoke(
+            cli, ["diff", str(old), str(new), "--format", "json"], env=WIDE
+        )
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert parsed["has_changes"] is True
+        assert len(parsed["objects"]["renamed"]) == 1
+
+    def test_output_requires_structured_format(self, sample_metadata_dict, tmp_path):
+        old = self._write(tmp_path, "old.json", sample_metadata_dict)
+        new = self._write(tmp_path, "new.json", sample_metadata_dict)
+        result = runner.invoke(
+            cli, ["diff", str(old), str(new), "-o", str(tmp_path / "out.txt")], env=WIDE
+        )
+        assert result.exit_code == 1
+        assert "--format json or markdown" in result.output
