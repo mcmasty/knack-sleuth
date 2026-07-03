@@ -427,6 +427,9 @@ knack-sleuth install-skill --force
 
 This copies the skill definition to `~/.claude/skills/knack-explorer/SKILL.md`, making it available as a Claude Code skill in any project.
 
+> **Note:** `install-skill` won't overwrite an existing installation, so after upgrading knack-sleuth re-run it with `--force` to pick up new commands in the skill:
+> `uvx knack-sleuth@latest install-skill --force`
+
 **For repo contributors** — the skill is already available as a project-level skill in `.claude/skills/knack-explorer/SKILL.md`. No installation needed when working inside the repo.
 
 ## Experimental Commands
