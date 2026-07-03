@@ -12,14 +12,20 @@ parent object and scan the cascade. A direct `knack-sleuth search-field field_11
 (or by name, with ambiguity handling since field names repeat across objects) is
 the most natural gap to fill.
 
-### 💡 2. `diff` command for metadata snapshots
-The cache already stores timestamped snapshots, and `download-metadata` pitches
-"version control / tracking changes over time" — but nothing consumes two
-snapshots. `knack-sleuth diff old.json new.json` showing objects/fields/scenes
-added, removed, and changed (type changes, new connections) would turn cache
-files into a change-tracking feature. Knack has no native schema history, so
-this is likely the highest-value feature idea. Needs a design pass first: what
-counts as a "change", and what the output format should be (human + JSON).
+### ✅ 2. `diff` command for metadata snapshots
+`knack-sleuth diff old.json new.json` (or `diff old.json --app-id X` for
+snapshot-vs-live). Design decisions from the implementation:
+- Entities matched by stable Knack keys, so renames are renames (not
+  remove+add)
+- Change set: objects added/removed/renamed; fields added/removed/changed
+  (name, type, required, unique, connection relationship); scenes
+  added/removed/renamed; views added/removed/changed (name, type)
+- Noise rules: fields of added/removed objects (and views of added/removed
+  scenes) are not repeated; record counts excluded (data, not structure)
+- Output: rich (default), `--format json`, `--format markdown`; `--exit-code`
+  exits 1 on differences (git-diff style, CI-friendly)
+Future extensions: diff object-level rules/tasks, view sources/columns, scene
+security settings — the current attribute set is deliberately conservative.
 
 ### ✅ 3. `find-orphans` command
 Orphan detection exists inside `KnackSleuth._analyze_technical_debt()` but only

@@ -821,6 +821,230 @@ def download_metadata(
         raise typer.Exit(1)
 
 
+@cli.command(name="diff")
+def diff(
+    old_file: Path = typer.Argument(
+        ..., help="Older metadata snapshot (JSON file)"
+    ),
+    new_file: Optional[Path] = typer.Argument(
+        None,
+        help="Newer metadata snapshot (JSON file). Omit to compare against the live API "
+        "(requires --app-id or KNACK_APP_ID)",
+    ),
+    app_id: Optional[str] = typer.Option(
+        None, "--app-id", help="Knack application ID for live comparison (can also use KNACK_APP_ID env var)"
+    ),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Force refresh cached API data (only applies to live comparison)"
+    ),
+    output_format: str = typer.Option(
+        "rich", "--format", help="Output format: rich, json, or markdown"
+    ),
+    output_file: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Save output to file (requires --format json or markdown)"
+    ),
+    exit_code: bool = typer.Option(
+        False, "--exit-code", help="Exit with code 1 if differences were found (like git diff)"
+    ),
+):
+    """
+    Compare two metadata snapshots and report structural changes.
+
+    Entities are matched by their stable Knack keys, so a rename shows up as a
+    rename — not as a removal plus an addition. Detects:
+
+
+    - Objects: added, removed, renamed
+
+    - Fields: added, removed, changed (name, type, required, unique, connection relationship)
+
+    - Scenes: added, removed, renamed
+
+    - Views: added, removed, changed (name, type)
+
+
+    Noise rules: fields of an added/removed object (and views of an
+    added/removed scene) are not repeated in the field/view sections — the
+    object/scene entry covers them. Record counts are data, not structure,
+    and are excluded.
+
+
+    Examples:
+
+        # Compare two snapshots
+        knack-sleuth diff backup_january.json backup_june.json
+
+        # Compare a snapshot against the live app
+        knack-sleuth diff backup_january.json --app-id YOUR_APP_ID
+
+        # Machine-readable output, exit 1 when something changed (CI-friendly)
+        knack-sleuth diff old.json new.json --format json --exit-code
+
+        # Markdown change report
+        knack-sleuth diff old.json new.json --format markdown -o changes.md
+    """
+    from knack_sleuth.diff import diff_applications, diff_to_markdown
+
+    valid_formats = ["rich", "json", "markdown"]
+    if output_format not in valid_formats:
+        console.print(
+            f"[red]Error:[/red] Invalid format '{output_format}'. "
+            f"Use one of: {', '.join(valid_formats)}"
+        )
+        raise typer.Exit(1)
+
+    if output_file and output_format == "rich":
+        console.print(
+            "[red]Error:[/red] --output requires --format json or markdown"
+        )
+        raise typer.Exit(1)
+
+    # Load both sides (file vs file, or file vs API when new_file is omitted)
+    old_export = load_app_metadata(old_file, None, False)
+    if new_file:
+        new_export = load_app_metadata(new_file, None, False)
+    else:
+        new_export = load_app_metadata(None, app_id, refresh)
+
+    diff_result = diff_applications(old_export.application, new_export.application)
+
+    if output_format == "json":
+        content = json.dumps(diff_result, indent=2)
+    elif output_format == "markdown":
+        content = diff_to_markdown(diff_result)
+    else:
+        _print_diff_rich(diff_result, old_file, new_file)
+        content = None
+
+    if content is not None:
+        if output_file:
+            try:
+                with output_file.open('w') as f:
+                    f.write(content)
+                console.print(f"[green]✓[/green] Diff saved to [bold]{output_file}[/bold]")
+            except Exception as e:
+                console.print(f"[red]Error:[/red] Failed to save file: {e}")
+                raise typer.Exit(1)
+        else:
+            console.print(content)
+
+    if exit_code and diff_result["has_changes"]:
+        raise typer.Exit(1)
+
+
+def _print_diff_rich(
+    diff_result: dict, old_file: Path, new_file: Optional[Path]
+) -> None:
+    """Render a diff result to the console with Rich formatting."""
+    summary = diff_result["summary"]
+    old_label = old_file.name
+    new_label = new_file.name if new_file else "live API"
+
+    console.print()
+    console.print(
+        Panel(
+            f"[bold cyan]{old_label}[/bold cyan] → [bold cyan]{new_label}[/bold cyan]",
+            title="Metadata Diff",
+            subtitle=f"{summary['new_app_name']}",
+        )
+    )
+
+    old_c, new_c = summary["old_counts"], summary["new_counts"]
+    console.print(
+        f"[dim]Objects: {old_c['objects']} → {new_c['objects']} | "
+        f"Fields: {old_c['fields']} → {new_c['fields']} | "
+        f"Scenes: {old_c['scenes']} → {new_c['scenes']} | "
+        f"Views: {old_c['views']} → {new_c['views']}[/dim]"
+    )
+
+    if not diff_result["has_changes"]:
+        console.print("\n[green]✓[/green] No structural changes detected")
+        console.print()
+        return
+
+    if summary["old_app_name"] != summary["new_app_name"]:
+        console.print(
+            f"\n[yellow]~[/yellow] Application renamed: "
+            f"{summary['old_app_name']} → {summary['new_app_name']}"
+        )
+
+    def print_section(title: str, entries: list, render, marker: str, color: str) -> None:
+        if not entries:
+            return
+        console.print(f"\n[bold cyan]{title}:[/bold cyan] {len(entries)}")
+        for entry in entries:
+            console.print(f"  [{color}]{marker}[/{color}] {render(entry)}")
+
+    def render_changes(entry: dict) -> str:
+        changes = "; ".join(
+            f"{attr}: {c['old']!r} → {c['new']!r}" for attr, c in entry["changes"].items()
+        )
+        return f"{entry['name']} ({entry['key']}) — {changes}"
+
+    print_section(
+        "Objects Added", diff_result["objects"]["added"],
+        lambda e: f"[bold cyan]{e['name']}[/bold cyan] ({e['key']}) — {e['field_count']} fields",
+        "+", "green",
+    )
+    print_section(
+        "Objects Removed", diff_result["objects"]["removed"],
+        lambda e: f"[bold cyan]{e['name']}[/bold cyan] ({e['key']}) — {e['field_count']} fields",
+        "-", "red",
+    )
+    print_section(
+        "Objects Renamed", diff_result["objects"]["renamed"],
+        lambda e: f"{e['key']}: {e['old_name']} → {e['new_name']}",
+        "~", "yellow",
+    )
+    print_section(
+        "Fields Added", diff_result["fields"]["added"],
+        lambda e: f"{e['object_name']} → [bold cyan]{e['name']}[/bold cyan] ({e['key']}, {e['type']})",
+        "+", "green",
+    )
+    print_section(
+        "Fields Removed", diff_result["fields"]["removed"],
+        lambda e: f"{e['object_name']} → [bold cyan]{e['name']}[/bold cyan] ({e['key']}, {e['type']})",
+        "-", "red",
+    )
+    print_section(
+        "Fields Changed", diff_result["fields"]["changed"],
+        lambda e: f"{e['object_name']} → {render_changes(e)}",
+        "~", "yellow",
+    )
+    print_section(
+        "Scenes Added", diff_result["scenes"]["added"],
+        lambda e: f"[bold cyan]{e['name']}[/bold cyan] ({e['key']}, /{e['slug']}) — {e['view_count']} views",
+        "+", "green",
+    )
+    print_section(
+        "Scenes Removed", diff_result["scenes"]["removed"],
+        lambda e: f"[bold cyan]{e['name']}[/bold cyan] ({e['key']}, /{e['slug']}) — {e['view_count']} views",
+        "-", "red",
+    )
+    print_section(
+        "Scenes Renamed", diff_result["scenes"]["renamed"],
+        lambda e: f"{e['key']}: {e['old_name']} → {e['new_name']}",
+        "~", "yellow",
+    )
+    print_section(
+        "Views Added", diff_result["views"]["added"],
+        lambda e: f"{e['scene_name']} → [bold cyan]{e['name']}[/bold cyan] ({e['key']}, {e['type']})",
+        "+", "green",
+    )
+    print_section(
+        "Views Removed", diff_result["views"]["removed"],
+        lambda e: f"{e['scene_name']} → [bold cyan]{e['name']}[/bold cyan] ({e['key']}, {e['type']})",
+        "-", "red",
+    )
+    print_section(
+        "Views Changed", diff_result["views"]["changed"],
+        lambda e: f"{e['scene_name']} → {render_changes(e)}",
+        "~", "yellow",
+    )
+
+    console.print()
+
+
 @cli.command(name="export-schema")
 def export_schema(
     output_file: Optional[Path] = typer.Argument(
