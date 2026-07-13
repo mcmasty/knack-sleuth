@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Example of using KnackSlueth models to parse Knack metadata."""
+"""Example of using KnackSleuth models to parse Knack metadata."""
 
 import json
 from pathlib import Path

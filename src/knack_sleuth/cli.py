@@ -1652,15 +1652,9 @@ def impact_analysis(
     if output_format == "json":
         output_content = json.dumps(analysis, indent=2)
     elif output_format == "yaml":
-        try:
-            import yaml
-            output_content = yaml.dump(analysis, default_flow_style=False, sort_keys=False)
-        except ImportError:
-            console.print(
-                "[yellow]Warning:[/yellow] PyYAML not installed. Falling back to JSON.\n"
-                "Install with: uv add pyyaml"
-            )
-            output_content = json.dumps(analysis, indent=2)
+        import yaml
+
+        output_content = yaml.dump(analysis, default_flow_style=False, sort_keys=False)
     elif output_format == "markdown":
         # Collect unique scenes for builder URLs
         settings = Settings()
@@ -1883,15 +1877,9 @@ def app_summary(
     if output_format == "json":
         output_content = json.dumps(summary, indent=2)
     elif output_format == "yaml":
-        try:
-            import yaml
-            output_content = yaml.dump(summary, default_flow_style=False, sort_keys=False)
-        except ImportError:
-            console.print(
-                "[yellow]Warning:[/yellow] PyYAML not installed. Falling back to JSON.\n"
-                "Install with: uv add pyyaml"
-            )
-            output_content = json.dumps(summary, indent=2)
+        import yaml
+
+        output_content = yaml.dump(summary, default_flow_style=False, sort_keys=False)
     elif output_format == "markdown":
         # Generate markdown summary
         app_info = summary["application"]
