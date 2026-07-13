@@ -198,6 +198,11 @@ This displays a table showing:
 - Low Ca, High Ce = Highly coupled objects with many dependencies (potentially fragile)
 - High Ca + High Ce = Central, complex objects (review for potential refactoring)
 
+**Machine-readable output:** All discovery/search commands (`list-objects`, `search-object`, `search-field`, `show-coupling`, `find-orphans`) accept `--format json` for machine-readable output, with status messages routed to stderr so piped stdout stays clean:
+```bash
+knack-sleuth list-objects app.json --format json
+```
+
 ### Search for Object Usages
 
 Search for all places where an object is used in your Knack application.

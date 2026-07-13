@@ -80,6 +80,72 @@ class TestShowCoupling:
         assert "I:" in result.output
 
 
+class TestJsonOutput:
+    def test_list_objects_json(self, sample_metadata_file):
+        result = runner.invoke(
+            cli, ["list-objects", str(sample_metadata_file), "--format", "json"], env=WIDE
+        )
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert set(parsed.keys()) == {"application", "objects", "totals"}
+        assert parsed["objects"]
+
+    def test_search_object_json(self, sample_metadata_file):
+        result = runner.invoke(
+            cli,
+            ["search-object", "object_12", str(sample_metadata_file), "--format", "json"],
+            env=WIDE,
+        )
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert set(parsed.keys()) == {
+            "object",
+            "object_usages",
+            "field_usages",
+            "scenes_to_review",
+        }
+
+    def test_search_field_json(self, sample_metadata_file):
+        result = runner.invoke(
+            cli,
+            ["search-field", "field_105", str(sample_metadata_file), "--format", "json"],
+            env=WIDE,
+        )
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert set(parsed.keys()) == {"field", "usages", "scenes_to_review"}
+
+    def test_show_coupling_json(self, sample_metadata_file):
+        result = runner.invoke(
+            cli,
+            ["show-coupling", "object_12", str(sample_metadata_file), "--format", "json"],
+            env=WIDE,
+        )
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert isinstance(parsed["ca"], int)
+        assert isinstance(parsed["ce"], int)
+        assert isinstance(parsed["inbound"], list)
+        assert isinstance(parsed["outbound"], list)
+        assert parsed["instability"] is None or isinstance(parsed["instability"], float)
+
+    def test_find_orphans_json(self, sample_metadata_file):
+        result = runner.invoke(
+            cli, ["find-orphans", str(sample_metadata_file), "--format", "json"], env=WIDE
+        )
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert isinstance(parsed["orphaned_fields"], list)
+        assert isinstance(parsed["totals"], dict)
+
+    def test_invalid_format_exits_1(self, sample_metadata_file):
+        result = runner.invoke(
+            cli, ["find-orphans", str(sample_metadata_file), "--format", "xml"], env=WIDE
+        )
+        assert result.exit_code == 1
+        assert "Invalid format" in result.output
+
+
 class TestCacheCommands:
     def _env(self, tmp_path):
         return {**WIDE, "KNACK_CACHE_DIR": str(tmp_path)}

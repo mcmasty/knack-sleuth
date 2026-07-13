@@ -28,6 +28,8 @@ Each command is invoked via `uvx knack-sleuth <command> ...`. Run any command wi
 - `show-coupling` — Show afferent (inbound) and efferent (outbound) coupling for an object.
 - `find-orphans` — List orphaned fields and objects (defined but not used anywhere).
 
+All five discovery/search commands support `--format rich|json`; use `--format json` for machine-readable output (status messages go to stderr, so stdout stays clean).
+
 ### Schema export
 
 - `export-db-schema` — Export your app's database schema (objects, fields, relationships). **This is the command you usually want for schema/ER work.**
@@ -92,10 +94,16 @@ uvx knack-sleuth export-db-schema app.json -f dbml -o schema.dbml
 
 ### Structured output for analysis
 
-When you need to process command output programmatically, prefer `--format json` with `--output file.json`:
+When you need to process command output programmatically, prefer `--format json`.
+`impact-analysis`, `app-summary`, and `diff` take an `--output file.json` flag; the
+discovery/search commands print clean JSON to stdout (status messages go to stderr),
+so redirect with `>`:
 
 - `uvx knack-sleuth impact-analysis object_12 --format json --output impact.json`
 - `uvx knack-sleuth app-summary --format json --output summary.json`
+- `uvx knack-sleuth list-objects --format json > objects.json`
+- `uvx knack-sleuth search-object object_12 --format json > usage.json`
+- `uvx knack-sleuth find-orphans --format json > orphans.json`
 
 Use `--format markdown` when the output is for human consumption.
 
