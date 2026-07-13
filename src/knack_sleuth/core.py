@@ -11,6 +11,7 @@ behavior stays consistent across every code path.
 """
 
 import json
+import os
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta
@@ -21,8 +22,25 @@ import httpx
 from knack_sleuth.models import KnackAppMetadata
 from knack_sleuth.config import Settings, KNACK_API_BASE_URL
 
-# Cached metadata files older than this are considered stale and re-fetched.
-CACHE_MAX_AGE = timedelta(hours=24)
+
+def get_cache_dir() -> Path:
+    """Return the directory where metadata cache files live, creating it if needed.
+
+    Resolution order:
+    1. ``KNACK_CACHE_DIR`` environment variable (or .env setting)
+    2. ``$XDG_CACHE_HOME/knack-sleuth``
+    3. ``~/.cache/knack-sleuth``
+    """
+    settings = Settings()
+    if settings.knack_cache_dir:
+        cache_dir = Path(settings.knack_cache_dir).expanduser()
+    else:
+        xdg = os.environ.get("XDG_CACHE_HOME", "")
+        base = Path(xdg).expanduser() if xdg else Path.home() / ".cache"
+        cache_dir = base / "knack-sleuth"
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    return cache_dir
 
 
 def _cache_glob(app_id: str) -> str:
@@ -31,22 +49,28 @@ def _cache_glob(app_id: str) -> str:
 
 
 def find_valid_cache(
-    app_id: str, max_age: timedelta = CACHE_MAX_AGE
+    app_id: str, max_age: Optional[timedelta] = None
 ) -> Optional[tuple[Path, float]]:
     """Find the most recent non-stale cache file for an application.
 
-    Looks in the current working directory for cache files matching the app's
-    naming pattern and returns the newest one that is younger than ``max_age``.
+    Looks in the cache directory (see :func:`get_cache_dir`) for cache files
+    matching the app's naming pattern and returns the newest one that is
+    younger than ``max_age``.
 
     Args:
         app_id: Knack application ID.
         max_age: Maximum age before a cache file is considered stale.
+                 Defaults to the ``KNACK_CACHE_TTL_HOURS`` setting (24h).
 
     Returns:
         A ``(path, age_in_hours)`` tuple for the freshest valid cache file, or
         ``None`` if no usable cache file exists.
     """
-    cache_files = sorted(glob.glob(_cache_glob(app_id)), reverse=True)
+    if max_age is None:
+        max_age = timedelta(hours=Settings().knack_cache_ttl_hours)
+
+    pattern = str(get_cache_dir() / _cache_glob(app_id))
+    cache_files = sorted(glob.glob(pattern), reverse=True)
     if not cache_files:
         return None
 
@@ -84,9 +108,9 @@ def fetch_metadata_from_api(app_id: str) -> dict:
 
 
 def write_cache(app_id: str, data: dict) -> Path:
-    """Write raw metadata to a timestamped cache file and return its path."""
+    """Write raw metadata to a timestamped file in the cache directory."""
     timestamp = datetime.now().strftime("%Y%m%d%H%M")
-    cache_path = Path(f"{app_id}_app_metadata_{timestamp}.json")
+    cache_path = get_cache_dir() / f"{app_id}_app_metadata_{timestamp}.json"
     with cache_path.open("w") as f:
         json.dump(data, f, indent=2)
     return cache_path

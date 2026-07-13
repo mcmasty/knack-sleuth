@@ -1,14 +1,14 @@
-# KnackSlueth Search API
+# KnackSleuth Search API
 
 ## Overview
 
-KnackSlueth provides powerful search capabilities to find all usages of objects and fields throughout your Knack application metadata.
+KnackSleuth provides powerful search capabilities to find all usages of objects and fields throughout your Knack application metadata.
 
 ## Basic Usage
 
 ```python
 import json
-from knack_slueth import KnackAppMetadata, KnackSlueth
+from knack_sleuth import KnackAppMetadata, KnackSleuth
 
 # Load your Knack app export
 with open("my_knack_app.json") as f:
@@ -16,13 +16,13 @@ with open("my_knack_app.json") as f:
 
 # Create the search engine
 app_export = KnackAppMetadata(**data)
-slueth = KnackSlueth(app_export)
+sleuth = KnackSleuth(app_export)
 
 # Search for an object (with cascading to all its fields)
-results = slueth.search_object("object_11")
+results = sleuth.search_object("object_11")
 
 # Search for a specific field
-usages = slueth.search_field("field_116")
+usages = sleuth.search_field("field_116")
 ```
 
 ## Search Methods
@@ -37,7 +37,7 @@ Searches for all usages of an object and **cascades to search all fields** in th
 
 **Example:**
 ```python
-results = slueth.search_object("object_2")
+results = sleuth.search_object("object_2")
 
 # Object-level usages
 for usage in results["object_usages"]:
@@ -57,7 +57,7 @@ Searches for all usages of a specific field.
 
 **Example:**
 ```python
-usages = slueth.search_field("field_116")
+usages = sleuth.search_field("field_116")
 for usage in usages:
     print(f"[{usage.location_type}] {usage.context}")
 ```
@@ -100,7 +100,7 @@ class Usage:
 Get the full object definition.
 
 ```python
-obj = slueth.get_object_info("object_11")
+obj = sleuth.get_object_info("object_11")
 print(f"Object: {obj.name}")
 print(f"Fields: {len(obj.fields)}")
 ```
@@ -110,7 +110,7 @@ print(f"Fields: {len(obj.fields)}")
 Get the field definition and its parent object.
 
 ```python
-obj, field = slueth.get_field_info("field_116")
+obj, field = sleuth.get_field_info("field_116")
 print(f"Field: {obj.name}.{field.name}")
 print(f"Type: {field.type}")
 ```
@@ -119,21 +119,21 @@ print(f"Type: {field.type}")
 
 ```python
 import json
-from knack_slueth import KnackAppMetadata, KnackSlueth
+from knack_sleuth import KnackAppMetadata, KnackSleuth
 
 # Load data
 with open("knack_app_export.json") as f:
     app_export = KnackAppMetadata(**json.load(f))
 
 # Initialize search
-slueth = KnackSlueth(app_export)
+sleuth = KnackSleuth(app_export)
 
 # Find all usages of an object and its fields
 object_key = "object_11"
-obj = slueth.get_object_info(object_key)
+obj = sleuth.get_object_info(object_key)
 print(f"Analyzing: {obj.name} ({object_key})")
 
-results = slueth.search_object(object_key)
+results = sleuth.search_object(object_key)
 
 # Show object usages
 print(f"\nObject usages: {len(results['object_usages'])}")
@@ -153,5 +153,5 @@ for field in obj.fields:
 
 - `examples/search_example.py` - Complete working example
 - `examples/parse_example.py` - Basic model usage
-- `src/knack_slueth/models.py` - Data models
-- `src/knack_slueth/slueth.py` - Search implementation
+- `src/knack_sleuth/models.py` - Data models
+- `src/knack_sleuth/sleuth.py` - Search implementation

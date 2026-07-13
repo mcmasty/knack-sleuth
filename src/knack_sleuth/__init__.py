@@ -1,4 +1,4 @@
-"""KnackSlueth - Find usages of data objects in Knack app metadata."""
+"""KnackSleuth - Find usages of data objects in Knack app metadata."""
 
 __version__ = "0.4.1"
 

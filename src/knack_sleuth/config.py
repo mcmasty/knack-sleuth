@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     
     knack_app_id: str = Field(default='', alias='KNACK_APP_ID')
     knack_next_gen_builder: bool = Field(default=False, alias='KNACK_NEXT_GEN_BUILDER')
+    knack_cache_dir: str = Field(default='', alias='KNACK_CACHE_DIR')
+    knack_cache_ttl_hours: float = Field(default=24.0, alias='KNACK_CACHE_TTL_HOURS')
     
     model_config = SettingsConfigDict(
         env_file='.env',

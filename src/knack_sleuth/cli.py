@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from importlib import resources
 from pathlib import Path
 from typing import Optional
@@ -17,6 +18,7 @@ from knack_sleuth.core import (
     load_app_metadata as core_load_metadata,
     find_valid_cache,
     fetch_metadata_from_api,
+    get_cache_dir,
     write_cache,
 )
 from knack_sleuth.lookup import (
@@ -28,6 +30,91 @@ from knack_sleuth.lookup import (
 
 cli = typer.Typer()
 console = Console()
+err_console = Console(stderr=True)  # status + error output; keeps stdout clean for data
+
+cache_app = typer.Typer(help="Inspect and manage the local metadata cache.")
+cli.add_typer(cache_app, name="cache")
+
+
+def _cache_files(app_id: Optional[str] = None) -> list[Path]:
+    """All cache files (optionally for one app), newest first."""
+    pattern = f"{app_id}_app_metadata_*.json" if app_id else "*_app_metadata_*.json"
+    return sorted(get_cache_dir().glob(pattern), reverse=True)
+
+
+@cache_app.command("dir")
+def cache_dir():
+    """Print the cache directory path."""
+    typer.echo(str(get_cache_dir()))
+
+
+@cache_app.command("list")
+def cache_list(
+    app_id: Optional[str] = typer.Option(
+        None, "--app-id", help="Only show cache files for this application ID"
+    ),
+):
+    """List cached metadata files with age, size, and freshness."""
+    from datetime import datetime, timedelta
+
+    files = _cache_files(app_id)
+    if not files:
+        console.print(f"[dim]No cache files in {get_cache_dir()}[/dim]")
+        return
+
+    ttl = timedelta(hours=Settings().knack_cache_ttl_hours)
+
+    table = Table(title=f"Metadata Cache — {get_cache_dir()}")
+    table.add_column("File", style="bold cyan")
+    table.add_column("App ID", style="dim")
+    table.add_column("Age", justify="right", style="magenta")
+    table.add_column("Size", justify="right", style="yellow")
+    table.add_column("Status", style="green")
+
+    for path in files:
+        age = datetime.now() - datetime.fromtimestamp(path.stat().st_mtime)
+        age_hours = age.total_seconds() / 3600
+        file_app_id = path.name.split("_app_metadata_")[0]
+        status = "fresh" if age < ttl else "[red]stale[/red]"
+        table.add_row(
+            path.name,
+            file_app_id,
+            f"{age_hours:.1f}h",
+            f"{path.stat().st_size / 1024:.1f} KB",
+            status,
+        )
+
+    console.print()
+    console.print(table)
+    console.print(
+        f"[dim]{len(files)} files | TTL: {ttl.total_seconds() / 3600:.0f}h "
+        f"(set KNACK_CACHE_TTL_HOURS to change)[/dim]"
+    )
+    console.print()
+
+
+@cache_app.command("clear")
+def cache_clear(
+    app_id: Optional[str] = typer.Option(
+        None, "--app-id", help="Only delete cache files for this application ID"
+    ),
+):
+    """Delete cached metadata files (all apps, or one with --app-id)."""
+    files = _cache_files(app_id)
+    if not files:
+        console.print(f"[dim]No cache files to delete in {get_cache_dir()}[/dim]")
+        return
+
+    freed = 0
+    for path in files:
+        freed += path.stat().st_size
+        path.unlink()
+
+    scope = f"for app {app_id}" if app_id else "from cache"
+    console.print(
+        f"[green]✓[/green] Deleted {len(files)} cache files {scope} "
+        f"({freed / 1024:.1f} KB freed)"
+    )
 
 
 def version_callback(value: bool):
@@ -71,42 +158,51 @@ def load_app_metadata(
                 try:
                     with cache_path.open() as f:
                         data = json.load(f)
-                    console.print(
+                    err_console.print(
                         f"[dim]Using cached data from {cache_path.name} "
                         f"(age: {cache_age_hours:.1f}h)[/dim]"
                     )
                     return KnackAppMetadata(**data)
                 except Exception:
                     # Corrupt/unreadable cache: fall through to a fresh API fetch.
-                    console.print(
+                    err_console.print(
                         f"[yellow]Warning:[/yellow] Failed to read cache "
                         f"{cache_path.name}; fetching fresh data..."
                     )
 
         if refresh:
-            console.print("[cyan]Forcing refresh from API...[/cyan]")
+            err_console.print("[cyan]Forcing refresh from API...[/cyan]")
 
-        with console.status("[cyan]Fetching metadata from Knack API..."):
+        with err_console.status("[cyan]Fetching metadata from Knack API..."):
             data = fetch_metadata_from_api(final_app_id)
 
         cache_path = write_cache(final_app_id, data)
-        console.print(f"[dim]Cached metadata to {cache_path.name}[/dim]")
+        err_console.print(f"[dim]Cached metadata to {cache_path.name}[/dim]")
         return KnackAppMetadata(**data)
 
     except FileNotFoundError as e:
-        console.print(f"[red]Error:[/red] {e}")
+        err_console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
     except ValueError as e:
-        console.print(f"[red]Error:[/red] {e}")
+        err_console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
     except Exception as e:
         # Handle httpx errors and other exceptions
         if isinstance(e, httpx.HTTPStatusError):
-            console.print(f"[red]Error:[/red] HTTP {e.response.status_code}: {e.response.text}")
+            err_console.print(f"[red]Error:[/red] HTTP {e.response.status_code}: {e.response.text}")
         elif isinstance(e, httpx.RequestError):
-            console.print(f"[red]Error:[/red] Failed to connect to Knack API: {e}")
+            err_console.print(f"[red]Error:[/red] Failed to connect to Knack API: {e}")
         else:
-            console.print(f"[red]Error:[/red] {e}")
+            err_console.print(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+def _validate_output_format(output_format: str) -> None:
+    """Exit with an error unless the format is rich or json."""
+    if output_format not in ("rich", "json"):
+        err_console.print(
+            f"[red]Error:[/red] Invalid format '{output_format}'. Use rich or json."
+        )
         raise typer.Exit(1)
 
 
@@ -116,7 +212,7 @@ def resolve_object_or_exit(app_export: KnackAppMetadata, identifier: str) -> Kna
     if obj:
         return obj
 
-    console.print(f"[red]Error:[/red] Object '{identifier}' not found in application")
+    err_console.print(f"[red]Error:[/red] Object '{identifier}' not found in application")
     suggestions = suggest_object_names(app_export.application, identifier)
     if suggestions:
         console.print(f"Did you mean: [cyan]{'[/cyan], [cyan]'.join(suggestions)}[/cyan]?")
@@ -174,6 +270,9 @@ def list_objects(
     sort_by_rows: bool = typer.Option(
         False, "--sort-by-rows", help="Sort by row count (largest first) instead of by name"
     ),
+    output_format: str = typer.Option(
+        "rich", "--format", help="Output format: rich or json"
+    ),
 ):
     """
     List all objects in a Knack application with field and connection counts.
@@ -208,21 +307,13 @@ def list_objects(
     When fetching from API, data is automatically cached locally and reused for 24 hours.
     Use --refresh to force fetching fresh data from the API.
     """
+    _validate_output_format(output_format)
+
     # Load metadata
     app_export = load_app_metadata(file_path, app_id, refresh)
 
-    # Create table
-    table = Table(title=f"[bold cyan]{app_export.application.name}[/bold cyan] - Objects")
-    table.add_column("Key", style="dim")
-    table.add_column("Name", style="bold cyan")
-    table.add_column("Rows", justify="right", style="magenta")
-    table.add_column("Fields", justify="right", style="yellow")
-    table.add_column("Ca", justify="right", style="blue")  # Afferent (inbound)
-    table.add_column("Ce", justify="right", style="red")   # Efferent (outbound)
-    table.add_column("Total", justify="right", style="green")
-    table.add_column("I", justify="right", style="cyan")   # Instability: Ce / (Ca + Ce)
-    
-    # Add rows and calculate totals
+    # Collect rows and calculate totals
+    entries = []
     total_rows = 0
     total_fields = 0
     total_afferent = 0
@@ -261,21 +352,62 @@ def list_objects(
         total_efferent += efferent_count
         total_connections += connection_count
 
-        instability = (
-            f"{efferent_count / connection_count:.2f}" if connection_count else "-"
+        entries.append(
+            {
+                "key": obj.key,
+                "name": obj.name,
+                "rows": row_count,
+                "fields": field_count,
+                "ca": afferent_count,
+                "ce": efferent_count,
+                "total_connections": connection_count,
+                "instability": (
+                    round(efferent_count / connection_count, 2)
+                    if connection_count
+                    else None
+                ),
+            }
         )
 
+    if output_format == "json":
+        payload = {
+            "application": app_export.application.name,
+            "objects": entries,
+            "totals": {
+                "objects": len(entries),
+                "rows": total_rows,
+                "fields": total_fields,
+                "ca": total_afferent,
+                "ce": total_efferent,
+                "connections": total_connections,
+            },
+        }
+        typer.echo(json.dumps(payload, indent=2))
+        return
+
+    # Create table
+    table = Table(title=f"[bold cyan]{app_export.application.name}[/bold cyan] - Objects")
+    table.add_column("Key", style="dim")
+    table.add_column("Name", style="bold cyan")
+    table.add_column("Rows", justify="right", style="magenta")
+    table.add_column("Fields", justify="right", style="yellow")
+    table.add_column("Ca", justify="right", style="blue")  # Afferent (inbound)
+    table.add_column("Ce", justify="right", style="red")   # Efferent (outbound)
+    table.add_column("Total", justify="right", style="green")
+    table.add_column("I", justify="right", style="cyan")   # Instability: Ce / (Ca + Ce)
+
+    for entry in entries:
         table.add_row(
-            obj.key,
-            obj.name,
-            f"{row_count:,}",  # Format with comma separators
-            str(field_count),
-            str(afferent_count),
-            str(efferent_count),
-            str(connection_count),
-            instability,
+            entry["key"],
+            entry["name"],
+            f"{entry['rows']:,}",  # Format with comma separators
+            str(entry["fields"]),
+            str(entry["ca"]),
+            str(entry["ce"]),
+            str(entry["total_connections"]),
+            f"{entry['instability']:.2f}" if entry["instability"] is not None else "-",
         )
-    
+
     # Display table
     console.print()
     console.print(table)
@@ -307,6 +439,9 @@ def search_object(
     show_fields: bool = typer.Option(
         True, "--show-fields/--no-fields", help="Show field-level usages"
     ),
+    output_format: str = typer.Option(
+        "rich", "--format", help="Output format: rich or json"
+    ),
 ):
     """
     Search for all usages of an object in a Knack application.
@@ -327,6 +462,8 @@ def search_object(
     When fetching from API, data is automatically cached locally and reused for 24 hours.
     Use --refresh to force fetching fresh data from the API.
     """
+    _validate_output_format(output_format)
+
     # Load metadata
     app_export = load_app_metadata(file_path, app_id, refresh)
 
@@ -339,6 +476,42 @@ def search_object(
 
     # Perform search
     results = sleuth.search_object(object_identifier)
+    object_usages = results.get("object_usages", [])
+    field_usage_map = {k: v for k, v in results.items() if k.startswith("field_")}
+
+    # Collect unique scenes from all usages (for builder links)
+    scenes_to_review = set()
+    for usage in object_usages:
+        if 'scene_key' in usage.details:
+            scenes_to_review.add(usage.details['scene_key'])
+    if show_fields:
+        for usages in field_usage_map.values():
+            for usage in usages:
+                if 'scene_key' in usage.details:
+                    scenes_to_review.add(usage.details['scene_key'])
+
+    if output_format == "json":
+        field_usages_payload = {}
+        if show_fields:
+            for field_key, usages in field_usage_map.items():
+                _, field_info = sleuth.get_field_info(field_key)
+                field_usages_payload[field_key] = {
+                    "name": field_info.name if field_info else None,
+                    "type": field_info.type if field_info else None,
+                    "usages": [asdict(u) for u in usages],
+                }
+        payload = {
+            "object": {
+                "key": target_object.key,
+                "name": target_object.name,
+                "field_count": len(target_object.fields),
+            },
+            "object_usages": [asdict(u) for u in object_usages],
+            "field_usages": field_usages_payload,
+            "scenes_to_review": sorted(scenes_to_review),
+        }
+        typer.echo(json.dumps(payload, indent=2))
+        return
 
     # Display results
     console.print(
@@ -350,7 +523,6 @@ def search_object(
     )
 
     # Show object-level usages
-    object_usages = results.get("object_usages", [])
     console.print(f"\n[bold cyan]Object-level usages:[/bold cyan] {len(object_usages)}")
 
     if object_usages:
@@ -361,7 +533,7 @@ def search_object(
 
     # Show field-level usages
     if show_fields:
-        field_results = {k: v for k, v in results.items() if k.startswith("field_")}
+        field_results = field_usage_map
         if field_results:
             console.print(
                 f"\n[bold cyan]Field-level usages:[/bold cyan] {len(field_results)} fields with usages"
@@ -377,20 +549,6 @@ def search_object(
                         console.print(f"    [yellow]•[/yellow] \\[{usage.location_type}] {usage.context}")
         else:
             console.print("\n[dim]No field usages found[/dim]")
-
-    # Builder Pages to Review — collect unique scenes from all usages
-    scenes_to_review = set()
-    for usage in object_usages:
-        if 'scene_key' in usage.details:
-            scenes_to_review.add(usage.details['scene_key'])
-
-    # Also collect scenes from field usages
-    if show_fields:
-        for field_key, usages in results.items():
-            if field_key.startswith("field_"):
-                for usage in usages:
-                    if 'scene_key' in usage.details:
-                        scenes_to_review.add(usage.details['scene_key'])
 
     print_builder_pages(app_export, scenes_to_review)
 
@@ -410,6 +568,9 @@ def search_field(
     ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
+    ),
+    output_format: str = typer.Option(
+        "rich", "--format", help="Output format: rich or json"
     ),
 ):
     """
@@ -439,6 +600,8 @@ def search_field(
 
         knack-sleuth search-field "Organization ID" --app-id YOUR_APP_ID
     """
+    _validate_output_format(output_format)
+
     # Load metadata
     app_export = load_app_metadata(file_path, app_id, refresh)
 
@@ -446,7 +609,7 @@ def search_field(
     matches = resolve_fields(app_export.application, field_identifier)
 
     if not matches:
-        console.print(
+        err_console.print(
             f"[red]Error:[/red] Field '{field_identifier}' not found in application"
         )
         suggestions = suggest_field_names(app_export.application, field_identifier)
@@ -469,6 +632,24 @@ def search_field(
     # Perform search
     sleuth = KnackSleuth(app_export)
     usages = sleuth.search_field(target_field.key)
+    scenes_to_review = {
+        usage.details['scene_key'] for usage in usages if 'scene_key' in usage.details
+    }
+
+    if output_format == "json":
+        payload = {
+            "field": {
+                "key": target_field.key,
+                "name": target_field.name,
+                "type": target_field.type,
+                "object_key": target_object.key,
+                "object_name": target_object.name,
+            },
+            "usages": [asdict(u) for u in usages],
+            "scenes_to_review": sorted(scenes_to_review),
+        }
+        typer.echo(json.dumps(payload, indent=2))
+        return
 
     # Display results
     console.print(
@@ -487,9 +668,6 @@ def search_field(
         console.print("  [dim]No usages found — this field may be an orphan[/dim]")
 
     # Builder Pages to Review
-    scenes_to_review = {
-        usage.details['scene_key'] for usage in usages if 'scene_key' in usage.details
-    }
     print_builder_pages(app_export, scenes_to_review)
 
     console.print()
@@ -509,6 +687,9 @@ def show_coupling(
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
     ),
+    output_format: str = typer.Option(
+        "rich", "--format", help="Output format: rich or json"
+    ),
 ):
     """
     Show coupling relationships for a specific object.
@@ -526,6 +707,8 @@ def show_coupling(
 
     Note: The Knack metadata endpoint is public and does not require an API key.
     """
+    _validate_output_format(output_format)
+
     # Load metadata
     app_export = load_app_metadata(file_path, app_id, refresh)
 
@@ -537,6 +720,37 @@ def show_coupling(
     ce = len(target_object.connections.outbound) if target_object.connections else 0
     instability = f"{ce / (ca + ce):.2f}" if (ca + ce) else "-"
 
+    # Build object lookup for names
+    objects_by_key = {obj.key: obj for obj in app_export.application.objects}
+
+    if output_format == "json":
+        inbound = target_object.connections.inbound if target_object.connections else []
+        outbound = target_object.connections.outbound if target_object.connections else []
+        inbound = inbound or []
+        outbound = outbound or []
+
+        def _conn_payload(conn):
+            related = objects_by_key.get(conn.object)
+            return {
+                "object_key": conn.object,
+                "object_name": related.name if related else None,
+                "connection_key": conn.key,
+                "connection_name": conn.name,
+                "has": conn.has,
+                "belongs_to": conn.belongs_to,
+            }
+
+        payload = {
+            "object": {"key": target_object.key, "name": target_object.name},
+            "ca": ca,
+            "ce": ce,
+            "instability": round(ce / (ca + ce), 2) if (ca + ce) else None,
+            "inbound": [_conn_payload(c) for c in inbound],
+            "outbound": [_conn_payload(c) for c in outbound],
+        }
+        typer.echo(json.dumps(payload, indent=2))
+        return
+
     # Display header
     console.print()
     console.print(
@@ -546,10 +760,7 @@ def show_coupling(
             subtitle=f"Ca: {ca} | Ce: {ce} | I: {instability}",
         )
     )
-    
-    # Build object lookup for names
-    objects_by_key = {obj.key: obj for obj in app_export.application.objects}
-    
+
     # Afferent Coupling (Ca) - Inbound connections
     if target_object.connections and target_object.connections.inbound:
         console.print(f"\n[bold cyan]Afferent Coupling (Ca):[/bold cyan] {len(target_object.connections.inbound)} objects depend on this")
@@ -601,6 +812,9 @@ def find_orphans(
     include_system: bool = typer.Option(
         False, "--include-system", help="Include Knack system fields in the orphaned fields list"
     ),
+    output_format: str = typer.Option(
+        "rich", "--format", help="Output format: rich or json"
+    ),
 ):
     """
     List orphaned fields and objects — defined but not used anywhere.
@@ -627,6 +841,8 @@ def find_orphans(
 
         knack-sleuth find-orphans my_app.json --include-system
     """
+    _validate_output_format(output_format)
+
     # Load metadata
     app_export = load_app_metadata(file_path, app_id, refresh)
 
@@ -643,6 +859,51 @@ def find_orphans(
         hidden_system_count = len(orphaned_fields) - len(visible_fields)
     else:
         visible_fields = orphaned_fields
+
+    if output_format == "json":
+        def _field_notes(obj, field):
+            notes = []
+            if obj.identifier == field.key:
+                notes.append("identifier")
+            if field.isSystemField:
+                notes.append("system")
+            if field.required:
+                notes.append("required")
+            return notes
+
+        fields_payload = [
+            {
+                "object_key": obj.key,
+                "object_name": obj.name,
+                "field_key": field.key,
+                "field_name": field.name,
+                "type": field.type,
+                "notes": _field_notes(obj, field),
+            }
+            for obj, field in sorted(
+                visible_fields, key=lambda pair: (pair[0].name.lower(), pair[1].name.lower())
+            )
+        ]
+        objects_payload = [
+            {
+                "key": obj.key,
+                "name": obj.name,
+                "field_count": len(obj.fields),
+                "rows": app_export.application.counts.get(obj.key, 0),
+            }
+            for obj in sorted(orphaned_objects, key=lambda o: o.name.lower())
+        ]
+        payload = {
+            "orphaned_fields": fields_payload,
+            "orphaned_objects": objects_payload,
+            "totals": {
+                "orphaned_fields": len(orphaned_fields),
+                "orphaned_objects": len(orphaned_objects),
+                "hidden_system_fields": hidden_system_count,
+            },
+        }
+        typer.echo(json.dumps(payload, indent=2))
+        return
 
     # Orphaned fields table
     console.print()
@@ -747,7 +1008,7 @@ def download_metadata(
     final_app_id = app_id or settings.knack_app_id
     
     if not final_app_id:
-        console.print(
+        err_console.print(
             "[red]Error:[/red] App ID is required. Provide via --app-id or KNACK_APP_ID environment variable."
         )
         raise typer.Exit(1)
@@ -766,12 +1027,12 @@ def download_metadata(
             try:
                 with cache_path.open() as f:
                     data = json.load(f)
-                console.print(
+                err_console.print(
                     f"[dim]Using cached data from {cache_path.name} "
                     f"(age: {cache_age_hours:.1f}h)[/dim]"
                 )
             except Exception as e:
-                console.print(
+                err_console.print(
                     f"[yellow]Warning:[/yellow] Failed to load cache: {e}. Fetching from API..."
                 )
                 data = None  # Force API fetch
@@ -780,19 +1041,19 @@ def download_metadata(
         # Fetch from the public Knack metadata endpoint (no API key required).
         try:
             if refresh:
-                console.print("[cyan]Forcing refresh from API...[/cyan]")
+                err_console.print("[cyan]Forcing refresh from API...[/cyan]")
 
-            with console.status("[cyan]Fetching metadata from Knack API..."):
+            with err_console.status("[cyan]Fetching metadata from Knack API..."):
                 data = fetch_metadata_from_api(final_app_id)
 
         except httpx.HTTPStatusError as e:
-            console.print(f"[red]Error:[/red] HTTP {e.response.status_code}: {e.response.text}")
+            err_console.print(f"[red]Error:[/red] HTTP {e.response.status_code}: {e.response.text}")
             raise typer.Exit(1)
         except httpx.RequestError as e:
-            console.print(f"[red]Error:[/red] Failed to connect to Knack API: {e}")
+            err_console.print(f"[red]Error:[/red] Failed to connect to Knack API: {e}")
             raise typer.Exit(1)
         except Exception as e:
-            console.print(f"[red]Error:[/red] Failed to fetch metadata: {e}")
+            err_console.print(f"[red]Error:[/red] Failed to fetch metadata: {e}")
             raise typer.Exit(1)
     
     # Save to output file
@@ -817,7 +1078,7 @@ def download_metadata(
         console.print()
         
     except Exception as e:
-        console.print(f"[red]Error:[/red] Failed to save file: {e}")
+        err_console.print(f"[red]Error:[/red] Failed to save file: {e}")
         raise typer.Exit(1)
 
 
@@ -887,14 +1148,14 @@ def diff(
 
     valid_formats = ["rich", "json", "markdown"]
     if output_format not in valid_formats:
-        console.print(
+        err_console.print(
             f"[red]Error:[/red] Invalid format '{output_format}'. "
             f"Use one of: {', '.join(valid_formats)}"
         )
         raise typer.Exit(1)
 
     if output_file and output_format == "rich":
-        console.print(
+        err_console.print(
             "[red]Error:[/red] --output requires --format json or markdown"
         )
         raise typer.Exit(1)
@@ -923,10 +1184,10 @@ def diff(
                     f.write(content)
                 console.print(f"[green]✓[/green] Diff saved to [bold]{output_file}[/bold]")
             except Exception as e:
-                console.print(f"[red]Error:[/red] Failed to save file: {e}")
+                err_console.print(f"[red]Error:[/red] Failed to save file: {e}")
                 raise typer.Exit(1)
         else:
-            console.print(content)
+            typer.echo(content)
 
     if exit_code and diff_result["has_changes"]:
         raise typer.Exit(1)
@@ -1103,7 +1364,7 @@ def export_schema(
         elif mode == "serialization":
             schema = KnackAppMetadata.model_json_schema(mode="serialization")
         else:
-            console.print(f"[red]Error:[/red] Unknown mode '{mode}'. Use 'validation' or 'serialization'.")
+            err_console.print(f"[red]Error:[/red] Unknown mode '{mode}'. Use 'validation' or 'serialization'.")
             raise typer.Exit(1)
         
         # Save schema to file
@@ -1122,7 +1383,7 @@ def export_schema(
         console.print()
         
     except Exception as e:
-        console.print(f"[red]Error:[/red] Failed to generate or save schema: {e}")
+        err_console.print(f"[red]Error:[/red] Failed to generate or save schema: {e}")
         raise typer.Exit(1)
 
 
@@ -1204,7 +1465,7 @@ def export_db_schema(
     # Validate format
     valid_formats = ["json", "dbml", "yaml", "mermaid"]
     if format not in valid_formats:
-        console.print(
+        err_console.print(
             f"[red]Error:[/red] Invalid format '{format}'. "
             f"Use one of: {', '.join(valid_formats)}"
         )
@@ -1213,7 +1474,7 @@ def export_db_schema(
     # Validate detail level
     valid_details = ["structural", "minimal", "compact", "standard"]
     if detail not in valid_details:
-        console.print(
+        err_console.print(
             f"[red]Error:[/red] Invalid detail level '{detail}'. "
             f"Use one of: {', '.join(valid_details)}"
         )
@@ -1283,7 +1544,7 @@ def export_db_schema(
         console.print()
 
     except Exception as e:
-        console.print(f"[red]Error:[/red] {e}")
+        err_console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
 
@@ -1378,7 +1639,7 @@ def export_schema_subgraph(
 
     # Validate depth
     if depth > 2:
-        console.print(
+        err_console.print(
             f"[yellow]Warning:[/yellow] Depth {depth} is not recommended. "
             "For depth > 2, consider using [cyan]export-db-schema[/cyan] to export the full schema instead."
         )
@@ -1387,13 +1648,13 @@ def export_schema_subgraph(
         depth = 2
 
     if depth < 0:
-        console.print("[red]Error:[/red] Depth must be >= 0")
+        err_console.print("[red]Error:[/red] Depth must be >= 0")
         raise typer.Exit(1)
 
     # Validate format
     valid_formats = ["json", "dbml", "yaml", "mermaid"]
     if format not in valid_formats:
-        console.print(
+        err_console.print(
             f"[red]Error:[/red] Invalid format '{format}'. "
             f"Use one of: {', '.join(valid_formats)}"
         )
@@ -1402,7 +1663,7 @@ def export_schema_subgraph(
     # Validate detail level
     valid_details = ["structural", "minimal", "compact", "standard"]
     if detail not in valid_details:
-        console.print(
+        err_console.print(
             f"[red]Error:[/red] Invalid detail level '{detail}'. "
             f"Use one of: {', '.join(valid_details)}"
         )
@@ -1434,7 +1695,7 @@ def export_schema_subgraph(
         # Find the starting object
         start_object = find_object_by_identifier(app, object)
         if not start_object:
-            console.print(
+            err_console.print(
                 f"[red]Error:[/red] Object '{object}' not found. "
                 "Please specify a valid object key or name."
             )
@@ -1516,7 +1777,7 @@ def export_schema_subgraph(
         # Let intentional exits (e.g. object not found) propagate unchanged.
         raise
     except Exception as e:
-        console.print(f"[red]Error:[/red] {e}")
+        err_console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
 
 
@@ -1631,7 +1892,7 @@ def impact_analysis(
                 target_type = "field"
 
     if not target_key:
-        console.print(
+        err_console.print(
             f"[red]Error:[/red] Could not find object or field '{target_identifier}'"
         )
         suggestions = suggest_object_names(
@@ -1645,22 +1906,16 @@ def impact_analysis(
     analysis = sleuth.generate_impact_analysis(target_key, target_type)
 
     if "error" in analysis:
-        console.print(f"[red]Error:[/red] {analysis['error']}")
+        err_console.print(f"[red]Error:[/red] {analysis['error']}")
         raise typer.Exit(1)
 
     # Format output
     if output_format == "json":
         output_content = json.dumps(analysis, indent=2)
     elif output_format == "yaml":
-        try:
-            import yaml
-            output_content = yaml.dump(analysis, default_flow_style=False, sort_keys=False)
-        except ImportError:
-            console.print(
-                "[yellow]Warning:[/yellow] PyYAML not installed. Falling back to JSON.\n"
-                "Install with: uv add pyyaml"
-            )
-            output_content = json.dumps(analysis, indent=2)
+        import yaml
+
+        output_content = yaml.dump(analysis, default_flow_style=False, sort_keys=False)
     elif output_format == "markdown":
         # Collect unique scenes for builder URLs
         settings = Settings()
@@ -1782,7 +2037,7 @@ def impact_analysis(
 
         output_content = "\n".join(md_lines)
     else:
-        console.print(f"[red]Error:[/red] Unknown format '{output_format}'")
+        err_console.print(f"[red]Error:[/red] Unknown format '{output_format}'")
         raise typer.Exit(1)
 
     # Output to file or stdout
@@ -1792,10 +2047,10 @@ def impact_analysis(
                 f.write(output_content)
             console.print(f"[green]✓[/green] Analysis saved to [bold]{output_file}[/bold]")
         except Exception as e:
-            console.print(f"[red]Error:[/red] Failed to save file: {e}")
+            err_console.print(f"[red]Error:[/red] Failed to save file: {e}")
             raise typer.Exit(1)
     else:
-        console.print(output_content)
+        typer.echo(output_content)
 
 
 @cli.command(name="app-summary")
@@ -1883,15 +2138,9 @@ def app_summary(
     if output_format == "json":
         output_content = json.dumps(summary, indent=2)
     elif output_format == "yaml":
-        try:
-            import yaml
-            output_content = yaml.dump(summary, default_flow_style=False, sort_keys=False)
-        except ImportError:
-            console.print(
-                "[yellow]Warning:[/yellow] PyYAML not installed. Falling back to JSON.\n"
-                "Install with: uv add pyyaml"
-            )
-            output_content = json.dumps(summary, indent=2)
+        import yaml
+
+        output_content = yaml.dump(summary, default_flow_style=False, sort_keys=False)
     elif output_format == "markdown":
         # Generate markdown summary
         app_info = summary["application"]
@@ -2021,7 +2270,7 @@ def app_summary(
 
         output_content = "\n".join(md_lines)
     else:
-        console.print(f"[red]Error:[/red] Unknown format '{output_format}'")
+        err_console.print(f"[red]Error:[/red] Unknown format '{output_format}'")
         raise typer.Exit(1)
 
     # Output to file or stdout
@@ -2031,10 +2280,10 @@ def app_summary(
                 f.write(output_content)
             console.print(f"[green]✓[/green] Summary saved to [bold]{output_file}[/bold]")
         except Exception as e:
-            console.print(f"[red]Error:[/red] Failed to save file: {e}")
+            err_console.print(f"[red]Error:[/red] Failed to save file: {e}")
             raise typer.Exit(1)
     else:
-        console.print(output_content)
+        typer.echo(output_content)
 
 
 @cli.command(name="role-access-review")
@@ -2245,7 +2494,7 @@ def role_access_summary(
 
     # Validate that at least one of role or profile_key is provided
     if not role and not profile_key:
-        console.print("[red]Error:[/red] You must specify either --role or --profile-key")
+        err_console.print("[red]Error:[/red] You must specify either --role or --profile-key")
         raise typer.Exit(1)
 
     # Load metadata
@@ -2263,7 +2512,7 @@ def role_access_summary(
         # Look up profile name from key
         target_profile_name = report.profiles.get(profile_key)
         if not target_profile_name:
-            console.print(f"[red]Error:[/red] Profile key '{profile_key}' not found in application")
+            err_console.print(f"[red]Error:[/red] Profile key '{profile_key}' not found in application")
             console.print("\n[cyan]Available profiles:[/cyan]")
             for pk, pn in report.profiles.items():
                 console.print(f"  {pk}: {pn}")
@@ -2277,14 +2526,14 @@ def role_access_summary(
             matching_profiles = [(k, v) for k, v in report.profiles.items() if v.lower() == role.lower()]
 
         if not matching_profiles:
-            console.print(f"[red]Error:[/red] Role '{role}' not found in application")
+            err_console.print(f"[red]Error:[/red] Role '{role}' not found in application")
             console.print("\n[cyan]Available roles:[/cyan]")
             for pk, pn in report.profiles.items():
                 console.print(f"  {pn} ({pk})")
             raise typer.Exit(1)
 
         if len(matching_profiles) > 1:
-            console.print(f"[yellow]Warning:[/yellow] Multiple profiles match '{role}':")
+            err_console.print(f"[yellow]Warning:[/yellow] Multiple profiles match '{role}':")
             for pk, pn in matching_profiles:
                 console.print(f"  {pk}: {pn}")
             console.print("\nUsing first match. Use --profile-key to specify exactly.")
@@ -2419,7 +2668,7 @@ def install_skill(
     try:
         skill_content = resources.files("knack_sleuth").joinpath("data/SKILL.md").read_text()
     except Exception as e:
-        console.print(f"[red]Error:[/red] Could not read skill file from package: {e}")
+        err_console.print(f"[red]Error:[/red] Could not read skill file from package: {e}")
         raise typer.Exit(1)
 
     # Create directory and write file
@@ -2427,7 +2676,7 @@ def install_skill(
         target_dir.mkdir(parents=True, exist_ok=True)
         target_file.write_text(skill_content)
     except Exception as e:
-        console.print(f"[red]Error:[/red] Could not write skill file: {e}")
+        err_console.print(f"[red]Error:[/red] Could not write skill file: {e}")
         raise typer.Exit(1)
 
     console.print()

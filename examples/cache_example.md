@@ -108,14 +108,24 @@ Cached metadata to YOUR_APP_ID_app_metadata_202510291415.json
 - **Workflow**: Perfect for exploring and analyzing your app structure
 - **Fresh Data**: Automatic refresh after 24 hours or manual with `--refresh`
 
+## Where Cache Files Live
+
+Cache files are stored in a dedicated directory — `~/.cache/knack-sleuth/` (or
+`$XDG_CACHE_HOME/knack-sleuth/`) — so caching works no matter which directory
+you run commands from. Override with `KNACK_CACHE_DIR`, and tune the freshness
+window with `KNACK_CACHE_TTL_HOURS` (default 24).
+
 ## Clean Up Old Cache Files
 
-Cache files accumulate over time. You can clean them up:
+Cache files accumulate over time. Use the built-in cache commands:
 
 ```bash
-# Remove all cache files for a specific app
-rm YOUR_APP_ID_app_metadata_*.json
+# See what's cached (age, size, fresh/stale)
+knack-sleuth cache list
 
-# Remove all cache files older than 7 days
-find . -name "*_app_metadata_*.json" -mtime +7 -delete
+# Remove all cache files for a specific app
+knack-sleuth cache clear --app-id YOUR_APP_ID
+
+# Remove everything
+knack-sleuth cache clear
 ```

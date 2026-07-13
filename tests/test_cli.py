@@ -80,6 +80,112 @@ class TestShowCoupling:
         assert "I:" in result.output
 
 
+class TestJsonOutput:
+    def test_list_objects_json(self, sample_metadata_file):
+        result = runner.invoke(
+            cli, ["list-objects", str(sample_metadata_file), "--format", "json"], env=WIDE
+        )
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert set(parsed.keys()) == {"application", "objects", "totals"}
+        assert parsed["objects"]
+
+    def test_search_object_json(self, sample_metadata_file):
+        result = runner.invoke(
+            cli,
+            ["search-object", "object_12", str(sample_metadata_file), "--format", "json"],
+            env=WIDE,
+        )
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert set(parsed.keys()) == {
+            "object",
+            "object_usages",
+            "field_usages",
+            "scenes_to_review",
+        }
+
+    def test_search_field_json(self, sample_metadata_file):
+        result = runner.invoke(
+            cli,
+            ["search-field", "field_105", str(sample_metadata_file), "--format", "json"],
+            env=WIDE,
+        )
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert set(parsed.keys()) == {"field", "usages", "scenes_to_review"}
+
+    def test_show_coupling_json(self, sample_metadata_file):
+        result = runner.invoke(
+            cli,
+            ["show-coupling", "object_12", str(sample_metadata_file), "--format", "json"],
+            env=WIDE,
+        )
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert isinstance(parsed["ca"], int)
+        assert isinstance(parsed["ce"], int)
+        assert isinstance(parsed["inbound"], list)
+        assert isinstance(parsed["outbound"], list)
+        assert parsed["instability"] is None or isinstance(parsed["instability"], float)
+
+    def test_find_orphans_json(self, sample_metadata_file):
+        result = runner.invoke(
+            cli, ["find-orphans", str(sample_metadata_file), "--format", "json"], env=WIDE
+        )
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert isinstance(parsed["orphaned_fields"], list)
+        assert isinstance(parsed["totals"], dict)
+
+    def test_invalid_format_exits_1(self, sample_metadata_file):
+        result = runner.invoke(
+            cli, ["find-orphans", str(sample_metadata_file), "--format", "xml"], env=WIDE
+        )
+        assert result.exit_code == 1
+        assert "Invalid format" in result.output
+
+
+class TestCacheCommands:
+    def _env(self, tmp_path):
+        return {**WIDE, "KNACK_CACHE_DIR": str(tmp_path)}
+
+    def test_cache_dir_prints_path(self, tmp_path):
+        result = runner.invoke(cli, ["cache", "dir"], env=self._env(tmp_path))
+        assert result.exit_code == 0
+        assert str(tmp_path) in result.output
+
+    def test_cache_list_empty(self, tmp_path):
+        result = runner.invoke(cli, ["cache", "list"], env=self._env(tmp_path))
+        assert result.exit_code == 0
+        assert "No cache files" in result.output
+
+    def test_cache_list_and_clear(self, tmp_path, sample_metadata_dict):
+        (tmp_path / "app1_app_metadata_202601010000.json").write_text(
+            json.dumps(sample_metadata_dict)
+        )
+        (tmp_path / "app2_app_metadata_202601010000.json").write_text("{}")
+
+        result = runner.invoke(cli, ["cache", "list"], env=self._env(tmp_path))
+        assert result.exit_code == 0
+        assert "app1" in result.output
+        assert "app2" in result.output
+
+        # Clear only app1
+        result = runner.invoke(
+            cli, ["cache", "clear", "--app-id", "app1"], env=self._env(tmp_path)
+        )
+        assert result.exit_code == 0
+        assert "Deleted 1 cache files" in result.output
+        assert not list(tmp_path.glob("app1_*.json"))
+        assert list(tmp_path.glob("app2_*.json"))
+
+        # Clear the rest
+        result = runner.invoke(cli, ["cache", "clear"], env=self._env(tmp_path))
+        assert result.exit_code == 0
+        assert not list(tmp_path.glob("*.json"))
+
+
 class TestDiff:
     @staticmethod
     def _write(tmp_path, name, data):

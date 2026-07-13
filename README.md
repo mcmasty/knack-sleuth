@@ -143,10 +143,21 @@ Most commands can work with metadata in two ways:
 
 **Caching Behavior:**
 - When fetching from the API, metadata is automatically cached to `{APP_ID}_app_metadata_{YYYYMMDDHHMM}.json`
-- Cached files are reused for 24 hours to avoid unnecessary API calls
+- Cached files are reused for 24 hours to avoid unnecessary API calls (configurable via `KNACK_CACHE_TTL_HOURS`)
 - If no file path is provided and a valid cache exists, it will be used automatically
 - Use `--refresh` flag to force fetching fresh data from the API and update the cache
-- Cache files are stored in your current working directory
+- Cache files live in a dedicated cache directory — `~/.cache/knack-sleuth/` (or `$XDG_CACHE_HOME/knack-sleuth/`), overridable with `KNACK_CACHE_DIR` — so the cache works no matter which directory you run from
+
+**Managing the cache:**
+
+```bash
+knack-sleuth cache dir                    # Print the cache directory path
+knack-sleuth cache list                   # List cache files with age, size, freshness
+knack-sleuth cache clear                  # Delete all cache files
+knack-sleuth cache clear --app-id APP_ID  # Delete cache for one app only
+```
+
+> Upgrading from ≤0.4? Cache files previously landed in your current working directory and are no longer read from there — delete any stray `*_app_metadata_*.json` files.
 
 **NOTE:**  To improve readability, most command examples are shown assuming a local cached file with environmental variable set for appplication id.
 
@@ -186,6 +197,11 @@ This displays a table showing:
 - High Ca, Low Ce = Hub/core objects that many others depend on (stable, reusable)
 - Low Ca, High Ce = Highly coupled objects with many dependencies (potentially fragile)
 - High Ca + High Ce = Central, complex objects (review for potential refactoring)
+
+**Machine-readable output:** All discovery/search commands (`list-objects`, `search-object`, `search-field`, `show-coupling`, `find-orphans`) accept `--format json` for machine-readable output, with status messages routed to stderr so piped stdout stays clean:
+```bash
+knack-sleuth list-objects app.json --format json
+```
 
 ### Search for Object Usages
 

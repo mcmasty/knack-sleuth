@@ -33,13 +33,8 @@ surfaces as *counts* in `app-summary`. A command that lists *which* fields and
 objects are orphaned is the actionable version — that's the cleanup workflow
 this tool exists for.
 
-### 💡 4. `--format json` on the interactive commands
-`impact-analysis` and `app-summary` emit structured output, but `list-objects`,
-`search-object`, `show-coupling`, and `find-orphans` are Rich-console-only.
-Given the Claude Code skill (`install-skill`) has agents driving this CLI,
-machine-readable output on the search commands would make agent consumption far
-more reliable than parsing box-drawing characters. Related: route error output
-through `Console(stderr=True)` so piped JSON stays clean.
+### ✅ 4. `--format json` on the interactive commands
+Implemented: --format json on list-objects/search-object/search-field/show-coupling/find-orphans; errors and cache/status messages now go to stderr so piped stdout stays clean.
 
 ### ✅ 5. Instability metric (I = Ce / (Ca + Ce))
 We already compute afferent/efferent coupling and use Robert Martin's
@@ -49,16 +44,8 @@ naturally with `impact-analysis`.
 
 ## Structural improvements
 
-### 💡 6. Move the cache out of the CWD
-Cache files land in whatever directory the command runs from, so caches
-silently miss when run elsewhere, and they accumulate forever (the README
-teaches manual `rm` incantations). Proposal:
-- Dedicated dir (`~/.cache/knack-sleuth/` via `platformdirs`)
-- `cache list` / `cache clear` subcommands
-- `KNACK_CACHE_TTL_HOURS` env var instead of the hardcoded 24h
-All cache behavior now lives in three functions in `core.py`
-(`find_valid_cache`, `fetch_metadata_from_api`, `write_cache`), so this is a
-contained change.
+### ✅ 6. Move the cache out of the CWD
+Implemented: ~/.cache/knack-sleuth (XDG-aware, KNACK_CACHE_DIR override), KNACK_CACHE_TTL_HOURS, and cache dir|list|clear subcommands.
 
 ### ✅ 7. One shared object/field resolver
 `search-object`, `show-coupling`, and `impact-analysis` each hand-rolled the
@@ -72,15 +59,15 @@ same "is it a key or a name?" loop, and `db_schema.py` had its own
   `sleuth.py` (the actual search engine), `security.py`, and `cli.py` had no
   tests despite `tests/conftest.py` providing fixtures. Typer's `CliRunner`
   makes CLI tests cheap. Highest-value non-feature work. (Partially addressed:
-  lookup/orphan/CLI smoke tests added alongside the features above.)
-- 💡 **`httpx[http2]` extra is unused** — nothing passes `http2=True`, so `h2`
+  lookup/orphan/CLI smoke tests added alongside the features above; core cache tests rewritten env-driven and CLI/json tests added.)
+- ✅ **`httpx[http2]` extra is unused** — nothing passes `http2=True`, so `h2`
   is a dead transitive dependency. Drop the extra.
-- 💡 **PyYAML fallback is dead code** — `pyyaml` is a hard dependency, but
+- ✅ **PyYAML fallback is dead code** — `pyyaml` is a hard dependency, but
   `impact-analysis` and `app-summary` still carry `try: import yaml / except
   ImportError` branches telling users to install it.
-- 💡 **`requires-python = ">=3.13"` is stricter than the code** — nothing needs
+- ✅ **`requires-python = ">=3.13"` is stricter than the code** — nothing needs
   more than ~3.10-era syntax (`X | None`, builtin generics). Relaxing widens
   the `uvx` audience; CI would add matrix entries.
-- 💡 **`test_no_cache.py` at repo root** is a manual script, not a pytest test —
+- ✅ **`test_no_cache.py` at repo root** is a manual script, not a pytest test —
   move to `examples/`/`scripts/` or convert to a real test.
-- 💡 **Typo**: `__init__.py` docstring says "KnackSlueth".
+- ✅ **Typo**: `__init__.py` docstring says "KnackSlueth".
