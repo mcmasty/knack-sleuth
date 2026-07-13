@@ -1,111 +1,84 @@
 #!/usr/bin/env python3
-"""Quick test to verify no_cache parameter works correctly."""
+"""Manual check that the no_cache parameter and cache directory work correctly.
+
+Not a pytest test — run it directly with KNACK_APP_ID set to exercise the
+real API and the cache directory:
+
+    KNACK_APP_ID=your_app_id uv run python examples/cache_behavior_check.py
+"""
 
 import os
-import glob
 from pathlib import Path
+
 from knack_sleuth import load_app_metadata
+from knack_sleuth.core import get_cache_dir
 
 
-def test_no_cache():
-    """Test that no_cache=True doesn't create cache files."""
-    
+def check_no_cache():
+    """Verify that no_cache=True doesn't create cache files."""
+
     app_id = os.getenv("KNACK_APP_ID")
     if not app_id:
-        print("⚠️  KNACK_APP_ID not set - skipping API test")
-        print("   To test with API, set KNACK_APP_ID environment variable")
+        print("⚠️  KNACK_APP_ID not set - skipping API check")
+        print("   To run against the API, set KNACK_APP_ID")
         return
-    
-    print("Testing no_cache parameter...")
+
+    cache_dir = get_cache_dir()
+    print(f"Cache directory: {cache_dir}")
     print(f"App ID: {app_id}\n")
-    
-    # Clean up any existing cache files first
-    cache_pattern = f"{app_id}_app_metadata_*.json"
-    existing_caches = glob.glob(cache_pattern)
-    if existing_caches:
-        print(f"Found {len(existing_caches)} existing cache file(s)")
-        for cache_file in existing_caches:
-            print(f"  - {cache_file}")
+
+    def cache_files():
+        return sorted(cache_dir.glob(f"{app_id}_app_metadata_*.json"))
+
+    existing = cache_files()
+    if existing:
+        print(f"Found {len(existing)} existing cache file(s)")
+        for cache_file in existing:
+            print(f"  - {cache_file.name}")
         print()
-    
-    # Test 1: Load with no_cache=True
-    print("Test 1: Loading with no_cache=True...")
-    try:
-        metadata = load_app_metadata(app_id=app_id, no_cache=True)
-        print(f"✓ Loaded: {metadata.application.name}")
-        
-        # Check for new cache files
-        new_caches = glob.glob(cache_pattern)
-        new_cache_count = len(new_caches) - len(existing_caches)
-        
-        if new_cache_count == 0:
-            print("✓ No new cache files created (as expected)")
-        else:
-            print(f"✗ FAIL: {new_cache_count} new cache file(s) created!")
-            return False
-    except Exception as e:
-        print(f"✗ Error: {e}")
-        return False
-    
+
+    # Check 1: no_cache=True must not create files
+    print("Check 1: Loading with no_cache=True...")
+    metadata = load_app_metadata(app_id=app_id, no_cache=True)
+    print(f"✓ Loaded: {metadata.application.name}")
+    if len(cache_files()) == len(existing):
+        print("✓ No new cache files created (as expected)")
+    else:
+        print("✗ FAIL: new cache file(s) created!")
+        return
+
     print()
-    
-    # Test 2: Load with no_cache=False (default)
-    print("Test 2: Loading with no_cache=False (default)...")
-    try:
-        metadata = load_app_metadata(app_id=app_id, no_cache=False)
-        print(f"✓ Loaded: {metadata.application.name}")
-        
-        # Check for new cache files
-        final_caches = glob.glob(cache_pattern)
-        new_cache_count = len(final_caches) - len(existing_caches)
-        
-        if new_cache_count > 0:
-            print("✓ Cache file created (as expected)")
-            for cache_file in final_caches:
-                if cache_file not in existing_caches:
-                    print(f"  Created: {cache_file}")
-        else:
-            # Might be using existing cache - that's ok
-            print("✓ Using existing cache or created cache (normal behavior)")
-    except Exception as e:
-        print(f"✗ Error: {e}")
-        return False
-    
-    print()
-    print("All tests passed! ✓")
-    return True
+
+    # Check 2: default behavior may read or write cache
+    print("Check 2: Loading with default caching...")
+    metadata = load_app_metadata(app_id=app_id)
+    print(f"✓ Loaded: {metadata.application.name}")
+    print("✓ Using existing cache or created cache (normal behavior)")
+
+    print("\nAll checks passed! ✓")
 
 
-def test_file_load():
-    """Test loading from a file."""
-    print("Test 3: Loading from file...")
-    
-    # Use the sample test data if it exists
+def check_file_load():
+    """Verify loading from a file."""
+    print("Check 3: Loading from file...")
+
     sample_file = Path("tests/data/sample_knack_app_meta.json")
     if not sample_file.exists():
-        print("⚠️  Sample file not found - skipping file load test")
-        return True
-    
-    try:
-        metadata = load_app_metadata(file_path=sample_file)
-        print(f"✓ Loaded: {metadata.application.name}")
-        print(f"  Objects: {len(metadata.application.objects)}")
-        print(f"  Scenes: {len(metadata.application.scenes)}")
-        return True
-    except Exception as e:
-        print(f"✗ Error: {e}")
-        return False
+        print("⚠️  Sample file not found - skipping file load check")
+        return
+
+    metadata = load_app_metadata(file_path=sample_file)
+    print(f"✓ Loaded: {metadata.application.name}")
+    print(f"  Objects: {len(metadata.application.objects)}")
+    print(f"  Scenes: {len(metadata.application.scenes)}")
 
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("Testing load_app_metadata refactoring")
+    print("Cache behavior check")
     print("=" * 60)
     print()
-    
-    # Test file loading first (doesn't require API key)
-    test_file_load()
+
+    check_file_load()
     print()
-    
-    # Test API loading with cache control
-    test_no_cache()
+    check_no_cache()

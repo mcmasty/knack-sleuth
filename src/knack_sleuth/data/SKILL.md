@@ -59,6 +59,7 @@ Each command is invoked via `uvx knack-sleuth <command> ...`. Run any command wi
 ### Utility
 
 - `download-metadata` — Download and save Knack app metadata to a local JSON file (the output path is a positional argument).
+- `cache` — Manage the local metadata cache: `cache list`, `cache clear [--app-id ID]`, `cache dir`.
 
 ## Usage
 
@@ -73,8 +74,10 @@ name is ambiguous, the CLI lists all candidate keys; re-run with the exact key.
 
 ### Caching
 
-When using `--app-id` directly, metadata is auto-cached locally and reused for 24 hours.
-Use `--refresh` to force a fresh download.
+When using `--app-id` directly, metadata is auto-cached in `~/.cache/knack-sleuth/` (override
+with `KNACK_CACHE_DIR`) and reused for 24 hours (`KNACK_CACHE_TTL_HOURS` to change).
+Use `--refresh` to force a fresh download, and `cache list` / `cache clear` to inspect or
+reset the cache.
 
 ### Download-first strategy (recommended for multi-command sessions)
 

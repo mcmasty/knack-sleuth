@@ -80,6 +80,46 @@ class TestShowCoupling:
         assert "I:" in result.output
 
 
+class TestCacheCommands:
+    def _env(self, tmp_path):
+        return {**WIDE, "KNACK_CACHE_DIR": str(tmp_path)}
+
+    def test_cache_dir_prints_path(self, tmp_path):
+        result = runner.invoke(cli, ["cache", "dir"], env=self._env(tmp_path))
+        assert result.exit_code == 0
+        assert str(tmp_path) in result.output
+
+    def test_cache_list_empty(self, tmp_path):
+        result = runner.invoke(cli, ["cache", "list"], env=self._env(tmp_path))
+        assert result.exit_code == 0
+        assert "No cache files" in result.output
+
+    def test_cache_list_and_clear(self, tmp_path, sample_metadata_dict):
+        (tmp_path / "app1_app_metadata_202601010000.json").write_text(
+            json.dumps(sample_metadata_dict)
+        )
+        (tmp_path / "app2_app_metadata_202601010000.json").write_text("{}")
+
+        result = runner.invoke(cli, ["cache", "list"], env=self._env(tmp_path))
+        assert result.exit_code == 0
+        assert "app1" in result.output
+        assert "app2" in result.output
+
+        # Clear only app1
+        result = runner.invoke(
+            cli, ["cache", "clear", "--app-id", "app1"], env=self._env(tmp_path)
+        )
+        assert result.exit_code == 0
+        assert "Deleted 1 cache files" in result.output
+        assert not list(tmp_path.glob("app1_*.json"))
+        assert list(tmp_path.glob("app2_*.json"))
+
+        # Clear the rest
+        result = runner.invoke(cli, ["cache", "clear"], env=self._env(tmp_path))
+        assert result.exit_code == 0
+        assert not list(tmp_path.glob("*.json"))
+
+
 class TestDiff:
     @staticmethod
     def _write(tmp_path, name, data):
