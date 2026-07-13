@@ -55,11 +55,27 @@ same "is it a key or a name?" loop, and `db_schema.py` had its own
 
 ## Housekeeping
 
-- 💡 **Test coverage is lopsided**: `core.py` and `db_schema.py` are tested;
+- ✅ **Test coverage is lopsided**: `core.py` and `db_schema.py` are tested;
   `sleuth.py` (the actual search engine), `security.py`, and `cli.py` had no
   tests despite `tests/conftest.py` providing fixtures. Typer's `CliRunner`
-  makes CLI tests cheap. Highest-value non-feature work. (Partially addressed:
-  lookup/orphan/CLI smoke tests added alongside the features above; core cache tests rewritten env-driven and CLI/json tests added.)
+  makes CLI tests cheap. Highest-value non-feature work. (Addressed across
+  several PRs: lookup/orphan/CLI/json tests, env-driven core cache tests, and
+  a 29-test `security.py` suite with independently-derived expectations plus
+  role-access CLI smoke tests.)
+
+## Follow-ups surfaced by the security.py test suite
+
+- 💡 **`inherits_security` is not a trustworthy signal**: `Scene.authenticated`
+  defaults to `False` (never `None`), so `analyze_scene_security`'s
+  `parent_auth is not None` checks are always true and `inherits_security`
+  is `True` for every scene with a resolvable parent — even one with its own
+  explicit restriction. No wrong `requires_login` values in the sample data,
+  but the boolean should mean "actually inherited something".
+- 💡 **Slug collisions silently drop scenes in navigation**: `scenes_by_slug`
+  is a plain dict; when two scenes share a slug (the sample app has two
+  scenes with slug `users`), only the later one is kept. Security-identical
+  in this dataset, but a latent misclassification risk. Consider keying
+  navigation by scene key, or warning on duplicate slugs.
 - ✅ **`httpx[http2]` extra is unused** — nothing passes `http2=True`, so `h2`
   is a dead transitive dependency. Drop the extra.
 - ✅ **PyYAML fallback is dead code** — `pyyaml` is a hard dependency, but
