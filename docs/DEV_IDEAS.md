@@ -70,9 +70,11 @@ same "is it a key or a name?" loop, and `db_schema.py` had its own
   children login-required, and a scene with its own restriction is not
   reported as inheriting one.
 - ✅ **Slug collisions are explicit and safe**: `scenes_by_slug` retains every
-  candidate. Equivalent duplicate parents are shown together in navigation;
-  duplicates with conflicting navigation or security settings raise a clear
-  error instead of silently producing a potentially incorrect access report.
+  candidate. Knack slugs are path-scoped, so duplicates are a normal layout —
+  navigation shows every candidate, and security inheritance walks all of them.
+  Branches that disagree report the least restrictive access plus an
+  `AMBIGUOUS PARENT` concern, so a reachable public route is surfaced rather
+  than masked by a stricter sibling.
 - ✅ **`httpx[http2]` extra is unused** — nothing passes `http2=True`, so `h2`
   is a dead transitive dependency. Drop the extra.
 - ✅ **PyYAML fallback is dead code** — `pyyaml` is a hard dependency, but

@@ -79,28 +79,22 @@ def _get_allowed_profile_keys(scene: Scene) -> list[str]:
     return list(dict.fromkeys(view_profiles))
 
 
-def _scene_resolution_signature(scene: Scene) -> tuple[Any, ...]:
-    """Fields that must agree before duplicate-slug parents are interchangeable."""
-    menu_ref = scene.model_extra.get('menu') if scene.model_extra else None
-    return (
-        scene.parent,
-        scene.type,
-        menu_ref,
-        scene.authenticated,
-        tuple(sorted(_get_allowed_profile_keys(scene))),
-    )
+def _scene_label(scene: Scene) -> str:
+    """Name a scene unambiguously; duplicate slugs make names alone useless."""
+    return f"{scene.name} ({scene.key})"
 
 
 def _resolve_scene_by_slug(
     slug: str,
     hierarchy: dict[str, Any],
 ) -> tuple[Scene | None, str | None]:
-    """Resolve a parent slug without silently discarding duplicate scenes.
+    """Resolve a slug for *navigation* display without discarding duplicates.
 
-    Equivalent candidates can be traversed safely; their combined label makes
-    the ambiguity explicit in navigation output. Conflicting candidates make
-    parent security unknowable, so fail rather than produce a plausible but
-    potentially incorrect access report.
+    Knack slugs are path-scoped, so one slug legitimately maps to several
+    scenes. Navigation output is descriptive rather than a security claim:
+    disclose every candidate in the label and continue the walk from the first
+    so the path stays deterministic. Security inheritance does not come through
+    here -- see ``_inherited_restrictions``, which explores every branch.
     """
     candidates = hierarchy['scenes_by_slug'].get(slug, [])
     if not candidates:
@@ -108,16 +102,65 @@ def _resolve_scene_by_slug(
     if len(candidates) == 1:
         return candidates[0], candidates[0].name
 
-    signatures = {_scene_resolution_signature(scene) for scene in candidates}
-    if len(signatures) != 1:
-        scene_keys = ', '.join(scene.key for scene in candidates)
-        raise ValueError(
-            f"Ambiguous parent slug {slug!r}: scenes {scene_keys} have "
-            "conflicting navigation or security settings"
-        )
-
-    label = " / ".join(f"{scene.name} ({scene.key})" for scene in candidates)
+    label = " / ".join(_scene_label(scene) for scene in candidates)
     return candidates[0], label
+
+
+# (allowed profile keys, requires authentication, where it came from)
+Restriction = tuple[tuple[str, ...], bool, str | None]
+
+
+def _restriction_strength(restriction: Restriction) -> int:
+    """Order restrictions from most permissive to most restrictive."""
+    profiles, authenticated, _ = restriction
+    if profiles:
+        return 2
+    return 1 if authenticated else 0
+
+
+def _inherited_restrictions(start_slug: str, hierarchy: dict[str, Any]) -> list[Restriction]:
+    """Every distinct restriction reachable by walking up from ``start_slug``.
+
+    A duplicate slug forks the ancestor chain. Walking one arbitrary branch
+    can attribute a parent's protection to a scene that is also reachable by
+    an unprotected route, so explore all branches and let the caller see the
+    disagreement. Branches that are security-equivalent collapse into a single
+    entry with their labels combined -- differing *names* are not a conflict.
+    """
+    found: dict[tuple[tuple[str, ...], bool], list[str]] = {}
+
+    def record(profiles: tuple[str, ...], authenticated: bool, label: str | None) -> None:
+        labels = found.setdefault((profiles, authenticated), [])
+        if label and label not in labels:
+            labels.append(label)
+
+    # Each entry carries the last unprotected scene walked through, so a branch
+    # that ends without a restriction can still name where it ran out.
+    stack: list[tuple[str | None, frozenset[str], str | None]] = [
+        (start_slug, frozenset(), None)
+    ]
+    while stack:
+        slug, visited, came_from = stack.pop()
+        candidates = hierarchy['scenes_by_slug'].get(slug, []) if slug else []
+        if not slug or slug in visited or not candidates:
+            # Dangling parent, cycle, or top of the chain: nothing inherited.
+            record((), False, came_from)
+            continue
+
+        next_visited = visited | {slug}
+        for candidate in candidates:
+            profiles = _get_allowed_profile_keys(candidate)
+            if profiles:
+                record(tuple(profiles), False, _scene_label(candidate))
+            elif candidate.authenticated is True:
+                record((), True, _scene_label(candidate))
+            else:
+                stack.append((candidate.parent, next_visited, _scene_label(candidate)))
+
+    return [
+        (profiles, authenticated, " / ".join(labels) or None)
+        for (profiles, authenticated), labels in found.items()
+    ]
 
 
 def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, str]:
@@ -275,38 +318,35 @@ def analyze_scene_security(
     inherited_from_name = None
     has_own_security = authenticated is True or bool(allowed_profile_keys)
     
+    ambiguous_parents = None
     if has_parent and not has_own_security:
-        # Walk up the parent chain to find the first effective restriction.
-        current_slug = parent_slug
-        inherited_profiles = []
-        inherited_auth = False
-        visited_slugs = set()
-        
-        while current_slug and current_slug not in visited_slugs:
-            visited_slugs.add(current_slug)
-            current_parent, current_label = _resolve_scene_by_slug(current_slug, hierarchy)
-            if current_parent:
-                parent_profiles = _get_allowed_profile_keys(current_parent)
-                if parent_profiles:
-                    inherited_profiles = parent_profiles
-                    inherited_from_name = current_label
-                    break
-                
-                if current_parent.authenticated is True:
-                    inherited_auth = True
-                    inherited_from_name = current_label
-                    break
-                
-                # Move to next parent
-                current_slug = current_parent.parent
-            else:
-                break
-        
+        restrictions = _inherited_restrictions(parent_slug, hierarchy)
+        # Least restrictive branches win. If any route to this scene is
+        # unprotected, that is the finding; a stricter sibling route must not
+        # mask it and report the scene as safe. Where the weakest branches are
+        # role-restricted to *different* roles, access is the union of them --
+        # picking one would hide the other role's route.
+        weakest = min(_restriction_strength(r) for r in restrictions)
+        effective = [r for r in restrictions if _restriction_strength(r) == weakest]
+        inherited_profiles = tuple(
+            dict.fromkeys(profile for profiles, _, _ in effective for profile in profiles)
+        )
+        inherited_auth = any(authenticated for _, authenticated, _ in effective)
+        inherited_from_name = " / ".join(
+            dict.fromkeys(label for _, _, label in effective if label)
+        ) or None
+        if len(restrictions) > 1:
+            ambiguous_parents = " / ".join(
+                sorted(label for _, _, label in restrictions if label)
+            )
+
         if inherited_profiles or inherited_auth:
             inherits_security = True
-            allowed_profile_keys = inherited_profiles
+            allowed_profile_keys = list(inherited_profiles)
             if authenticated is None:
                 authenticated = inherited_auth
+        else:
+            inherited_from_name = None
     
     # Map profile keys to names
     allowed_profile_names = [profiles.get(pk, pk) for pk in allowed_profile_keys]
@@ -319,7 +359,14 @@ def analyze_scene_security(
     
     if is_utility_page:
         concerns.append("UTILITY PAGE: Requires Knack system-level account (beyond app profiles)")
-    
+
+    if ambiguous_parents:
+        concerns.append(
+            f"AMBIGUOUS PARENT: slug {parent_slug!r} resolves to scenes with "
+            f"conflicting security ({ambiguous_parents}); reporting the least "
+            "restrictive access"
+        )
+
     # Public = does not require login
     if not requires_login and not has_parent:
         concerns.append("PUBLIC: Accessible without login (no parent)")
