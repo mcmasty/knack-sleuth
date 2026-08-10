@@ -67,6 +67,50 @@ class TestOrphanDetection:
                 {"calculations": [{"equation": "SUM({field_1})"}]},
                 "calculations.0.equation",
             ),
+            # The walk sees a view's model_dump, so any submodel that discards
+            # unknown keys re-opens the blind spot this traversal exists to
+            # close -- these three cover the typed source submodels.
+            (
+                {
+                    "source": {
+                        "object": "object_1",
+                        "criteria": {
+                            "match": "all",
+                            "rules": [],
+                            "custom_rule": {"field": "field_1"},
+                        },
+                    }
+                },
+                "source.criteria.custom_rule.field",
+            ),
+            (
+                {
+                    "source": {
+                        "object": "object_1",
+                        "sort": [
+                            {
+                                "field": "field_2",
+                                "order": "asc",
+                                "secondary_field": "field_1",
+                            }
+                        ],
+                    }
+                },
+                "source.sort.0.secondary_field",
+            ),
+            (
+                {
+                    "source": {
+                        "object": "object_1",
+                        "parent_source": {
+                            "object": "object_1",
+                            "connection": "field_2",
+                            "fallback_connection": "field_1",
+                        },
+                    }
+                },
+                "source.parent_source.fallback_connection",
+            ),
         ],
     )
     def test_nested_view_reference_prevents_false_orphan(
@@ -116,6 +160,46 @@ class TestOrphanDetection:
             and usage.details["reference_path"] == expected_path
             for usage in usages
         )
+
+    def test_typed_reference_is_not_reported_twice(self):
+        """A form input is already found by the typed check, so the generic
+        walk must suppress it -- otherwise every typed reference doubles."""
+        metadata = KnackAppMetadata(
+            application={
+                "id": "app_1",
+                "name": "Dedup Test",
+                "slug": "dedup-test",
+                "home_scene": {"key": "scene_1", "slug": "home"},
+                "objects": [
+                    {
+                        "key": "object_1",
+                        "name": "Thing",
+                        "fields": [
+                            {"key": "field_1", "name": "Value", "type": "short_text"}
+                        ],
+                    }
+                ],
+                "scenes": [
+                    {
+                        "key": "scene_1",
+                        "name": "Home",
+                        "slug": "home",
+                        "views": [
+                            {
+                                "key": "view_1",
+                                "name": "Form",
+                                "type": "form",
+                                "inputs": [{"key": "field_1"}],
+                            }
+                        ],
+                    }
+                ],
+            }
+        )
+
+        usages = KnackSleuth(metadata).search_field("field_1")
+
+        assert [usage.location_type for usage in usages] == ["form_input"]
 
     def test_field_key_token_does_not_match_longer_field_key(self):
         metadata = KnackAppMetadata(

@@ -1,5 +1,6 @@
 """Core search functionality for finding object and field usages in Knack metadata."""
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 import re
 from typing import Any
@@ -22,7 +23,7 @@ FIELD_KEY_PATTERN = re.compile(r"(?<![A-Za-z0-9_])(field_\d+)(?![A-Za-z0-9_])")
 def _iter_field_references(
     value: Any,
     path: tuple[str, ...] = (),
-):
+) -> Iterator[tuple[str, tuple[str, ...]]]:
     """Yield ``(field_key, path)`` pairs from arbitrary metadata."""
     if isinstance(value, dict):
         for key, nested_value in value.items():

@@ -908,8 +908,9 @@ def find_orphans(
     auth system).
 
 
-    These are the same orphans app-summary counts in its technical debt
-    section, listed individually so you can act on them.
+    app-summary's technical debt section counts every orphan, including
+    hidden system fields; this command lists the actionable ones. Use
+    --format json for both counts.
 
 
     Note: identifier fields and system fields can legitimately show up here —
@@ -1039,8 +1040,13 @@ def find_orphans(
     # Summary
     console.print()
     console.print(
-        f"[dim]Total: {len(orphaned_fields)} orphaned fields | "
-        f"{len(orphaned_objects)} orphaned objects[/dim]"
+        # Count what the table above actually showed; hidden system fields are
+        # called out separately so the two numbers never silently disagree.
+        f"[dim]Total: {len(visible_fields)} orphaned fields"
+        + (
+            f" (+{hidden_system_count} hidden system)" if hidden_system_count else ""
+        )
+        + f" | {len(orphaned_objects)} orphaned objects[/dim]"
     )
     console.print(
         "[dim]Review before deleting: identifier/system fields can be orphans by design[/dim]"
