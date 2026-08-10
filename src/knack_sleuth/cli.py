@@ -897,7 +897,8 @@ def find_orphans(
             "orphaned_fields": fields_payload,
             "orphaned_objects": objects_payload,
             "totals": {
-                "orphaned_fields": len(orphaned_fields),
+                "orphaned_fields": len(fields_payload),
+                "orphaned_fields_including_hidden": len(orphaned_fields),
                 "orphaned_objects": len(orphaned_objects),
                 "hidden_system_fields": hidden_system_count,
             },

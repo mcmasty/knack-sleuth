@@ -137,6 +137,12 @@ class TestJsonOutput:
         parsed = json.loads(result.output)
         assert isinstance(parsed["orphaned_fields"], list)
         assert isinstance(parsed["totals"], dict)
+        assert parsed["totals"]["orphaned_fields"] == len(parsed["orphaned_fields"])
+        assert (
+            parsed["totals"]["orphaned_fields_including_hidden"]
+            == parsed["totals"]["orphaned_fields"]
+            + parsed["totals"]["hidden_system_fields"]
+        )
 
     def test_invalid_format_exits_1(self, sample_metadata_file):
         result = runner.invoke(
