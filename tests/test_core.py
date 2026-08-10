@@ -219,3 +219,34 @@ class TestSettingsIntegration:
         assert isinstance(metadata, KnackAppMetadata)
         call_args = mock_get.call_args
         assert "env_app_123" in call_args[0][0]  # URL should contain the app_id
+
+
+class TestKnackFieldFormatCoercion:
+    """Knack emits `"format": ""` instead of omitting the key (issue: empty-string format)."""
+
+    def test_empty_string_format_coerced_to_none(self):
+        """An empty-string format must not fail validation."""
+        from knack_sleuth.models import KnackField
+
+        field = KnackField(key="field_1", name="Name", type="short_text", format="")
+
+        assert field.format is None
+
+    def test_dict_format_still_parsed(self):
+        """A real format object is unaffected by the coercion."""
+        from knack_sleuth.models import KnackField
+
+        field = KnackField(
+            key="field_2", name="Amount", type="currency", format={"format": "£"}
+        )
+
+        assert field.format is not None
+        assert field.format.model_dump()["format"] == "£"
+
+    def test_omitted_format_still_none(self):
+        """Omitting format entirely keeps the existing default."""
+        from knack_sleuth.models import KnackField
+
+        field = KnackField(key="field_3", name="Plain", type="short_text")
+
+        assert field.format is None

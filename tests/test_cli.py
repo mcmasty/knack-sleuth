@@ -86,7 +86,7 @@ class TestJsonOutput:
             cli, ["list-objects", str(sample_metadata_file), "--format", "json"], env=WIDE
         )
         assert result.exit_code == 0
-        parsed = json.loads(result.output)
+        parsed = json.loads(result.stdout)
         assert set(parsed.keys()) == {"application", "objects", "totals"}
         assert parsed["objects"]
 
@@ -97,7 +97,7 @@ class TestJsonOutput:
             env=WIDE,
         )
         assert result.exit_code == 0
-        parsed = json.loads(result.output)
+        parsed = json.loads(result.stdout)
         assert set(parsed.keys()) == {
             "object",
             "object_usages",
@@ -112,7 +112,7 @@ class TestJsonOutput:
             env=WIDE,
         )
         assert result.exit_code == 0
-        parsed = json.loads(result.output)
+        parsed = json.loads(result.stdout)
         assert set(parsed.keys()) == {"field", "usages", "scenes_to_review"}
 
     def test_show_coupling_json(self, sample_metadata_file):
@@ -122,7 +122,7 @@ class TestJsonOutput:
             env=WIDE,
         )
         assert result.exit_code == 0
-        parsed = json.loads(result.output)
+        parsed = json.loads(result.stdout)
         assert isinstance(parsed["ca"], int)
         assert isinstance(parsed["ce"], int)
         assert isinstance(parsed["inbound"], list)
@@ -134,7 +134,7 @@ class TestJsonOutput:
             cli, ["find-orphans", str(sample_metadata_file), "--format", "json"], env=WIDE
         )
         assert result.exit_code == 0
-        parsed = json.loads(result.output)
+        parsed = json.loads(result.stdout)
         assert isinstance(parsed["orphaned_fields"], list)
         assert isinstance(parsed["totals"], dict)
         assert parsed["totals"]["orphaned_fields"] == len(parsed["orphaned_fields"])
@@ -237,7 +237,7 @@ class TestDiff:
             cli, ["diff", str(old), str(new), "--format", "json"], env=WIDE
         )
         assert result.exit_code == 0
-        parsed = json.loads(result.output)
+        parsed = json.loads(result.stdout)
         assert parsed["has_changes"] is True
         assert len(parsed["objects"]["renamed"]) == 1
 

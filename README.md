@@ -141,6 +141,9 @@ Most commands can work with metadata in two ways:
    knack-sleuth <command>
    ```
 
+   Unrelated variables in a project-level `.env` are ignored; the file does
+   not need to contain only knack-sleuth settings.
+
 **Caching Behavior:**
 - When fetching from the API, metadata is automatically cached to `{APP_ID}_app_metadata_{YYYYMMDDHHMM}.json`
 - Cached files are reused for 24 hours to avoid unnecessary API calls (configurable via `KNACK_CACHE_TTL_HOURS`)
@@ -471,8 +474,10 @@ knack-sleuth install-skill --force
 
 This copies the skill definition to `~/.claude/skills/knack-explorer/SKILL.md`, making it available as a Claude Code skill in any project.
 
-> **Note:** `install-skill` won't overwrite an existing installation, so after upgrading knack-sleuth re-run it with `--force` to pick up new commands in the skill:
-> `uvx knack-sleuth@latest install-skill --force`
+The installed skill carries its knack-sleuth version. If it falls behind the
+running package, CLI commands print an update reminder on stderr without
+polluting structured stdout. Update it with:
+`uvx knack-sleuth@latest install-skill --force`
 
 **For repo contributors** — the skill is already available as a project-level skill in `.claude/skills/knack-explorer/SKILL.md`. No installation needed when working inside the repo.
 

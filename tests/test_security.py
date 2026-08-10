@@ -8,33 +8,13 @@ above each assertion for how) -- NOT by trusting security.py's own output
 and pinning it. Where the module's output disagreed with an independent
 derivation, that is called out explicitly rather than silently pinned.
 
-Two behavioral quirks in security.py were discovered while deriving these
-expectations (documented here, not "fixed", per instructions):
-
-1. `Scene.authenticated` defaults to `False` (a bool), never `None`.
-   `analyze_scene_security`'s parent-walk treats `parent_auth is not None`
-   and `inherited_auth is not None` as "the parent told us something", but
-   since the field can never actually be `None`, those checks are always
-   true. The practical effect: `inherits_security` ends up `True` for
-   *every* scene that has a parent whose slug resolves to a real scene --
-   even, hypothetically, one that already carries its own explicit
-   profile/auth restriction (this sample happens not to contain such a
-   scene, so it isn't visible as an incorrect `requires_login`/
-   `allowed_profiles` value here, but the boolean itself is not a
-   trustworthy "did we actually inherit something new" signal).
-   `scenes_with_parents == scenes_inheriting_security` in this dataset as
-   a direct consequence, and that equality is asserted below as documented
-   current behavior.
-
-2. `build_navigation_hierarchy`'s `scenes_by_slug` is a plain
-   `{slug: scene}` dict. The sample data has two scenes sharing the slug
-   "users" (scene_6 "Users" and scene_14 "Object Name 3"); the dict silently
-   keeps only the later one (scene_14) and any parent-chain walk keyed off
-   that slug resolves there. In this dataset both scenes happen to carry
-   identical security-relevant fields (no own auth/profile restrictions),
-   so it doesn't currently produce an incorrect classification, but it is a
-   latent fragility: a slug collision could silently misattribute security
-   inheritance to the wrong scene. See TestNavigationHierarchy below.
+Two behavioral quirks discovered while deriving these expectations now have
+explicit contracts: missing `authenticated` values remain distinct from an
+explicit `False`, and duplicate slugs retain all matching scenes. Knack slugs
+are path-scoped, so duplicates are normal: every duplicate parent is disclosed
+in navigation labels, and inheritance explores all of them. When branches
+disagree the least restrictive one is reported, alongside an AMBIGUOUS PARENT
+concern -- never a stricter reading that would hide a reachable public route.
 """
 
 import csv
@@ -45,7 +25,7 @@ import pytest
 from typer.testing import CliRunner
 
 from knack_sleuth.cli import cli
-from knack_sleuth.models import Application
+from knack_sleuth.models import Application, Scene
 from knack_sleuth.security import (
     analyze_scene_security,
     build_navigation_hierarchy,
@@ -232,11 +212,68 @@ class TestSecurityInheritance:
         assert "System Admin Home Login" in analysis.security_concern
 
     def test_scenes_with_parents_equals_scenes_inheriting_security(self, report):
-        # Documented current behavior (see module docstring point 1): every
-        # scene whose parent slug resolves ends up marked as inheriting,
-        # so these two counts are equal for this dataset (no dangling
-        # parent references exist in the sample file).
+        # Every child in this particular sample ultimately descends from one
+        # of the restricted roots, so all 54 genuinely inherit a restriction.
         assert report.scenes_with_parents == report.scenes_inheriting_security == 54
+
+    def test_missing_authentication_is_distinct_from_explicit_false(self):
+        missing = Scene(key="scene_missing", name="Missing", slug="missing")
+        explicit = Scene(
+            key="scene_explicit",
+            name="Explicit",
+            slug="explicit",
+            authenticated=False,
+        )
+
+        assert missing.authenticated is None
+        assert explicit.authenticated is False
+
+    def test_public_parent_does_not_mark_child_as_inheriting(self):
+        parent = Scene(
+            key="scene_parent",
+            name="Public Parent",
+            slug="public-parent",
+            authenticated=False,
+        )
+        child = Scene(
+            key="scene_child",
+            name="Public Child",
+            slug="public-child",
+            parent="public-parent",
+        )
+        hierarchy = build_navigation_hierarchy([parent, child])
+
+        analysis = analyze_scene_security(child, {}, hierarchy)
+
+        assert analysis.requires_login is False
+        assert analysis.inherits_security is False
+        assert analysis.allowed_profiles == []
+
+    def test_own_restriction_is_not_reported_as_inherited(self):
+        parent = Scene(
+            key="scene_parent",
+            name="Restricted Parent",
+            slug="restricted-parent",
+            allowed_profiles=["profile_parent"],
+        )
+        child = Scene(
+            key="scene_child",
+            name="Restricted Child",
+            slug="restricted-child",
+            parent="restricted-parent",
+            allowed_profiles=["profile_child"],
+        )
+        hierarchy = build_navigation_hierarchy([parent, child])
+
+        analysis = analyze_scene_security(
+            child,
+            {"profile_parent": "Parent", "profile_child": "Child"},
+            hierarchy,
+        )
+
+        assert analysis.requires_login is True
+        assert analysis.inherits_security is False
+        assert analysis.allowed_profiles == ["Child"]
 
 
 # ---------------------------------------------------------------------------
@@ -277,14 +314,179 @@ class TestNavigationHierarchy:
     def test_duplicate_slug_collision_documented(self, application, raw_scenes):
         # Two scenes share the slug "users": scene_6 ("Users") appears
         # earlier in the JSON scene list, scene_14 ("Object Name 3") later.
-        # scenes_by_slug is a plain dict keyed by slug, so it keeps only
-        # the last one written -- a latent fragility flagged in the module
-        # docstring above.
+        # Both scenes remain available; neither is silently discarded.
         slug_owners = [s["key"] for s in raw_scenes if s["slug"] == "users"]
         assert slug_owners == ["scene_6", "scene_14"]
 
         hierarchy = build_navigation_hierarchy(application.scenes)
-        assert hierarchy["scenes_by_slug"]["users"].key == "scene_14"
+        assert [scene.key for scene in hierarchy["scenes_by_slug"]["users"]] == slug_owners
+
+        scene_13 = hierarchy["scenes_by_key"]["scene_13"]
+        nav = build_navigation_path(scene_13, hierarchy)
+        assert "Users (scene_6) / Object Name 3 (scene_14)" in nav["page_nav"]
+
+    def test_path_scoped_duplicate_slug_is_not_a_conflict(self):
+        # Knack slugs are path-scoped, so the same child slug under two
+        # different parents is a normal layout, not an error. Both branches
+        # here end at an authenticated root, so the child inherits cleanly.
+        orders = Scene(key="scene_orders", name="Orders", slug="orders", authenticated=True)
+        invoices = Scene(
+            key="scene_invoices", name="Invoices", slug="invoices", authenticated=True
+        )
+        detail_a = Scene(
+            key="scene_detail_a", name="Order Detail", slug="detail", parent="orders"
+        )
+        detail_b = Scene(
+            key="scene_detail_b", name="Invoice Detail", slug="detail", parent="invoices"
+        )
+        child = Scene(key="scene_child", name="Line Item", slug="line-item", parent="detail")
+        hierarchy = build_navigation_hierarchy(
+            [orders, invoices, detail_a, detail_b, child]
+        )
+
+        analysis = analyze_scene_security(child, {}, hierarchy)
+
+        assert analysis.requires_login is True
+        assert analysis.inherits_security is True
+        assert "AMBIGUOUS PARENT" not in analysis.security_concern
+
+    def test_conflicting_duplicate_parent_reports_least_restrictive_access(self):
+        # When duplicate parents genuinely disagree, the report must not claim
+        # the scene is protected: a reachable public path is the finding, so
+        # report it and disclose the ambiguity rather than aborting.
+        restricted = Scene(
+            key="scene_restricted",
+            name="Restricted",
+            slug="duplicate",
+            authenticated=True,
+        )
+        public = Scene(
+            key="scene_public",
+            name="Public",
+            slug="duplicate",
+            authenticated=False,
+        )
+        child = Scene(
+            key="scene_child",
+            name="Child",
+            slug="child",
+            parent="duplicate",
+        )
+        hierarchy = build_navigation_hierarchy([restricted, public, child])
+
+        analysis = analyze_scene_security(child, {}, hierarchy)
+
+        assert analysis.requires_login is False
+        assert analysis.inherits_security is False
+        assert "AMBIGUOUS PARENT" in analysis.security_concern
+        assert "scene_restricted" in analysis.security_concern
+        assert "scene_public" in analysis.security_concern
+        assert "PUBLIC" in analysis.security_concern
+
+    def test_conflicting_duplicate_parents_union_their_profiles(self):
+        # Both routes are role-restricted but to *different* roles, so real
+        # access is "role A or role B". Reporting only one would hide the
+        # other role's route -- the false-secure direction.
+        role_a = Scene(
+            key="scene_a", name="A", slug="duplicate", allowed_profiles=["profile_a"]
+        )
+        role_b = Scene(
+            key="scene_b", name="B", slug="duplicate", allowed_profiles=["profile_b"]
+        )
+        child = Scene(key="scene_child", name="Child", slug="child", parent="duplicate")
+        hierarchy = build_navigation_hierarchy([role_a, role_b, child])
+
+        analysis = analyze_scene_security(
+            child, {"profile_a": "Role A", "profile_b": "Role B"}, hierarchy
+        )
+
+        assert analysis.requires_login is True
+        assert analysis.inherits_security is True
+        assert sorted(analysis.allowed_profiles) == ["Role A", "Role B"]
+        assert "AMBIGUOUS PARENT" in analysis.security_concern
+
+    def test_login_only_ancestor_beats_role_restricted_ancestor(self):
+        # Duplicate parents where one demands only login and the other a
+        # specific role: any logged-in user gets in via the first, so the
+        # report must not claim the page is limited to that role.
+        login_only = Scene(
+            key="scene_login", name="Login Only", slug="duplicate", authenticated=True
+        )
+        role_locked = Scene(
+            key="scene_role", name="Role Locked", slug="duplicate",
+            allowed_profiles=["profile_x"],
+        )
+        child = Scene(key="scene_child", name="Child", slug="child", parent="duplicate")
+        hierarchy = build_navigation_hierarchy([login_only, role_locked, child])
+
+        analysis = analyze_scene_security(child, {"profile_x": "Role X"}, hierarchy)
+
+        assert analysis.requires_login is True
+        assert analysis.allowed_profiles == []
+        assert "AMBIGUOUS PARENT" in analysis.security_concern
+
+    def test_duplicate_slugs_do_not_make_the_walk_exponential(self):
+        # Each level of duplicate slugs forks the ancestor chain. Without
+        # memoization the walk doubles per level -- a depth-24 chain is ~17M
+        # paths and the report never finishes. Ancestors of a slug don't depend
+        # on the route taken to reach it, so the walk must reuse them.
+        import time
+
+        depth = 24
+        scenes = [Scene(key="scene_root", name="Root", slug="level_0")]
+        for level in range(1, depth + 1):
+            for side in ("a", "b"):
+                scenes.append(
+                    Scene(
+                        key=f"scene_{level}_{side}",
+                        name=f"Level {level}{side}",
+                        slug=f"level_{level}",
+                        parent=f"level_{level - 1}",
+                    )
+                )
+        leaf = Scene(key="scene_leaf", name="Leaf", slug="leaf", parent=f"level_{depth}")
+        scenes.append(leaf)
+        hierarchy = build_navigation_hierarchy(scenes)
+
+        started = time.perf_counter()
+        analysis = analyze_scene_security(leaf, {}, hierarchy)
+        elapsed = time.perf_counter() - started
+
+        assert analysis.requires_login is False
+        assert elapsed < 2.0, f"ancestor walk took {elapsed:.1f}s -- not memoized"
+
+    def test_conflicting_duplicate_parent_does_not_abort_the_report(self):
+        # The whole-report path is what users actually run; a per-scene
+        # ambiguity must not take the entire security report down with it.
+        restricted = Scene(
+            key="scene_restricted",
+            name="Restricted",
+            slug="duplicate",
+            authenticated=True,
+        )
+        public = Scene(
+            key="scene_public",
+            name="Public",
+            slug="duplicate",
+            authenticated=False,
+        )
+        child = Scene(key="scene_child", name="Child", slug="child", parent="duplicate")
+        app = Application(
+            id="app_ambiguous",
+            name="Ambiguous",
+            slug="ambiguous",
+            home_scene={"key": "scene_restricted", "slug": "duplicate"},
+            scenes=[restricted, public, child],
+            objects=[],
+        )
+
+        report = generate_security_report(app)
+
+        assert report.total_scenes == 3
+        child_row = next(
+            s for s in report.scene_analyses if s.scene_key == "scene_child"
+        )
+        assert "AMBIGUOUS PARENT" in child_row.security_concern
 
     def test_build_navigation_path_top_level_menu_scene(self, application):
         hierarchy = build_navigation_hierarchy(application.scenes)

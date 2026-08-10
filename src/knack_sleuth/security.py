@@ -33,10 +33,14 @@ def build_navigation_hierarchy(scenes: list[Scene]) -> dict[str, Any]:
         scenes: List of scenes from the application
         
     Returns:
-        Dict with scenes_by_key, scenes_by_slug, menu_scenes, scenes_by_menu
+        Dict with scenes_by_key, scenes_by_slug, menu_scenes, scenes_by_menu.
+        ``scenes_by_slug`` maps each slug to every matching scene so duplicate
+        slugs remain visible instead of silently overwriting an earlier scene.
     """
     scenes_by_key = {s.key: s for s in scenes}
-    scenes_by_slug = {s.slug: s for s in scenes}
+    scenes_by_slug = defaultdict(list)
+    for scene in scenes:
+        scenes_by_slug[scene.slug].append(scene)
     
     # Find menu scenes
     menu_scenes = [s for s in scenes if s.type == 'menu']
@@ -51,10 +55,146 @@ def build_navigation_hierarchy(scenes: list[Scene]) -> dict[str, Any]:
     
     return {
         'scenes_by_key': scenes_by_key,
-        'scenes_by_slug': scenes_by_slug,
+        'scenes_by_slug': dict(scenes_by_slug),
         'menu_scenes': menu_scenes,
         'scenes_by_menu': scenes_by_menu,
     }
+
+
+def _get_allowed_profile_keys(scene: Scene) -> list[str]:
+    """Return direct scene/view profile restrictions in stable order."""
+    allowed_profiles: list[str] = []
+    if scene.model_extra:
+        allowed_profiles = scene.model_extra.get('allowed_profiles', []) or []
+        if not allowed_profiles:
+            allowed_profiles = scene.model_extra.get('profile_keys', []) or []
+
+    if allowed_profiles:
+        return list(dict.fromkeys(allowed_profiles))
+
+    view_profiles = []
+    for view in scene.views:
+        if view.model_extra:
+            view_profiles.extend(view.model_extra.get('allowed_profiles', []) or [])
+    return list(dict.fromkeys(view_profiles))
+
+
+def _scene_label(scene: Scene) -> str:
+    """Name a scene unambiguously; duplicate slugs make names alone useless."""
+    return f"{scene.name} ({scene.key})"
+
+
+def _resolve_scene_by_slug(
+    slug: str,
+    hierarchy: dict[str, Any],
+) -> tuple[Scene | None, str | None]:
+    """Resolve a slug for *navigation* display without discarding duplicates.
+
+    Knack slugs are path-scoped, so one slug legitimately maps to several
+    scenes. Navigation output is descriptive rather than a security claim:
+    disclose every candidate in the label and continue the walk from the first
+    so the path stays deterministic. Security inheritance does not come through
+    here -- see ``_inherited_restrictions``, which explores every branch.
+    """
+    candidates = hierarchy['scenes_by_slug'].get(slug, [])
+    if not candidates:
+        return None, None
+    if len(candidates) == 1:
+        return candidates[0], candidates[0].name
+
+    label = " / ".join(_scene_label(scene) for scene in candidates)
+    return candidates[0], label
+
+
+# (allowed profile keys, requires authentication, where it came from)
+Restriction = tuple[tuple[str, ...], bool, str | None]
+
+
+def _restriction_strength(restriction: Restriction) -> int:
+    """Order restrictions from most permissive to most restrictive."""
+    profiles, authenticated, _ = restriction
+    if profiles:
+        return 2
+    return 1 if authenticated else 0
+
+
+def _merge_restriction(
+    found: dict[tuple[tuple[str, ...], bool], list[str]],
+    profiles: tuple[str, ...],
+    authenticated: bool,
+    label: str | None,
+) -> None:
+    """Collect a restriction, combining labels for security-equivalent routes.
+
+    ``authenticated`` is False on profile-restricted entries: it records only
+    whether a *bare* login requirement was found. A profile restriction implies
+    login on its own, which callers derive from the profile list.
+    """
+    labels = found.setdefault((profiles, authenticated), [])
+    if label and label not in labels:
+        labels.append(label)
+
+
+def _inherited_restrictions(start_slug: str, hierarchy: dict[str, Any]) -> list[Restriction]:
+    """Every distinct restriction reachable by walking up from ``start_slug``.
+
+    A duplicate slug forks the ancestor chain. Walking one arbitrary branch can
+    attribute a parent's protection to a scene that is also reachable by an
+    unprotected route, so explore all branches and let the caller see the
+    disagreement. Branches that are security-equivalent collapse into a single
+    entry with their labels combined -- differing *names* are not a conflict.
+
+    A slug's ancestors do not depend on the route taken to reach it, so results
+    are memoized per slug: without that, every duplicate level doubles the work
+    and a few hundred scenes stop finishing. Results computed while a cycle was
+    open are route-dependent and therefore not cached.
+    """
+    memo: dict[str, list[Restriction]] = {}
+
+    def walk(slug: str | None, open_slugs: frozenset[str]) -> tuple[list[Restriction], bool]:
+        if not slug:
+            return [((), False, None)], False  # top of the chain: nothing inherited
+        cached = memo.get(slug)
+        if cached is not None:
+            return cached, False
+        if slug in open_slugs:
+            return [], True  # cycle: this route never reaches a root
+
+        candidates = hierarchy['scenes_by_slug'].get(slug, [])
+        if not candidates:
+            return [((), False, None)], False  # dangling parent reference
+
+        found: dict[tuple[tuple[str, ...], bool], list[str]] = {}
+        cyclic = False
+        deeper = open_slugs | {slug}
+        for candidate in candidates:
+            label = _scene_label(candidate)
+            profiles = _get_allowed_profile_keys(candidate)
+            if profiles:
+                _merge_restriction(found, tuple(profiles), False, label)
+            elif candidate.authenticated is True:
+                _merge_restriction(found, (), True, label)
+            else:
+                inherited, branch_cyclic = walk(candidate.parent, deeper)
+                cyclic = cyclic or branch_cyclic
+                for inherited_profiles, inherited_auth, inherited_label in inherited:
+                    # Name this scene when the branch above it named nobody, so
+                    # an unprotected route can still say where it ran out.
+                    _merge_restriction(
+                        found, inherited_profiles, inherited_auth, inherited_label or label
+                    )
+
+        result = [
+            (profiles, authenticated, " / ".join(labels) or None)
+            for (profiles, authenticated), labels in found.items()
+        ]
+        if not cyclic:
+            memo[slug] = result
+        return result, cyclic
+
+    restrictions, _ = walk(start_slug, frozenset())
+    # Every route was a cycle: nothing is actually inherited.
+    return restrictions or [((), False, None)]
 
 
 def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, str]:
@@ -68,8 +208,6 @@ def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, 
         Dict with root_nav, page_nav, nav_level
     """
     scenes_by_key = hierarchy['scenes_by_key']
-    scenes_by_slug = hierarchy['scenes_by_slug']
-    
     scene_name = scene.name
     scene_type = scene.type
     parent_slug = scene.parent
@@ -92,14 +230,16 @@ def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, 
     # If no direct menu but has parent, walk up parent chain to find menu or root login page
     if root_nav == "Direct" and parent_slug:
         current_slug = parent_slug
-        root_login_scene = None  # Track the topmost scene (potential login page)
+        root_login_name = None  # Track the topmost scene (potential login page)
+        visited_slugs = set()
         
-        while current_slug and root_nav == "Direct":
-            current_scene = scenes_by_slug.get(current_slug)
+        while current_slug and current_slug not in visited_slugs and root_nav == "Direct":
+            visited_slugs.add(current_slug)
+            current_scene, current_label = _resolve_scene_by_slug(current_slug, hierarchy)
             if current_scene:
                 # Track this as potential root login page
                 if not current_scene.parent:
-                    root_login_scene = current_scene
+                    root_login_name = current_label
                 
                 # Check for menu in parent
                 parent_menu_ref = current_scene.model_extra.get('menu') if hasattr(current_scene, 'model_extra') and current_scene.model_extra else None
@@ -114,8 +254,8 @@ def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, 
                 break
         
         # If still Direct and we found a root login page, use its name
-        if root_nav == "Direct" and root_login_scene:
-            root_scene_name = root_login_scene.name
+        if root_nav == "Direct" and root_login_name:
+            root_scene_name = root_login_name
     
     # If this scene itself is a top-level (no parent, no menu) authentication page, use its name
     if root_nav == "Direct" and not parent_slug and scene_type == 'authentication':
@@ -136,12 +276,14 @@ def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, 
         # Build full parent chain recursively
         parent_chain = []
         current_slug = parent_slug
+        visited_slugs = set()
         
         # Walk up the parent chain
-        while current_slug:
-            current_scene = scenes_by_slug.get(current_slug)
+        while current_slug and current_slug not in visited_slugs:
+            visited_slugs.add(current_slug)
+            current_scene, current_label = _resolve_scene_by_slug(current_slug, hierarchy)
             if current_scene:
-                parent_chain.append(current_scene.name)
+                parent_chain.append(current_label)
                 current_slug = current_scene.parent
             else:
                 parent_chain.append(current_slug)
@@ -188,8 +330,6 @@ def analyze_scene_security(
     Returns:
         SceneSecurity model with complete analysis
     """
-    scenes_by_slug = hierarchy['scenes_by_slug']
-    
     scene_key = scene.key
     scene_name = scene.name
     scene_slug = scene.slug
@@ -203,95 +343,65 @@ def analyze_scene_security(
     # Check authentication requirement
     authenticated = scene.authenticated
     
-    # Get allowed profiles from scene level (via extra attributes)
-    allowed_profile_keys = []
-    if hasattr(scene, 'model_extra') and scene.model_extra:
-        allowed_profile_keys = scene.model_extra.get('allowed_profiles', [])
-        if not allowed_profile_keys:
-            allowed_profile_keys = scene.model_extra.get('profile_keys', [])
-    
-    # Check view-level security
-    view_profiles = set()
-    for view in scene.views:
-        if hasattr(view, 'model_extra') and view.model_extra:
-            view_allowed = view.model_extra.get('allowed_profiles', [])
-            if view_allowed:
-                view_profiles.update(view_allowed)
-            if view.model_extra.get('limit_profile_access'):
-                view_profiles.update(view_allowed)
-    
-    if view_profiles and not allowed_profile_keys:
-        allowed_profile_keys = list(view_profiles)
+    # Get direct scene/view restrictions.
+    allowed_profile_keys = _get_allowed_profile_keys(scene)
     
     # Check parent security
     has_parent = bool(parent_slug)
     inherits_security = False
-    parent_name = None
+    inherited_from_name = None
+    has_own_security = authenticated is True or bool(allowed_profile_keys)
     
-    if has_parent:
-        # Walk up the parent chain to find profiles
-        current_slug = parent_slug
-        parent_name = None
-        inherited_profiles = []
-        inherited_auth = None
-        
-        while current_slug and not inherited_profiles:
-            current_parent = scenes_by_slug.get(current_slug)
-            if current_parent:
-                if parent_name is None:  # Store direct parent name
-                    parent_name = current_parent.name
-                
-                parent_auth = current_parent.authenticated
-                parent_profiles = []
-                if hasattr(current_parent, 'model_extra') and current_parent.model_extra:
-                    parent_profiles = current_parent.model_extra.get('allowed_profiles', [])
-                
-                # Check parent view-level security
-                parent_view_profiles = set()
-                for view in current_parent.views:
-                    if hasattr(view, 'model_extra') and view.model_extra:
-                        view_allowed = view.model_extra.get('allowed_profiles', [])
-                        if view_allowed:
-                            parent_view_profiles.update(view_allowed)
-                        if view.model_extra.get('limit_profile_access'):
-                            parent_view_profiles.update(view_allowed)
-                
-                if parent_view_profiles and not parent_profiles:
-                    parent_profiles = list(parent_view_profiles)
-                
-                if parent_profiles:
-                    inherited_profiles = parent_profiles
-                    inherited_auth = parent_auth
-                    break
-                
-                if parent_auth is not None:
-                    inherited_auth = parent_auth
-                
-                # Move to next parent
-                current_slug = current_parent.parent
-            else:
-                break
-        
-        if inherited_profiles or inherited_auth is not None:
+    ambiguous_parents = None
+    if has_parent and not has_own_security:
+        restrictions = _inherited_restrictions(parent_slug, hierarchy)
+        # Least restrictive branches win. If any route to this scene is
+        # unprotected, that is the finding; a stricter sibling route must not
+        # mask it and report the scene as safe. Where the weakest branches are
+        # role-restricted to *different* roles, access is the union of them --
+        # picking one would hide the other role's route.
+        weakest = min(_restriction_strength(r) for r in restrictions)
+        effective = [r for r in restrictions if _restriction_strength(r) == weakest]
+        inherited_profiles = tuple(
+            dict.fromkeys(profile for profiles, _, _ in effective for profile in profiles)
+        )
+        inherited_auth = any(authenticated for _, authenticated, _ in effective)
+        inherited_from_name = " / ".join(
+            dict.fromkeys(label for _, _, label in effective if label)
+        ) or None
+        if len(restrictions) > 1:
+            ambiguous_parents = " / ".join(
+                sorted(label for _, _, label in restrictions if label)
+            )
+
+        if inherited_profiles or inherited_auth:
             inherits_security = True
-            # Always inherit parent profiles for display in child scenes
-            if not allowed_profile_keys:
-                allowed_profile_keys = inherited_profiles or []
+            allowed_profile_keys = list(inherited_profiles)
             if authenticated is None:
-                authenticated = inherited_auth if inherited_auth is not None else True
+                authenticated = inherited_auth
+        else:
+            inherited_from_name = None
     
     # Map profile keys to names
     allowed_profile_names = [profiles.get(pk, pk) for pk in allowed_profile_keys]
     
     # Determine if login is required (considering inheritance and profiles)
-    requires_login = authenticated is True or bool(allowed_profile_keys) or (has_parent and inherits_security)
+    requires_login = authenticated is True or bool(allowed_profile_keys) or inherits_security
     
     # Security concerns
     concerns = []
     
     if is_utility_page:
         concerns.append("UTILITY PAGE: Requires Knack system-level account (beyond app profiles)")
-    
+
+    if ambiguous_parents:
+        # The fork is not necessarily at parent_slug -- it can be any duplicate
+        # slug further up -- so name the disagreeing scenes, not a slug.
+        concerns.append(
+            f"AMBIGUOUS PARENT: ancestors reached via {parent_slug!r} disagree on "
+            f"security ({ambiguous_parents}); reporting the least restrictive access"
+        )
+
     # Public = does not require login
     if not requires_login and not has_parent:
         concerns.append("PUBLIC: Accessible without login (no parent)")
@@ -307,7 +417,7 @@ def analyze_scene_security(
     
     security_note = ""
     if inherits_security:
-        security_note = f"Inherits security from parent: {parent_name}"
+        security_note = f"Inherits security from parent/ancestor: {inherited_from_name}"
     
     security_concern = "; ".join(concerns) if concerns else security_note or "OK"
 
