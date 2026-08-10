@@ -118,49 +118,83 @@ def _restriction_strength(restriction: Restriction) -> int:
     return 1 if authenticated else 0
 
 
+def _merge_restriction(
+    found: dict[tuple[tuple[str, ...], bool], list[str]],
+    profiles: tuple[str, ...],
+    authenticated: bool,
+    label: str | None,
+) -> None:
+    """Collect a restriction, combining labels for security-equivalent routes.
+
+    ``authenticated`` is False on profile-restricted entries: it records only
+    whether a *bare* login requirement was found. A profile restriction implies
+    login on its own, which callers derive from the profile list.
+    """
+    labels = found.setdefault((profiles, authenticated), [])
+    if label and label not in labels:
+        labels.append(label)
+
+
 def _inherited_restrictions(start_slug: str, hierarchy: dict[str, Any]) -> list[Restriction]:
     """Every distinct restriction reachable by walking up from ``start_slug``.
 
-    A duplicate slug forks the ancestor chain. Walking one arbitrary branch
-    can attribute a parent's protection to a scene that is also reachable by
-    an unprotected route, so explore all branches and let the caller see the
+    A duplicate slug forks the ancestor chain. Walking one arbitrary branch can
+    attribute a parent's protection to a scene that is also reachable by an
+    unprotected route, so explore all branches and let the caller see the
     disagreement. Branches that are security-equivalent collapse into a single
     entry with their labels combined -- differing *names* are not a conflict.
+
+    A slug's ancestors do not depend on the route taken to reach it, so results
+    are memoized per slug: without that, every duplicate level doubles the work
+    and a few hundred scenes stop finishing. Results computed while a cycle was
+    open are route-dependent and therefore not cached.
     """
-    found: dict[tuple[tuple[str, ...], bool], list[str]] = {}
+    memo: dict[str, list[Restriction]] = {}
 
-    def record(profiles: tuple[str, ...], authenticated: bool, label: str | None) -> None:
-        labels = found.setdefault((profiles, authenticated), [])
-        if label and label not in labels:
-            labels.append(label)
+    def walk(slug: str | None, open_slugs: frozenset[str]) -> tuple[list[Restriction], bool]:
+        if not slug:
+            return [((), False, None)], False  # top of the chain: nothing inherited
+        cached = memo.get(slug)
+        if cached is not None:
+            return cached, False
+        if slug in open_slugs:
+            return [], True  # cycle: this route never reaches a root
 
-    # Each entry carries the last unprotected scene walked through, so a branch
-    # that ends without a restriction can still name where it ran out.
-    stack: list[tuple[str | None, frozenset[str], str | None]] = [
-        (start_slug, frozenset(), None)
-    ]
-    while stack:
-        slug, visited, came_from = stack.pop()
-        candidates = hierarchy['scenes_by_slug'].get(slug, []) if slug else []
-        if not slug or slug in visited or not candidates:
-            # Dangling parent, cycle, or top of the chain: nothing inherited.
-            record((), False, came_from)
-            continue
+        candidates = hierarchy['scenes_by_slug'].get(slug, [])
+        if not candidates:
+            return [((), False, None)], False  # dangling parent reference
 
-        next_visited = visited | {slug}
+        found: dict[tuple[tuple[str, ...], bool], list[str]] = {}
+        cyclic = False
+        deeper = open_slugs | {slug}
         for candidate in candidates:
+            label = _scene_label(candidate)
             profiles = _get_allowed_profile_keys(candidate)
             if profiles:
-                record(tuple(profiles), False, _scene_label(candidate))
+                _merge_restriction(found, tuple(profiles), False, label)
             elif candidate.authenticated is True:
-                record((), True, _scene_label(candidate))
+                _merge_restriction(found, (), True, label)
             else:
-                stack.append((candidate.parent, next_visited, _scene_label(candidate)))
+                inherited, branch_cyclic = walk(candidate.parent, deeper)
+                cyclic = cyclic or branch_cyclic
+                for inherited_profiles, inherited_auth, inherited_label in inherited:
+                    # Name this scene when the branch above it named nobody, so
+                    # an unprotected route can still say where it ran out.
+                    _merge_restriction(
+                        found, inherited_profiles, inherited_auth, inherited_label or label
+                    )
 
-    return [
-        (profiles, authenticated, " / ".join(labels) or None)
-        for (profiles, authenticated), labels in found.items()
-    ]
+        result = [
+            (profiles, authenticated, " / ".join(labels) or None)
+            for (profiles, authenticated), labels in found.items()
+        ]
+        if not cyclic:
+            memo[slug] = result
+        return result, cyclic
+
+    restrictions, _ = walk(start_slug, frozenset())
+    # Every route was a cycle: nothing is actually inherited.
+    return restrictions or [((), False, None)]
 
 
 def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, str]:
@@ -361,10 +395,11 @@ def analyze_scene_security(
         concerns.append("UTILITY PAGE: Requires Knack system-level account (beyond app profiles)")
 
     if ambiguous_parents:
+        # The fork is not necessarily at parent_slug -- it can be any duplicate
+        # slug further up -- so name the disagreeing scenes, not a slug.
         concerns.append(
-            f"AMBIGUOUS PARENT: slug {parent_slug!r} resolves to scenes with "
-            f"conflicting security ({ambiguous_parents}); reporting the least "
-            "restrictive access"
+            f"AMBIGUOUS PARENT: ancestors reached via {parent_slug!r} disagree on "
+            f"security ({ambiguous_parents}); reporting the least restrictive access"
         )
 
     # Public = does not require login

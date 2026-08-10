@@ -405,6 +405,56 @@ class TestNavigationHierarchy:
         assert sorted(analysis.allowed_profiles) == ["Role A", "Role B"]
         assert "AMBIGUOUS PARENT" in analysis.security_concern
 
+    def test_login_only_ancestor_beats_role_restricted_ancestor(self):
+        # Duplicate parents where one demands only login and the other a
+        # specific role: any logged-in user gets in via the first, so the
+        # report must not claim the page is limited to that role.
+        login_only = Scene(
+            key="scene_login", name="Login Only", slug="duplicate", authenticated=True
+        )
+        role_locked = Scene(
+            key="scene_role", name="Role Locked", slug="duplicate",
+            allowed_profiles=["profile_x"],
+        )
+        child = Scene(key="scene_child", name="Child", slug="child", parent="duplicate")
+        hierarchy = build_navigation_hierarchy([login_only, role_locked, child])
+
+        analysis = analyze_scene_security(child, {"profile_x": "Role X"}, hierarchy)
+
+        assert analysis.requires_login is True
+        assert analysis.allowed_profiles == []
+        assert "AMBIGUOUS PARENT" in analysis.security_concern
+
+    def test_duplicate_slugs_do_not_make_the_walk_exponential(self):
+        # Each level of duplicate slugs forks the ancestor chain. Without
+        # memoization the walk doubles per level -- a depth-24 chain is ~17M
+        # paths and the report never finishes. Ancestors of a slug don't depend
+        # on the route taken to reach it, so the walk must reuse them.
+        import time
+
+        depth = 24
+        scenes = [Scene(key="scene_root", name="Root", slug="level_0")]
+        for level in range(1, depth + 1):
+            for side in ("a", "b"):
+                scenes.append(
+                    Scene(
+                        key=f"scene_{level}_{side}",
+                        name=f"Level {level}{side}",
+                        slug=f"level_{level}",
+                        parent=f"level_{level - 1}",
+                    )
+                )
+        leaf = Scene(key="scene_leaf", name="Leaf", slug="leaf", parent=f"level_{depth}")
+        scenes.append(leaf)
+        hierarchy = build_navigation_hierarchy(scenes)
+
+        started = time.perf_counter()
+        analysis = analyze_scene_security(leaf, {}, hierarchy)
+        elapsed = time.perf_counter() - started
+
+        assert analysis.requires_login is False
+        assert elapsed < 2.0, f"ancestor walk took {elapsed:.1f}s -- not memoized"
+
     def test_conflicting_duplicate_parent_does_not_abort_the_report(self):
         # The whole-report path is what users actually run; a per-scene
         # ambiguity must not take the entire security report down with it.
