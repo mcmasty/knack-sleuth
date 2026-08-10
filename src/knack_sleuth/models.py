@@ -146,12 +146,20 @@ class ViewLink(BaseModel):
     model_config = {"extra": "allow"}
 
 
+# Orphan detection walks the serialized view rather than a hand-maintained list
+# of schemas, so these submodels must keep unknown keys: pydantic's default
+# would drop them before the walk, and a field referenced only in a key Knack
+# added later would look orphaned.
+
+
 class ViewSourceCriteria(BaseModel):
     """Filter criteria for a view's data source."""
 
     match: str  # "all" or "any"
     rules: list[Any] = PydanticField(default_factory=list)
     groups: list[Any] = PydanticField(default_factory=list)
+
+    model_config = {"extra": "allow"}
 
 
 class ViewSourceSort(BaseModel):
@@ -160,12 +168,16 @@ class ViewSourceSort(BaseModel):
     field: str  # Field key
     order: Literal["asc", "desc"]
 
+    model_config = {"extra": "allow"}
+
 
 class ParentSource(BaseModel):
     """Parent connection information for a view source."""
 
     object: str  # Object key
     connection: str  # Field key
+
+    model_config = {"extra": "allow"}
 
 
 class ViewSource(BaseModel):

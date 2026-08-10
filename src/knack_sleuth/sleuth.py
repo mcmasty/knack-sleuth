@@ -1,6 +1,8 @@
 """Core search functionality for finding object and field usages in Knack metadata."""
 
+from collections.abc import Iterator
 from dataclasses import dataclass
+import re
 from typing import Any
 
 from knack_sleuth.models import KnackAppMetadata, KnackObject
@@ -13,6 +15,45 @@ class Usage:
     location_type: str  # "connection", "view_source", "view_column", "field_equation", etc.
     context: str  # Human-readable description of where it's used
     details: dict[str, Any]  # Additional context-specific information
+
+
+FIELD_KEY_PATTERN = re.compile(r"(?<![A-Za-z0-9_])(field_\d+)(?![A-Za-z0-9_])")
+
+
+def _iter_field_references(
+    value: Any,
+    path: tuple[str, ...] = (),
+) -> Iterator[tuple[str, tuple[str, ...]]]:
+    """Yield ``(field_key, path)`` pairs from arbitrary metadata."""
+    if isinstance(value, dict):
+        for key, nested_value in value.items():
+            nested_path = (*path, str(key))
+            if isinstance(key, str):
+                for match in FIELD_KEY_PATTERN.finditer(key):
+                    yield match.group(1), nested_path
+            yield from _iter_field_references(nested_value, nested_path)
+    elif isinstance(value, list):
+        for index, nested_value in enumerate(value):
+            yield from _iter_field_references(
+                nested_value,
+                (*path, str(index)),
+            )
+    elif isinstance(value, str):
+        for match in FIELD_KEY_PATTERN.finditer(value):
+            yield match.group(1), path
+
+
+def _is_typed_view_reference(path: tuple[str, ...]) -> bool:
+    """Return whether an existing typed check already covers this path."""
+    if len(path) >= 4 and path[0] == "columns" and path[2:4] == ("field", "key"):
+        return True
+    if len(path) >= 4 and path[:2] == ("source", "sort") and path[3] == "field":
+        return True
+    if path == ("source", "parent_source", "connection"):
+        return True
+    if path == ("source", "connection_key"):
+        return True
+    return len(path) == 3 and path[0] == "inputs" and path[2] == "key"
 
 
 class KnackSleuth:
@@ -34,6 +75,21 @@ class KnackSleuth:
         for obj in self.app.objects:
             for field in obj.fields:
                 self.field_to_object[field.key] = obj.key
+
+        # Untyped view containers vary by view type and Knack version. Index
+        # their field references once so orphan checks remain linear in the
+        # metadata size rather than recursively scanning every view per field.
+        self.view_field_references: dict[str, list[tuple[Any, Any, tuple[str, ...]]]] = {}
+        for scene in self.app.scenes:
+            for view in scene.views:
+                view_data = view.model_dump(mode="python", exclude_none=True)
+                for field_key, path in _iter_field_references(view_data):
+                    if field_key not in self.field_to_object or _is_typed_view_reference(path):
+                        continue
+                    reference = (scene, view, path)
+                    references = self.view_field_references.setdefault(field_key, [])
+                    if reference not in references:
+                        references.append(reference)
 
     def search_object(self, object_key: str) -> dict[str, list[Usage]]:
         """
@@ -317,6 +373,32 @@ class KnackSleuth:
                                 },
                             )
                         )
+
+        # 7. Check untyped/nested view metadata. Knack stores important field
+        # references in containers such as form groups, view rules, totals,
+        # preset filters, and report calculations. These structures vary by
+        # view type, so walk the complete serialized view rather than maintain
+        # an incomplete list of schemas. References already covered by the
+        # typed checks above are skipped to avoid duplicate results.
+        for scene, view, path in self.view_field_references.get(field_key, []):
+            reference_path = ".".join(path)
+            usages.append(
+                Usage(
+                    location_type="view_field_reference",
+                    context=(
+                        f"Referenced at {reference_path} in view "
+                        f"'{view.name}' ({view.key})"
+                    ),
+                    details={
+                        "scene_key": scene.key,
+                        "scene_name": scene.name,
+                        "view_key": view.key,
+                        "view_name": view.name,
+                        "view_type": view.type,
+                        "reference_path": reference_path,
+                    },
+                )
+            )
 
         return usages
 
