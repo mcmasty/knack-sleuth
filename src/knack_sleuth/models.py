@@ -43,6 +43,19 @@ class KnackField(BaseModel):
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
+    @field_validator('format', mode='before')
+    @classmethod
+    def convert_empty_format_to_none(cls, v):
+        """Convert Knack's empty-string format to None.
+
+        Knack emits `"format": ""` rather than omitting the key when a field
+        has no format configuration, which fails validation against
+        FieldFormat. Seen in bulk on spreadsheet-style imported objects.
+        """
+        if v == "":
+            return None
+        return v
+
 
 # ============================================================================
 # Object Models
