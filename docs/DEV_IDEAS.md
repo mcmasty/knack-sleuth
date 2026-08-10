@@ -65,17 +65,16 @@ same "is it a key or a name?" loop, and `db_schema.py` had its own
 
 ## Follow-ups surfaced by the security.py test suite
 
-- 💡 **`inherits_security` is not a trustworthy signal**: `Scene.authenticated`
-  defaults to `False` (never `None`), so `analyze_scene_security`'s
-  `parent_auth is not None` checks are always true and `inherits_security`
-  is `True` for every scene with a resolvable parent — even one with its own
-  explicit restriction. No wrong `requires_login` values in the sample data,
-  but the boolean should mean "actually inherited something".
-- 💡 **Slug collisions silently drop scenes in navigation**: `scenes_by_slug`
-  is a plain dict; when two scenes share a slug (the sample app has two
-  scenes with slug `users`), only the later one is kept. Security-identical
-  in this dataset, but a latent misclassification risk. Consider keying
-  navigation by scene key, or warning on duplicate slugs.
+- ✅ **`inherits_security` now means a restriction was actually inherited**:
+  missing `authenticated` values remain `None`, public parents do not make
+  children login-required, and a scene with its own restriction is not
+  reported as inheriting one.
+- ✅ **Slug collisions are explicit and safe**: `scenes_by_slug` retains every
+  candidate. Knack slugs are path-scoped, so duplicates are a normal layout —
+  navigation shows every candidate, and security inheritance walks all of them.
+  Branches that disagree report the least restrictive access plus an
+  `AMBIGUOUS PARENT` concern, so a reachable public route is surfaced rather
+  than masked by a stricter sibling.
 - ✅ **`httpx[http2]` extra is unused** — nothing passes `http2=True`, so `h2`
   is a dead transitive dependency. Drop the extra.
 - ✅ **PyYAML fallback is dead code** — `pyyaml` is a hard dependency, but

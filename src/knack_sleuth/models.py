@@ -221,7 +221,7 @@ class Scene(BaseModel):
     views: list[View] = PydanticField(default_factory=list)
     parent: str | None = None  # Parent scene key
     menu_pages: list[str] | None = None  # Child scene keys (for menu scenes), can be null
-    authenticated: bool = False
+    authenticated: bool | None = None
     groups: list[Any] = PydanticField(default_factory=list)
 
     model_config = {"extra": "allow"}
