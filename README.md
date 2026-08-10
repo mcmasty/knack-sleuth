@@ -141,6 +141,9 @@ Most commands can work with metadata in two ways:
    knack-sleuth <command>
    ```
 
+   Unrelated variables in a project-level `.env` are ignored; the file does
+   not need to contain only knack-sleuth settings.
+
 **Caching Behavior:**
 - When fetching from the API, metadata is automatically cached to `{APP_ID}_app_metadata_{YYYYMMDDHHMM}.json`
 - Cached files are reused for 24 hours to avoid unnecessary API calls (configurable via `KNACK_CACHE_TTL_HOURS`)

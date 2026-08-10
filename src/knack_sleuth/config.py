@@ -14,12 +14,14 @@ class Settings(BaseSettings):
         env_file='.env',
         env_file_encoding='utf-8',
         case_sensitive=False,
+        # A project-level .env commonly contains settings for many tools.
+        # Only the explicitly declared Knack settings belong to this model.
+        extra='ignore',
     )
 
 
 KNACK_API_BASE_URL = 'https://api.knack.com/v1'
 KNACK_BUILDER_BASE_URL = "https://builder.knack.com"  # Classic Builder
 KNACK_NG_BUILDER_BASE_URL = "https://builder-next.knack.com"  # Next-Gen Builder
-
 
 
