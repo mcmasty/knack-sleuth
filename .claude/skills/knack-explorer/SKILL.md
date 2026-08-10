@@ -7,6 +7,8 @@ agent: knack-dev
 context: fork
 ---
 
+<!-- knack-sleuth-version: 0.5.0 -->
+
 # Knack App Explorer
 
 You have access to `knack-sleuth`, a CLI for exploring Knack.app databases.

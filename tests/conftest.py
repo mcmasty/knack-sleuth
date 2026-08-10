@@ -5,6 +5,18 @@ from pathlib import Path
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def isolated_home(monkeypatch, tmp_path_factory):
+    """Point ~ at an empty directory for every test.
+
+    The CLI checks ~/.claude/skills/knack-explorer/SKILL.md on each invocation,
+    so without this a developer's own installed skill changes test results.
+    Tests that exercise the drift warning re-patch Path.home themselves.
+    """
+    home = tmp_path_factory.mktemp("home")
+    monkeypatch.setattr(Path, "home", lambda: home)
+
+
 @pytest.fixture
 def sample_metadata_file():
     """Path to sample Knack metadata JSON file."""

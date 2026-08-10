@@ -43,6 +43,18 @@ filename = "src/knack_sleuth/__init__.py"
 search = '__version__ = "{current_version}"'
 replace = '__version__ = "{new_version}"'
 
+# Both skill copies carry a version stamp the CLI compares against the running
+# package; they must move with the bump or the guard tests fail at release time.
+[[tool.bumpversion.files]]
+filename = "src/knack_sleuth/data/SKILL.md"
+search = '<!-- knack-sleuth-version: {current_version} -->'
+replace = '<!-- knack-sleuth-version: {new_version} -->'
+
+[[tool.bumpversion.files]]
+filename = ".claude/skills/knack-explorer/SKILL.md"
+search = '<!-- knack-sleuth-version: {current_version} -->'
+replace = '<!-- knack-sleuth-version: {new_version} -->'
+
 
 [project.urls]
 Homepage = "https://github.com/mcmasty/knack-sleuth"
