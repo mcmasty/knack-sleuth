@@ -3,8 +3,9 @@ from importlib import resources
 from pathlib import Path
 from typing import Optional
 import json
-import httpx
 import re
+
+import httpx
 
 import typer
 from rich.console import Console
@@ -140,8 +141,14 @@ def _release_tuple(version: str) -> tuple[int, ...] | None:
 
 
 def _without_skill_version_stamp(content: str) -> str:
-    """Normalize content so the current pre-stamp skill is not called stale."""
-    return SKILL_VERSION_PATTERN.sub("", content).lstrip("\n")
+    """Normalize content so the current pre-stamp skill is not called stale.
+
+    The stamp sits between the frontmatter and the body, so dropping just the
+    comment leaves the blank line that followed it; collapse that gap too, and
+    normalize both sides of a comparison with this so they line up.
+    """
+    stripped = SKILL_VERSION_PATTERN.sub("", content)
+    return re.sub(r"\n{3,}", "\n\n", stripped).lstrip("\n")
 
 
 def _skill_drift_warning(
@@ -160,7 +167,9 @@ def _skill_drift_warning(
 
     match = SKILL_VERSION_PATTERN.search(installed_content)
     if not match:
-        if installed_content == _without_skill_version_stamp(packaged_content):
+        if _without_skill_version_stamp(
+            installed_content
+        ) == _without_skill_version_stamp(packaged_content):
             return None
         return (
             "Installed knack-explorer skill predates version tracking and differs "

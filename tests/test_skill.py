@@ -46,9 +46,16 @@ def test_current_installed_skill_has_no_warning(tmp_path):
 
 
 def test_matching_legacy_skill_without_stamp_has_no_false_warning(tmp_path):
+    """Use the real packaged skill, not a synthetic one: the stamp sits mid-file
+    after the frontmatter, so removing it leaves a blank-line gap that a
+    stamp-on-line-1 fixture would never catch. Stripping the stamp block from
+    the packaged file reproduces the v0.5.0 copy byte for byte."""
+    packaged = resources.files("knack_sleuth").joinpath("data/SKILL.md").read_text()
+    legacy = packaged.replace(f"<!-- knack-sleuth-version: {__version__} -->\n\n", "")
+    assert legacy != packaged, "stamp block not found in packaged skill"
+
     target = tmp_path / "SKILL.md"
-    target.write_text("current guidance\n")
-    packaged = f"<!-- knack-sleuth-version: {__version__} -->\ncurrent guidance\n"
+    target.write_text(legacy)
 
     assert _skill_drift_warning(target, packaged) is None
 
