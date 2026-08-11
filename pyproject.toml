@@ -43,6 +43,15 @@ filename = "src/knack_sleuth/__init__.py"
 search = '__version__ = "{current_version}"'
 replace = '__version__ = "{new_version}"'
 
+# The lock file pins this package's own version; without this the next uv
+# command rewrites it after the bump and leaves the tree dirty. Anchored on the
+# package name so it can't match another dependency that shares the version.
+[[tool.bumpversion.files]]
+filename = "uv.lock"
+regex = true
+search = 'name = "knack-sleuth"\nversion = "{current_version}"'
+replace = 'name = "knack-sleuth"\nversion = "{new_version}"'
+
 # Both skill copies carry a version stamp the CLI compares against the running
 # package; they must move with the bump or the guard tests fail at release time.
 [[tool.bumpversion.files]]
