@@ -15,8 +15,9 @@ from rich.table import Table
 from knack_sleuth import __version__
 from knack_sleuth.models import KnackAppMetadata, KnackObject
 from knack_sleuth.sleuth import KnackSleuth
-from knack_sleuth.config import Settings, KNACK_BUILDER_BASE_URL, KNACK_NG_BUILDER_BASE_URL
+from knack_sleuth.config import Settings
 from knack_sleuth.core import (
+    builder_url,
     load_app_metadata as core_load_metadata,
     find_valid_cache,
     fetch_metadata_from_api,
@@ -306,17 +307,15 @@ def print_builder_pages(app_export: KnackAppMetadata, scenes_to_review: set) -> 
         return
 
     settings = Settings()
-    # Use account slug for builder URLs (not application slug)
-    account_slug = app_export.application.account.get('slug', app_export.application.slug)
-    base_url = (
-        KNACK_NG_BUILDER_BASE_URL if settings.knack_next_gen_builder
-        else KNACK_BUILDER_BASE_URL
-    )
 
     console.print(f"\n[bold cyan]Builder Pages to Review:[/bold cyan] {len(scenes_to_review)} scenes")
     console.print()
     for scene_key in sorted(scenes_to_review):
-        url = f"{base_url}/{account_slug}/portal/pages/{scene_key}"
+        url = builder_url(
+            app_export.application,
+            scene_key,
+            next_gen=settings.knack_next_gen_builder,
+        )
         console.print(f"  [link={url}]{url}[/link]")
     console.print()
     console.print("[dim]Tip: Set KNACK_NEXT_GEN_BUILDER=true to use Next-Gen builder URLs[/dim]")
@@ -900,12 +899,27 @@ def find_orphans(
     ),
 ):
     """
-    List orphaned fields and objects — defined but not used anywhere.
+    List orphaned fields, objects, and views — defined but never reached.
 
     An orphaned field has no usages in views, columns, sorts, formulas, or
     connections. An orphaned object has no connections and no views displaying
     it (user profile objects are excluded — they are referenced through Knack's
     auth system).
+
+    An orphaned view is defined on a scene but left out of that scene's page
+    layout, so Knack never draws it. Login views are excluded (they render from
+    the scene chrome), as are scenes with no layout at all (Knack leaves
+    `groups` empty on the child pages it generates for Edit/Details links).
+    Each orphan gets a builder deep link — the view is not on the canvas, so
+    there is nothing to click without one, and Knack's API cannot delete views.
+
+    Two related defects are reported alongside: dangling layout keys (a layout
+    slot naming a view that is not on the scene, either moved or deleted) and
+    stale view rule references (a rule targeting an orphaned or missing view).
+
+    A reference that lives only in an orphaned view no longer counts as a
+    usage, so it cannot keep a dead field or object looking alive. The
+    reference is still listed by search-field, tagged `orphaned_view`.
 
 
     app-summary's technical debt section counts every orphan, including
@@ -935,6 +949,20 @@ def find_orphans(
     with console.status("[cyan]Analyzing field and object usages..."):
         orphaned_fields = sleuth.find_orphaned_fields()
         orphaned_objects = sleuth.find_orphaned_objects()
+        orphaned_views = sleuth.find_orphaned_views()
+        dangling_keys = sleuth.find_dangling_layout_keys()
+        stale_rules = sleuth.find_stale_view_rule_references()
+
+    settings = Settings()
+
+    def _orphan_view_url(orphan):
+        return builder_url(
+            app_export.application,
+            orphan.scene.key,
+            view_key=orphan.view.key,
+            view_type=orphan.view.type,
+            next_gen=settings.knack_next_gen_builder,
+        )
 
     # Optionally hide system fields (they are rarely actionable)
     hidden_system_count = 0
@@ -977,14 +1005,51 @@ def find_orphans(
             }
             for obj in sorted(orphaned_objects, key=lambda o: o.name.lower())
         ]
+        views_payload = [
+            {
+                "scene_key": orphan.scene.key,
+                "scene_name": orphan.scene.name,
+                "view_key": orphan.view.key,
+                "view_name": orphan.view.name,
+                "view_type": orphan.view.type,
+                "builder_url": _orphan_view_url(orphan),
+            }
+            for orphan in orphaned_views
+        ]
+        dangling_payload = [
+            {
+                "scene_key": item.scene.key,
+                "scene_name": item.scene.name,
+                "view_key": item.view_key,
+                "moved_to": item.moved_to,
+                "cause": "moved" if item.moved_to else "deleted",
+            }
+            for item in dangling_keys
+        ]
+        stale_payload = [
+            {
+                "scene_key": item.scene.key,
+                "scene_name": item.scene.name,
+                "rule_path": item.rule_path,
+                "view_key": item.view_key,
+                "reason": item.reason,
+            }
+            for item in stale_rules
+        ]
         payload = {
             "orphaned_fields": fields_payload,
             "orphaned_objects": objects_payload,
+            "orphaned_views": views_payload,
+            "dangling_layout_keys": dangling_payload,
+            "stale_view_rule_references": stale_payload,
             "totals": {
                 "orphaned_fields": len(fields_payload),
                 "orphaned_fields_including_hidden": len(orphaned_fields),
                 "orphaned_objects": len(orphaned_objects),
                 "hidden_system_fields": hidden_system_count,
+                "orphaned_views": len(views_payload),
+                "dangling_layout_keys": len(dangling_payload),
+                "stale_view_rule_references": len(stale_payload),
             },
         }
         typer.echo(json.dumps(payload, indent=2))
@@ -1037,6 +1102,62 @@ def find_orphans(
     else:
         console.print("[green]✓[/green] No orphaned objects found")
 
+    # Page-layout debt
+    console.print()
+    if orphaned_views:
+        table = Table(
+            title=f"[bold cyan]{app_export.application.name}[/bold cyan] - Orphaned Views"
+        )
+        table.add_column("Scene", style="bold cyan")
+        table.add_column("View", style="yellow")
+        table.add_column("Key", style="dim")
+        table.add_column("Type", style="magenta")
+        table.add_column("Builder", style="dim")
+
+        for orphan in orphaned_views:
+            url = _orphan_view_url(orphan)
+            table.add_row(
+                orphan.scene.name,
+                orphan.view.name,
+                orphan.view.key,
+                orphan.view.type,
+                f"[link={url}]open[/link]",
+            )
+        console.print(table)
+        console.print(
+            "[dim]These views are defined but left out of the page layout, so they "
+            "never render. There is no API to delete them — open the builder link "
+            "and remove the view there.[/dim]"
+        )
+    else:
+        console.print("[green]✓[/green] No orphaned views found")
+
+    if dangling_keys:
+        console.print()
+        console.print(
+            f"[bold cyan]Dangling Layout Keys:[/bold cyan] {len(dangling_keys)}"
+        )
+        for item in dangling_keys:
+            where = (
+                f"now on {item.moved_to}" if item.moved_to else "view no longer exists"
+            )
+            console.print(
+                f"  [yellow]•[/yellow] [bold cyan]{item.scene.name}[/bold cyan] "
+                f"({item.scene.key}) references {item.view_key} — {where}"
+            )
+
+    if stale_rules:
+        console.print()
+        console.print(
+            f"[bold cyan]Stale View Rule References:[/bold cyan] {len(stale_rules)}"
+        )
+        for item in stale_rules:
+            console.print(
+                f"  [yellow]•[/yellow] [bold cyan]{item.scene.name}[/bold cyan] "
+                f"({item.scene.key}) {item.rule_path} → {item.view_key} "
+                f"[dim]({item.reason})[/dim]"
+            )
+
     # Summary
     console.print()
     console.print(
@@ -1046,7 +1167,8 @@ def find_orphans(
         + (
             f" (+{hidden_system_count} hidden system)" if hidden_system_count else ""
         )
-        + f" | {len(orphaned_objects)} orphaned objects[/dim]"
+        + f" | {len(orphaned_objects)} orphaned objects"
+        + f" | {len(orphaned_views)} orphaned views[/dim]"
     )
     console.print(
         "[dim]Review before deleting: identifier/system fields can be orphans by design[/dim]"
@@ -2009,7 +2131,6 @@ def impact_analysis(
     elif output_format == "markdown":
         # Collect unique scenes for builder URLs
         settings = Settings()
-        account_slug = app_export.application.account.get('slug', app_export.application.slug)
         scenes_to_review = set(analysis['cascade_impacts']['affected_scenes'])
         
         # Generate markdown summary
@@ -2105,25 +2226,17 @@ def impact_analysis(
                 "",
             ])
             
-            # Build URLs based on builder version
-            if settings.knack_next_gen_builder:
-                # Next-Gen builder
-                for scene_key in sorted(scenes_to_review):
-                    url = f"{KNACK_NG_BUILDER_BASE_URL}/{account_slug}/portal/pages/{scene_key}"
-                    scene_name = next(
-                        (s['scene_name'] for s in analysis['direct_impacts']['scenes'] if s['scene_key'] == scene_key),
-                        scene_key
-                    )
-                    md_lines.append(f"- [{scene_name}]({url})")
-            else:
-                # Classic builder
-                for scene_key in sorted(scenes_to_review):
-                    url = f"{KNACK_BUILDER_BASE_URL}/{account_slug}/portal/pages/{scene_key}"
-                    scene_name = next(
-                        (s['scene_name'] for s in analysis['direct_impacts']['scenes'] if s['scene_key'] == scene_key),
-                        scene_key
-                    )
-                    md_lines.append(f"- [{scene_name}]({url})")
+            for scene_key in sorted(scenes_to_review):
+                url = builder_url(
+                    app_export.application,
+                    scene_key,
+                    next_gen=settings.knack_next_gen_builder,
+                )
+                scene_name = next(
+                    (s['scene_name'] for s in analysis['direct_impacts']['scenes'] if s['scene_key'] == scene_key),
+                    scene_key
+                )
+                md_lines.append(f"- [{scene_name}]({url})")
 
         output_content = "\n".join(md_lines)
     else:

@@ -250,3 +250,52 @@ class TestKnackFieldFormatCoercion:
         field = KnackField(key="field_3", name="Plain", type="short_text")
 
         assert field.format is None
+
+
+class TestBuilderUrl:
+    """Builder URL grammar is {account_slug}/{app_slug}/pages/{scene_key}."""
+
+    @staticmethod
+    def _app(account_slug="acme", app_slug="portal"):
+        from knack_sleuth.models import KnackAppMetadata
+
+        return KnackAppMetadata(
+            application={
+                "id": "app_1",
+                "name": "Test",
+                "slug": app_slug,
+                "home_scene": {"key": "scene_1", "slug": "home"},
+                "account": {"slug": account_slug},
+            }
+        ).application
+
+    def test_page_url_uses_the_application_slug(self):
+        """Regression: the app slug was hardcoded to 'portal', which was only
+        ever right for the one app whose slug happened to be 'portal'."""
+        from knack_sleuth.core import builder_url
+
+        url = builder_url(self._app(app_slug="sample-application"), "scene_5")
+
+        assert url == "https://builder.knack.com/acme/sample-application/pages/scene_5"
+
+    def test_view_url_appends_view_key_and_type(self):
+        from knack_sleuth.core import builder_url
+
+        url = builder_url(self._app(), "scene_5", view_key="view_9", view_type="form")
+
+        assert url == "https://builder.knack.com/acme/portal/pages/scene_5/views/view_9/form"
+
+    def test_next_gen_builder_uses_its_own_host(self):
+        from knack_sleuth.core import builder_url
+
+        url = builder_url(self._app(), "scene_5", next_gen=True)
+
+        assert url.startswith("https://builder-next.knack.com/acme/portal/")
+
+    def test_account_slug_falls_back_to_application_slug(self):
+        from knack_sleuth.core import builder_url
+
+        app = self._app()
+        app.account = {}
+
+        assert builder_url(app, "scene_5") == "https://builder.knack.com/portal/portal/pages/scene_5"

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import re
 from typing import Any
 
-from knack_sleuth.models import KnackAppMetadata, KnackObject
+from knack_sleuth.models import KnackAppMetadata, KnackObject, Scene, View
 
 
 @dataclass
@@ -17,7 +17,72 @@ class Usage:
     details: dict[str, Any]  # Additional context-specific information
 
 
+@dataclass
+class OrphanedView:
+    """A view defined on a scene but left out of that scene's page layout."""
+
+    scene: Scene
+    view: View
+
+
+@dataclass
+class DanglingLayoutKey:
+    """A page layout slot naming a view that is not on that scene."""
+
+    scene: Scene
+    view_key: str
+    moved_to: str | None  # Scene key the view now lives on, or None if deleted
+
+
+@dataclass
+class StaleViewRuleReference:
+    """A rule naming a view that no longer renders (or no longer exists)."""
+
+    scene: Scene
+    rule_path: str  # e.g. "rules.0.view_keys" or "views.2.rules.1.view_keys"
+    view_key: str
+    reason: str  # "orphaned" (defined but off-layout) or "missing" (gone)
+
+
 FIELD_KEY_PATTERN = re.compile(r"(?<![A-Za-z0-9_])(field_\d+)(?![A-Za-z0-9_])")
+
+
+def _iter_rule_view_keys(
+    value: Any,
+    path: tuple[str, ...] = (),
+) -> Iterator[tuple[str, str]]:
+    """Yield ``(view_key, path)`` for every ``view_keys`` entry in metadata.
+
+    Page rules and view rules both target views through a ``view_keys`` list,
+    at depths that vary by rule type, so this walks rather than indexes.
+    """
+    if isinstance(value, dict):
+        for key, nested_value in value.items():
+            nested_path = (*path, str(key))
+            if key == "view_keys" and isinstance(nested_value, list):
+                joined = ".".join(nested_path)
+                for view_key in nested_value:
+                    if isinstance(view_key, str):
+                        yield view_key, joined
+                continue
+            yield from _iter_rule_view_keys(nested_value, nested_path)
+    elif isinstance(value, list):
+        for index, nested_value in enumerate(value):
+            yield from _iter_rule_view_keys(nested_value, (*path, str(index)))
+
+
+def _scene_layout_keys(scene: Scene) -> set[str]:
+    """Return the view keys the scene's page layout actually places.
+
+    Knack stores the layout separately from the view definitions, as
+    ``groups[].columns[].keys[]``. Nothing keeps the two in sync.
+    """
+    return {
+        key
+        for group in scene.groups or []
+        for column in (group or {}).get("columns") or []
+        for key in (column or {}).get("keys") or []
+    }
 
 
 def _iter_field_references(
@@ -76,6 +141,12 @@ class KnackSleuth:
             for field in obj.fields:
                 self.field_to_object[field.key] = obj.key
 
+        # View index (view_key -> scene_key), for spotting layout slots that
+        # point at a view living on some other scene.
+        self.view_to_scene: dict[str, str] = {
+            view.key: scene.key for scene in self.app.scenes for view in scene.views
+        }
+
         # Untyped view containers vary by view type and Knack version. Index
         # their field references once so orphan checks remain linear in the
         # metadata size rather than recursively scanning every view per field.
@@ -90,6 +161,13 @@ class KnackSleuth:
                     references = self.view_field_references.setdefault(field_key, [])
                     if reference not in references:
                         references.append(reference)
+
+        # A view left out of its page layout never renders, so a reference
+        # living only there does not keep a field or object alive. Cached
+        # because every usage scan consults it.
+        self.orphaned_view_keys: set[str] = {
+            orphan.view.key for orphan in self.find_orphaned_views()
+        }
 
     def search_object(self, object_key: str) -> dict[str, list[Usage]]:
         """
@@ -201,6 +279,18 @@ class KnackSleuth:
                         )
                     )
 
+        return self._tag_orphaned_view_usages(usages)
+
+    def _tag_orphaned_view_usages(self, usages: list[Usage]) -> list[Usage]:
+        """Mark usages that live in a view no page layout places.
+
+        The reference is still reported -- the user needs to see where the dead
+        pointer is -- but it no longer counts as keeping anything alive.
+        """
+        for usage in usages:
+            view_key = usage.details.get("view_key")
+            if view_key is not None:
+                usage.details["orphaned_view"] = view_key in self.orphaned_view_keys
         return usages
 
     def _find_field_usages(self, field_key: str) -> list[Usage]:
@@ -400,7 +490,7 @@ class KnackSleuth:
                 )
             )
 
-        return usages
+        return self._tag_orphaned_view_usages(usages)
 
     def get_object_info(self, object_key: str) -> KnackObject | None:
         """Get the object definition."""
@@ -429,7 +519,12 @@ class KnackSleuth:
         orphans: list[tuple[KnackObject, Any]] = []
         for obj in self.app.objects:
             for field in obj.fields:
-                if not self._find_field_usages(field.key):
+                live_usages = [
+                    usage
+                    for usage in self._find_field_usages(field.key)
+                    if not usage.details.get("orphaned_view")
+                ]
+                if not live_usages:
                     orphans.append((obj, field))
         return orphans
 
@@ -450,13 +545,91 @@ class KnackSleuth:
                 continue
 
             used_in_views = any(
-                view.source and view.source.object == obj.key
+                view.source
+                and view.source.object == obj.key
+                and view.key not in self.orphaned_view_keys
                 for scene in self.app.scenes
                 for view in scene.views
             )
             if not used_in_views:
                 orphans.append(obj)
         return orphans
+
+    def find_orphaned_views(self) -> list[OrphanedView]:
+        """Find views defined on a scene but absent from its page layout.
+
+        Such a view never renders: Knack draws a page from
+        ``groups[].columns[].keys[]``, not from ``scene.views``. They
+        accumulate when a page is copied or a view is moved.
+
+        Two exclusions keep this honest, both measured against a real app:
+
+        - ``login`` views are rendered from the scene chrome, so 48 of 49 sit
+          outside the layout legitimately.
+        - A scene whose layout is *entirely* empty has no layout to be excluded
+          from. Knack leaves ``groups`` empty on the child pages it generates
+          for Edit/Details/Delete links.
+
+        Without those, the check reports 114 hits on an app that has 24.
+        """
+        orphans: list[OrphanedView] = []
+        for scene in self.app.scenes:
+            layout_keys = _scene_layout_keys(scene)
+            if not layout_keys:
+                continue
+            for view in scene.views:
+                if view.type == "login":
+                    continue
+                if view.key not in layout_keys:
+                    orphans.append(OrphanedView(scene=scene, view=view))
+        return orphans
+
+    def find_dangling_layout_keys(self) -> list[DanglingLayoutKey]:
+        """Find layout slots pointing at views the scene does not have.
+
+        The inverse of an orphaned view. ``moved_to`` distinguishes the two
+        causes: a view relocated to another scene leaves the old layout
+        pointing across scenes, while a deleted view leaves nothing at all.
+        """
+        dangling: list[DanglingLayoutKey] = []
+        for scene in self.app.scenes:
+            own_keys = {view.key for view in scene.views}
+            for view_key in sorted(_scene_layout_keys(scene) - own_keys):
+                dangling.append(
+                    DanglingLayoutKey(
+                        scene=scene,
+                        view_key=view_key,
+                        moved_to=self.view_to_scene.get(view_key),
+                    )
+                )
+        return dangling
+
+    def find_stale_view_rule_references(self) -> list[StaleViewRuleReference]:
+        """Find rules targeting views that no longer render.
+
+        A ``hide_views`` rule keeps naming its target after the view leaves the
+        layout or is deleted outright, so these outlive the view itself and are
+        the clearest signal that a page was edited around a leftover.
+        """
+        stale: list[StaleViewRuleReference] = []
+        for scene in self.app.scenes:
+            scene_data = scene.model_dump(mode="python", exclude_none=True)
+            for view_key, rule_path in _iter_rule_view_keys(scene_data):
+                if view_key in self.orphaned_view_keys:
+                    reason = "orphaned"
+                elif view_key not in self.view_to_scene:
+                    reason = "missing"
+                else:
+                    continue
+                stale.append(
+                    StaleViewRuleReference(
+                        scene=scene,
+                        rule_path=rule_path,
+                        view_key=view_key,
+                        reason=reason,
+                    )
+                )
+        return stale
 
     def generate_impact_analysis(
         self, target_key: str, target_type: str = "auto"
@@ -1359,6 +1532,11 @@ class KnackSleuth:
             "orphaned_fields": orphaned_fields,
             "orphaned_objects": orphaned_objects_count,
             "orphaned_objects_list": orphaned_objects_list,
+            # Page-layout debt: views Knack never draws, layout slots pointing
+            # at views that are not there, and rules aimed at either.
+            "orphaned_views": len(self.find_orphaned_views()),
+            "dangling_layout_keys": len(self.find_dangling_layout_keys()),
+            "stale_view_rule_references": len(self.find_stale_view_rule_references()),
             "high_fan_out_objects": high_fanout,
             "bottleneck_objects": bottlenecks,
             "interpretation": (

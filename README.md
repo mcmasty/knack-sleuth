@@ -289,7 +289,7 @@ Perfect for understanding an object's role in your data model from its perspecti
 
 ### Find Orphaned Fields and Objects
 
-List fields and objects that are defined but not used anywhere — the actionable version of the orphan counts in `app-summary`:
+List fields, objects, and views that are defined but never reached — the actionable version of the orphan counts in `app-summary`:
 
 ```bash
 knack-sleuth find-orphans my_app.json
@@ -301,8 +301,50 @@ knack-sleuth find-orphans my_app.json --include-system
 This shows:
 - **Orphaned fields**: No usages in views, columns, sorts, formulas, or connections — with notes flagging identifier, system, and required fields
 - **Orphaned objects**: No connections and no views displaying them (user profile objects are excluded — they're referenced through Knack's auth system)
+- **Orphaned views**: Defined on a scene but left out of that scene's page layout, so Knack never draws them
+- **Dangling layout keys**: A layout slot naming a view that is not on the scene — either moved to another scene or deleted outright
+- **Stale view rule references**: A rule (typically `hide_views`) still targeting an orphaned or deleted view
 
 ⚠️ Review before deleting: identifier and system fields can be orphans by design.
+
+#### About orphaned views
+
+Knack stores a page's *layout* (`groups[].columns[].keys[]`) separately from its *view
+definitions* (`scene.views`), and nothing keeps the two in sync. Copying a page or moving a
+view can leave a definition behind with no layout slot. It never renders, but it stays in
+the metadata — and rules can still target it.
+
+Two exclusions keep the check honest:
+
+- **Login views** render from the scene chrome, not the layout grid. On a real 279-scene app,
+  48 of 49 sit outside the layout legitimately.
+- **Scenes with an entirely empty layout** have no layout to be excluded from. Knack leaves
+  `groups` empty on the child pages it generates for Edit/Details/Delete links.
+
+Without them the check reports 114 hits on an app that has 24.
+
+**Cleanup:** no API can delete a view. Knack's REST API is record-level CRUD only
+("View-Based DELETE" deletes a *record through* a view). Knack's
+[MCP server](https://docs.knack.com/docs/mcp) *can* create, update, and delete tables and
+fields programmatically, but states it "does not support Knack-based frontend / Page / Theme
+building" — so pages and views stay builder-only. The tool therefore reports rather than
+fixes.
+
+Each orphaned view is listed with a builder deep link
+(`.../pages/{scene_key}/views/{view_key}/{view_type}`), which is the only way to reach a view
+the builder canvas never draws. The documented delete flow is to
+[hover the view and click the trash icon](https://docs.knack.com/v3/docs/about-views) —
+which structurally cannot reach a view that is not on the page. Note that deleting a view
+also deletes its child pages.
+
+If the deep link does not open it, Knack support can act on the app directly. App structure
+is [backed up every 12 hours](https://docs.knack.com/docs/about-knack-accounts) and pages and
+views can be restored, so a bad delete is recoverable — though restores are a manual support
+process ($100/hr on Starter and Pro; included on Corporate, Plus, and HIPAA).
+
+A reference living only in an orphaned view no longer counts as a usage, so it cannot keep a
+dead field or object looking alive. The reference is still reported by `search-field`, tagged
+`orphaned_view`, so nothing is hidden.
 
 ### Download Metadata
 
