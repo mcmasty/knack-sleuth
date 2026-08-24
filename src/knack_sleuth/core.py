@@ -20,7 +20,39 @@ import glob
 import httpx
 
 from knack_sleuth.models import KnackAppMetadata
-from knack_sleuth.config import Settings, KNACK_API_BASE_URL
+from knack_sleuth.config import (
+    Settings,
+    KNACK_API_BASE_URL,
+    KNACK_BUILDER_BASE_URL,
+    KNACK_NG_BUILDER_BASE_URL,
+)
+from knack_sleuth.models import Application
+
+
+def builder_url(
+    application: Application,
+    scene_key: str,
+    view_key: str | None = None,
+    view_type: str | None = None,
+    next_gen: bool = False,
+) -> str:
+    """Build a deep link into the Knack builder.
+
+    The grammar is ``{account_slug}/{app_slug}/pages/{scene_key}``, optionally
+    followed by ``/views/{view_key}/{view_type}``. Both slugs are required and
+    they are different values -- the account owns the app.
+
+    A view-level link is the only way to reach an orphaned view: it is absent
+    from the page layout, so the builder canvas never draws anything to click.
+    """
+    base = KNACK_NG_BUILDER_BASE_URL if next_gen else KNACK_BUILDER_BASE_URL
+    account_slug = application.account.get("slug") or application.slug
+    url = f"{base}/{account_slug}/{application.slug}/pages/{scene_key}"
+    if view_key:
+        url = f"{url}/views/{view_key}"
+        if view_type:
+            url = f"{url}/{view_type}"
+    return url
 
 
 def get_cache_dir() -> Path:

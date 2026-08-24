@@ -28,7 +28,7 @@ Each command is invoked via `uvx knack-sleuth <command> ...`. Run any command wi
   - Key flags: `--no-fields` to suppress field-level detail
 - `search-field` — Find all usages of a single field (by key or name) without cascading through the whole object.
 - `show-coupling` — Show afferent (inbound) and efferent (outbound) coupling for an object.
-- `find-orphans` — List orphaned fields and objects (defined but not used anywhere).
+- `find-orphans` — List orphaned fields and objects (defined but not used anywhere), plus page-layout debt: orphaned views (defined on a scene but left out of its layout, so they never render), dangling layout keys, and stale view rule references. Orphaned views carry a builder deep link — there is no API to delete a view.
 
 All five discovery/search commands support `--format rich|json`; use `--format json` for machine-readable output (status messages go to stderr, so stdout stays clean).
 
@@ -130,7 +130,7 @@ Use `--format markdown` when the output is for human consumption.
 2. **Investigate** — Use `search-object`, `search-field`, and `show-coupling` to trace how specific objects and fields are used.
 3. **Visualize** — Export schemas with `export-db-schema` or `export-schema-subgraph` (DBML or Mermaid for diagrams, YAML for readability).
 4. **Assess** — Run `impact-analysis` on objects/fields being considered for change, or `app-summary` for a full architectural overview.
-5. **Clean up** — Use `find-orphans` to list unused resources — but flag identifier/system fields, which can be orphans by design.
+5. **Clean up** — Use `find-orphans` to list unused resources — but flag identifier/system fields, which can be orphans by design. Orphaned views can only be removed through the builder link the command prints. Knack's REST API is record-only, and its MCP server mutates tables/fields but explicitly not pages/views — so no API can delete a view.
 6. **Track changes** — Use `diff` to compare snapshots or snapshot-vs-live for "what changed?" questions.
 7. **Audit access** — Use `role-access-review` and `role-access-summary` for permission and security questions.
 

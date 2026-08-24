@@ -147,6 +147,117 @@ for usage in field_usages:
     print(f"[{usage.location_type}] {usage.context}")
 ```
 
+## Finding Orphans
+
+`KnackSleuth` exposes five orphan detectors. The first two find unreachable *data*;
+the last three find *page-layout* debt — a Knack scene stores its layout
+(`groups[].columns[].keys[]`) separately from its view definitions (`scene.views`),
+and nothing keeps the two in sync.
+
+```python
+from knack_sleuth import KnackSleuth, load_app_metadata
+
+sleuth = KnackSleuth(load_app_metadata(app_id="abc123", no_cache=True))
+
+# Unused data definitions
+for obj, field in sleuth.find_orphaned_fields():
+    print(f"{obj.name}.{field.name} ({field.key}) is unused")
+
+for obj in sleuth.find_orphaned_objects():
+    print(f"{obj.name} ({obj.key}) has no connections and no views")
+```
+
+### Orphaned views
+
+A view defined on a scene but left out of that scene's layout never renders. These
+accumulate when a page is copied or a view is moved.
+
+```python
+for orphan in sleuth.find_orphaned_views():
+    print(f"{orphan.scene.name}: {orphan.view.name} ({orphan.view.key})")
+```
+
+`OrphanedView` carries the full `Scene` and `View` models, not just keys, so you can
+inspect the dead view's source object, columns, or inputs.
+
+Two exclusions are built in, and they matter: `login` views render from the scene
+chrome rather than the layout grid, and a scene with an *entirely* empty layout has no
+layout to be excluded from (Knack leaves `groups` empty on the child pages it generates
+for Edit/Details/Delete links). Without them the check over-reports by roughly 5x.
+
+### Dangling layout keys and stale rule references
+
+The inverse defect, and its knock-on:
+
+```python
+for item in sleuth.find_dangling_layout_keys():
+    where = f"moved to {item.moved_to}" if item.moved_to else "deleted"
+    print(f"{item.scene.key} layout points at {item.view_key} ({where})")
+
+for item in sleuth.find_stale_view_rule_references():
+    # reason is "orphaned" (defined but off-layout) or "missing" (gone entirely)
+    print(f"{item.scene.key} {item.rule_path} -> {item.view_key} ({item.reason})")
+```
+
+`rule_path` is a dotted path into the scene, e.g. `rules.0.view_keys`, so you can locate
+the rule in a raw metadata export.
+
+### Orphaned views do not count as usage
+
+A reference living only in an orphaned view cannot keep a field or object looking alive,
+so `find_orphaned_fields()` and `find_orphaned_objects()` ignore it. The reference is
+still reported by `search_field()`, tagged so you can tell the dead ones apart:
+
+```python
+for usage in sleuth.search_field("field_116"):
+    if usage.details.get("orphaned_view"):
+        print(f"DEAD: {usage.context}")
+    else:
+        print(f"live: {usage.context}")
+```
+
+`sleuth.orphaned_view_keys` holds the same set if you need it directly.
+
+## Linking into the Builder
+
+No API can delete a view. Knack's REST API is record-level CRUD only ("View-Based
+DELETE" deletes a *record through* a view). Knack's MCP server can create, update, and
+delete tables and fields, but it "does not support Knack-based frontend / Page / Theme
+building" — pages and views stay builder-only. So orphaned views cannot be removed
+programmatically; the cleanup path is the builder UI.
+
+That is awkward for an orphan specifically: it is not on the page canvas, so there is
+nothing to hover and delete. `builder_url()` builds a view-level deep link, which is the
+only handle on it.
+
+```python
+from knack_sleuth import builder_url
+
+app = metadata.application
+
+# Page-level link
+builder_url(app, "scene_455")
+# -> https://builder.knack.com/{account_slug}/{app_slug}/pages/scene_455
+
+# View-level link -- the one an orphan needs
+for orphan in sleuth.find_orphaned_views():
+    print(builder_url(
+        app,
+        orphan.scene.key,
+        view_key=orphan.view.key,
+        view_type=orphan.view.type,
+    ))
+# -> https://builder.knack.com/{account_slug}/{app_slug}/pages/scene_455/views/view_1377/form
+
+# Next-Gen builder host
+builder_url(app, "scene_455", next_gen=True)
+# -> https://builder-next.knack.com/...
+```
+
+The grammar is `{account_slug}/{app_slug}/pages/{scene_key}` — two *different* slugs, since
+the account owns the app. `builder_url()` reads both off the `Application` model and falls
+back to the app slug when `account.slug` is absent.
+
 ## Complete Example
 
 See `examples/library_usage_example.py` for a complete working example.
