@@ -312,3 +312,36 @@ class TestFindOrphansViews:
         assert result.exit_code == 0
         assert "Orphaned Views" in result.output
         assert "view_2" in result.output
+
+
+def test_app_summary_markdown_reports_page_layout_debt(tmp_path):
+    """The JSON debt section carries the layout counts; the markdown one is
+    what people actually read, so it must not silently drop them."""
+    app = {
+        "application": {
+            "id": "app_1", "name": "Layout Debt", "slug": "layout-debt",
+            "account": {"slug": "acme"},
+            "home_scene": {"key": "scene_1", "slug": "home"},
+            "objects": [],
+            "scenes": [{
+                "key": "scene_1", "name": "Home", "slug": "home",
+                "groups": [{"columns": [{"keys": ["view_1", "view_8"]}]}],
+                "rules": [{"action": "hide_views", "view_keys": ["view_2"]}],
+                "views": [
+                    {"key": "view_1", "name": "Live", "type": "table"},
+                    {"key": "view_2", "name": "Leftover", "type": "form"},
+                ],
+            }],
+        }
+    }
+    path = tmp_path / "app.json"
+    path.write_text(json.dumps(app))
+
+    result = runner.invoke(
+        cli, ["app-summary", str(path), "--format", "markdown"], env=WIDE
+    )
+
+    assert result.exit_code == 0
+    assert "Orphaned views: 1" in result.output
+    assert "Dangling layout keys: 1" in result.output
+    assert "Stale view rule references: 1" in result.output
