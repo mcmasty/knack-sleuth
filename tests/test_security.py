@@ -801,6 +801,35 @@ class TestRoleAccessSummaryCli:
             header = next(csv.reader(f))
         assert "scene_key" in header
 
+    def test_rows_say_why_the_role_can_open_the_scene(self, tmp_path, report):
+        # Issue #27: a blank profile list used to read as "this role can open
+        # it" with no way to tell a genuine login-only page from a resolver
+        # gap. Every row now carries the basis for its access.
+        out = tmp_path / "role_summary.csv"
+        result = runner.invoke(
+            cli,
+            ["role-access-summary", "--role", "Object Name 3", str(SAMPLE_FILE), "-o", str(out)],
+            env=WIDE,
+        )
+        assert result.exit_code == 0
+        with out.open(newline="") as f:
+            rows = list(csv.DictReader(f))
+
+        analyses = {a.scene_key: a for a in report.scene_analyses}
+        expected = {}
+        for key, a in analyses.items():
+            if "Object Name 3" in a.allowed_profiles:
+                expected[key] = "role"
+            elif not a.requires_login:
+                expected[key] = "public"
+            elif not a.allowed_profiles:
+                expected[key] = "any_login"
+        assert {row["scene_key"]: row["access_basis"] for row in rows} == expected
+        assert "role" in expected.values()
+        for basis in ("role", "any_login", "public"):
+            count = sum(1 for v in expected.values() if v == basis)
+            assert f"{basis}: {count}" in result.output
+
     def test_unknown_role_exits_1_and_lists_available_roles(self):
         result = runner.invoke(
             cli,
