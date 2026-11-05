@@ -276,6 +276,82 @@ class TestSecurityInheritance:
         assert analysis.allowed_profiles == ["Child"]
 
 
+    def _login_gated_chain(self):
+        # Mirrors issue #27: a login page whose login view limits access to
+        # Admin, a child that sets authenticated=True itself with no profiles
+        # of its own, and a grandchild with no security settings at all.
+        login = Scene(
+            key="scene_login",
+            name="Reporting Login",
+            slug="reporting-login",
+            type="authentication",
+            views=[{
+                "key": "view_login",
+                "name": "Login",
+                "type": "login",
+                "limit_profile_access": True,
+                "allowed_profiles": ["profile_admin"],
+            }],
+        )
+        bare_auth = Scene(
+            key="scene_bare",
+            name="Financial Reporting",
+            slug="financial-reporting",
+            parent="reporting-login",
+            authenticated=True,
+            allowed_profiles=None,
+        )
+        grandchild = Scene(
+            key="scene_grandchild",
+            name="Report Detail",
+            slug="report-detail",
+            parent="financial-reporting",
+        )
+        return login, bare_auth, grandchild
+
+    def test_own_bare_authentication_does_not_hide_login_ancestor_profiles(self):
+        login, bare_auth, grandchild = self._login_gated_chain()
+        hierarchy = build_navigation_hierarchy([login, bare_auth, grandchild])
+
+        analysis = analyze_scene_security(bare_auth, {"profile_admin": "Admin"}, hierarchy)
+
+        assert analysis.requires_login is True
+        assert analysis.inherits_security is True
+        assert analysis.allowed_profiles == ["Admin"]
+        assert "Reporting Login" in analysis.security_concern
+
+    def test_bare_authentication_ancestor_passes_through_login_profiles(self):
+        login, bare_auth, grandchild = self._login_gated_chain()
+        hierarchy = build_navigation_hierarchy([login, bare_auth, grandchild])
+
+        analysis = analyze_scene_security(grandchild, {"profile_admin": "Admin"}, hierarchy)
+
+        assert analysis.requires_login is True
+        assert analysis.inherits_security is True
+        assert analysis.allowed_profiles == ["Admin"]
+        assert "Reporting Login" in analysis.security_concern
+
+    def test_bare_authentication_without_restricted_ancestor_stays_login_only(self):
+        parent = Scene(
+            key="scene_parent", name="Public Parent", slug="public-parent",
+            authenticated=False,
+        )
+        bare_auth = Scene(
+            key="scene_bare", name="Members Area", slug="members-area",
+            parent="public-parent", authenticated=True,
+        )
+        child = Scene(
+            key="scene_child", name="Member Page", slug="member-page",
+            parent="members-area",
+        )
+        hierarchy = build_navigation_hierarchy([parent, bare_auth, child])
+
+        for scene in (bare_auth, child):
+            analysis = analyze_scene_security(scene, {}, hierarchy)
+            assert analysis.requires_login is True
+            assert analysis.allowed_profiles == []
+
+
 # ---------------------------------------------------------------------------
 # C. Navigation path / hierarchy
 # ---------------------------------------------------------------------------

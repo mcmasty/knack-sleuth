@@ -172,17 +172,27 @@ def _inherited_restrictions(start_slug: str, hierarchy: dict[str, Any]) -> list[
             profiles = _get_allowed_profile_keys(candidate)
             if profiles:
                 _merge_restriction(found, tuple(profiles), False, label)
-            elif candidate.authenticated is True:
+                continue
+            # A bare login requirement does not end the walk: the scene still
+            # sits behind every ancestor, so a login page above it that limits
+            # profiles still decides which roles get in (issue #27).
+            bare_auth = candidate.authenticated is True
+            inherited, branch_cyclic = walk(candidate.parent, deeper)
+            cyclic = cyclic or branch_cyclic
+            if bare_auth and not inherited:
+                # Every route above is a cycle; the scene's own login stands.
                 _merge_restriction(found, (), True, label)
-            else:
-                inherited, branch_cyclic = walk(candidate.parent, deeper)
-                cyclic = cyclic or branch_cyclic
-                for inherited_profiles, inherited_auth, inherited_label in inherited:
-                    # Name this scene when the branch above it named nobody, so
-                    # an unprotected route can still say where it ran out.
-                    _merge_restriction(
-                        found, inherited_profiles, inherited_auth, inherited_label or label
-                    )
+            for inherited_profiles, inherited_auth, inherited_label in inherited:
+                if bare_auth and not inherited_profiles:
+                    # Nothing stricter above: this scene's own login is the
+                    # restriction, so name it.
+                    _merge_restriction(found, (), True, label)
+                    continue
+                # Name this scene when the branch above it named nobody, so
+                # an unprotected route can still say where it ran out.
+                _merge_restriction(
+                    found, inherited_profiles, inherited_auth, inherited_label or label
+                )
 
         result = [
             (profiles, authenticated, " / ".join(labels) or None)
@@ -350,7 +360,9 @@ def analyze_scene_security(
     has_parent = bool(parent_slug)
     inherits_security = False
     inherited_from_name = None
-    has_own_security = authenticated is True or bool(allowed_profile_keys)
+    # Only a profile restriction is final. A bare authenticated=True still
+    # inherits any profile restriction from a login page above it (issue #27).
+    has_own_security = bool(allowed_profile_keys)
     
     ambiguous_parents = None
     if has_parent and not has_own_security:
@@ -374,7 +386,9 @@ def analyze_scene_security(
                 sorted(label for _, _, label in restrictions if label)
             )
 
-        if inherited_profiles or inherited_auth:
+        # A scene that already demands login only "inherits" when the
+        # ancestor adds something: a profile restriction.
+        if inherited_profiles or (inherited_auth and authenticated is not True):
             inherits_security = True
             allowed_profile_keys = list(inherited_profiles)
             if authenticated is None:
