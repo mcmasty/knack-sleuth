@@ -531,6 +531,50 @@ class TestNavigationHierarchy:
         assert analysis.requires_login is False
         assert elapsed < 2.0, f"ancestor walk took {elapsed:.1f}s -- not memoized"
 
+    @pytest.mark.parametrize("authenticated", [True, None])
+    def test_cyclic_duplicate_slugs_do_not_make_the_walk_exponential(self, authenticated):
+        # A duplicate slug can point back down the chain, so resolving parents
+        # by slug alone produces a cycle. A cycle must not switch memoization
+        # off for the whole chain, or the walk doubles per level again. Bare
+        # authentication is no longer a stopping point (issue #27), so login-
+        # only chains reach the cycle as readily as unauthenticated ones.
+        import time
+
+        depth = 20
+        scenes = [
+            Scene(
+                key="scene_root", name="Root", slug="level_0",
+                allowed_profiles=["profile_admin"],
+            )
+        ]
+        for level in range(1, depth + 1):
+            for side in ("a", "b"):
+                scenes.append(
+                    Scene(
+                        key=f"scene_{level}_{side}",
+                        name=f"Level {level}{side}",
+                        slug=f"level_{level}",
+                        parent=f"level_{level - 1}",
+                        authenticated=authenticated,
+                    )
+                )
+        # Reuses the root's slug but hangs below the deepest level.
+        scenes.append(
+            Scene(key="scene_loop", name="Loop", slug="level_0", parent=f"level_{depth}")
+        )
+        leaf = Scene(key="scene_leaf", name="Leaf", slug="leaf", parent=f"level_{depth}")
+        scenes.append(leaf)
+        hierarchy = build_navigation_hierarchy(scenes)
+
+        started = time.perf_counter()
+        analysis = analyze_scene_security(leaf, {"profile_admin": "Admin"}, hierarchy)
+        elapsed = time.perf_counter() - started
+
+        # The only route that reaches a root goes through the Admin-only scene.
+        assert analysis.requires_login is True
+        assert analysis.allowed_profiles == ["Admin"]
+        assert elapsed < 2.0, f"ancestor walk took {elapsed:.1f}s -- cycle defeated memoization"
+
     def test_conflicting_duplicate_parent_does_not_abort_the_report(self):
         # The whole-report path is what users actually run; a per-scene
         # ambiguity must not take the entire security report down with it.
