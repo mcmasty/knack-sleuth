@@ -57,7 +57,7 @@ All five discovery/search commands support `--format rich|json`; use `--format j
 
 - `role-access-review` — CSV report of which user profiles (roles) can access which scenes/pages.
   - Key flags: `--summary-only` for top-level pages only
-- `role-access-summary` — Show all pages and views accessible by a specific role.
+- `role-access-summary` — Show all pages and views accessible by a specific role; the `access_basis` column says whether the role is named on the page (`role`), any logged-in user can open it (`any_login`), or it is public (`public`).
   - Key flags: `--role "Role Name"` or `--profile-key profile_1`
 
 ### Utility

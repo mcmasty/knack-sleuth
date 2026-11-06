@@ -2753,18 +2753,22 @@ def role_access_summary(
     scenes_by_key = {s.key: s for s in app_export.application.scenes}
 
     for scene_analysis in report.scene_analyses:
-        # Check if profile has access to this scene
-        # Profile has access if:
-        # 1. Scene is public (no login required), OR
-        # 2. Scene has no profile restrictions (unrestricted authenticated), OR
-        # 3. Profile is in the allowed_profiles list
-        has_access = (
-            not scene_analysis.requires_login or
-            (scene_analysis.requires_login and scene_analysis.allowed_profile_count == 0) or
-            target_profile_name in scene_analysis.allowed_profiles
-        )
+        # Record *why* the profile gets in, so a reader can tell a scene that
+        # names this role from one any logged-in user can open (issue #27).
+        if target_profile_name in scene_analysis.allowed_profiles:
+            access_basis = 'role'
+        elif not scene_analysis.requires_login:
+            access_basis = 'public'
+        elif scene_analysis.allowed_profile_count == 0:
+            access_basis = 'any_login'
+        else:
+            access_basis = None
+        if access_basis and scene_analysis.scene_type == 'user':
+            # Utility pages need a Knack system-level account on top of
+            # whatever the app grants, so neither public nor any_login fits.
+            access_basis = 'utility'
 
-        if has_access:
+        if access_basis:
             # Get the actual scene object to check views
             scene = scenes_by_key.get(scene_analysis.scene_key)
             if scene:
@@ -2777,9 +2781,10 @@ def role_access_summary(
                     'page_nav': scene_analysis.page_nav,
                     'scene_key': scene_analysis.scene_key,
                     'scene_slug': scene_analysis.scene_slug,
-                    'view_names': ', '.join(view_names) if view_names else '',
-                    'view_keys': ', '.join(view_keys) if view_keys else '',
+                    'view_names': ', '.join(view_names),
+                    'view_keys': ', '.join(view_keys),
                     'view_count': len(view_names),
+                    'access_basis': access_basis,
                 })
 
     # Print summary to console
@@ -2797,6 +2802,13 @@ def role_access_summary(
     scenes_without_views = len(accessible_scenes) - scenes_with_views
     console.print(f"  Scenes with Views: {scenes_with_views}")
     console.print(f"  Scenes without Views: {scenes_without_views}")
+    console.print(
+        "Access basis (role = profile named on the scene, any_login = any logged-in user, "
+        "public = no login, utility = Knack system-level account):"
+    )
+    for basis in ('role', 'any_login', 'public', 'utility'):
+        count = sum(1 for s in accessible_scenes if s['access_basis'] == basis)
+        console.print(f"  {basis}: {count}")
 
     # Determine output path with timestamp
     if not output:
@@ -2814,6 +2826,7 @@ def role_access_summary(
         'scene_slug',
         'view_names',
         'view_keys',
+        'access_basis',
     ]
 
     with output.open('w', newline='') as f:
