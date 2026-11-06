@@ -2768,6 +2768,10 @@ def role_access_summary(
             access_basis = 'any_login'
         else:
             access_basis = None
+        if access_basis and scene_analysis.scene_type == 'user':
+            # Utility pages need a Knack system-level account on top of
+            # whatever the app grants, so neither public nor any_login fits.
+            access_basis = 'utility'
 
         if access_basis:
             # Get the actual scene object to check views
@@ -2803,8 +2807,11 @@ def role_access_summary(
     scenes_without_views = len(accessible_scenes) - scenes_with_views
     console.print(f"  Scenes with Views: {scenes_with_views}")
     console.print(f"  Scenes without Views: {scenes_without_views}")
-    console.print("Access basis (role = profile named on the scene, any_login = any logged-in user, public = no login):")
-    for basis in ('role', 'any_login', 'public'):
+    console.print(
+        "Access basis (role = profile named on the scene, any_login = any logged-in user, "
+        "public = no login, utility = Knack system-level account):"
+    )
+    for basis in ('role', 'any_login', 'public', 'utility'):
         count = sum(1 for s in accessible_scenes if s['access_basis'] == basis)
         console.print(f"  {basis}: {count}")
 

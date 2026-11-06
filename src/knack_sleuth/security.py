@@ -118,6 +118,123 @@ def _restriction_strength(restriction: Restriction) -> int:
     return 1 if authenticated else 0
 
 
+# (profiles, bare login) -> labels; a dict keeps discovery order with O(1) dedupe
+_Found = dict[tuple[tuple[str, ...], bool], dict[str, None]]
+_Entry = tuple[tuple[str, ...], bool, tuple[str, ...]]
+_TOP_OF_CHAIN: list[_Entry] = [((), False, ())]
+
+
+def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:
+    """Restrictions for every slug, solved once per hierarchy and cached.
+
+    Resolving parents by slug alone can close a cycle (a duplicate slug that
+    hangs below its namesake). A recursive walk then has to choose between
+    route-dependent memo entries and re-exploring every fork, which doubles per
+    level. Instead, solve the slug equations as a fixpoint: each slug's
+    restrictions are the union over its scenes, every sweep only adds, so it
+    terminates, and a route that only loops contributes nothing. Slugs are
+    swept parents-first, so an acyclic graph is exact after one sweep.
+
+    Solving for the whole app at once (rather than per scene) keeps a report
+    linear in the number of scenes even when one slug feeds hundreds of labels
+    to every descendant.
+    """
+    cached = hierarchy.get('_inherited_restrictions')
+    if cached is not None:
+        return cached
+
+    scenes_by_slug: dict[str, list[Scene]] = hierarchy['scenes_by_slug']
+    own_profiles = {
+        candidate.key: tuple(_get_allowed_profile_keys(candidate))
+        for candidates in scenes_by_slug.values()
+        for candidate in candidates
+    }
+
+    # Every slug, parents before children.
+    order: list[str] = []
+    seen: set[str] = set()
+    for root in scenes_by_slug:
+        stack: list[tuple[str, bool]] = [(root, False)]
+        while stack:
+            slug, expanded = stack.pop()
+            if expanded:
+                order.append(slug)
+                continue
+            if slug in seen or slug not in scenes_by_slug:
+                continue
+            seen.add(slug)
+            stack.append((slug, True))
+            for candidate in reversed(scenes_by_slug[slug]):
+                if candidate.parent and candidate.parent not in seen:
+                    stack.append((candidate.parent, False))
+
+    values: dict[str, _Found] = {slug: {} for slug in order}
+    sizes: dict[str, int] = {slug: 0 for slug in order}
+    # Login-only scenes whose every route upward only loops: their own login
+    # stands, as it would at the top of a chain.
+    looping_logins: set[str] = set()
+
+    def inherited(parent: str | None) -> list[_Entry]:
+        if not parent or parent not in values:
+            return _TOP_OF_CHAIN  # top of the chain, or a dangling reference
+        return [(profiles, auth, tuple(labels)) for (profiles, auth), labels in values[parent].items()]
+
+    def solve(slug: str) -> _Found:
+        found: _Found = {}
+        for candidate in scenes_by_slug[slug]:
+            label = _scene_label(candidate)
+            profiles = own_profiles[candidate.key]
+            if profiles:
+                found.setdefault((profiles, False), {}).setdefault(label)
+                continue
+            # A bare login requirement does not end the walk: the scene still
+            # sits behind every ancestor, so a login page above it that limits
+            # profiles still decides which roles get in (issue #27).
+            bare_auth = candidate.authenticated is True
+            if candidate.key in looping_logins:
+                found.setdefault(((), True), {}).setdefault(label)
+            for inherited_profiles, inherited_auth, inherited_labels in inherited(candidate.parent):
+                if bare_auth and not inherited_profiles:
+                    # Nothing stricter above: this scene's own login is the
+                    # restriction, so name it.
+                    found.setdefault(((), True), {}).setdefault(label)
+                    continue
+                # Name this scene when the branch above it named nobody, so
+                # an unprotected route can still say where it ran out.
+                bucket = found.setdefault((inherited_profiles, inherited_auth), {})
+                for inherited_label in inherited_labels or (label,):
+                    bucket.setdefault(inherited_label)
+        return found
+
+    while True:
+        changed = True
+        while changed:
+            changed = False
+            for slug in order:
+                solved = solve(slug)
+                # Sweeps only ever add, so a size change is a change.
+                size = sum(len(labels) for labels in solved.values()) + len(solved)
+                if size != sizes[slug]:
+                    changed = True
+                    sizes[slug] = size
+                values[slug] = solved
+        newly_looping = {
+            candidate.key
+            for slug in order
+            for candidate in scenes_by_slug[slug]
+            if candidate.authenticated is True
+            and not own_profiles[candidate.key]
+            and candidate.parent in values
+            and not values[candidate.parent]
+        } - looping_logins
+        if not newly_looping:
+            break
+        looping_logins |= newly_looping
+
+    hierarchy['_inherited_restrictions'] = values
+    return values
+
+
 def _inherited_restrictions(start_slug: str, hierarchy: dict[str, Any]) -> list[Restriction]:
     """Every distinct restriction reachable by walking up from ``start_slug``.
 
@@ -126,108 +243,13 @@ def _inherited_restrictions(start_slug: str, hierarchy: dict[str, Any]) -> list[
     unprotected route, so explore all branches and let the caller see the
     disagreement. Branches that are security-equivalent collapse into a single
     entry with their labels combined -- differing *names* are not a conflict.
-
-    Resolving parents by slug alone can also close a cycle (a duplicate slug
-    that hangs below its namesake). A recursive walk then has to choose between
-    route-dependent memo entries and re-exploring every fork, which doubles per
-    level. Instead, solve the slug equations as a fixpoint over the ancestor
-    closure: each slug's restrictions are the union over its scenes, every
-    sweep only adds, so it terminates, and a route that only loops contributes
-    nothing. Slugs are swept parents-first, so an acyclic chain is exact after
-    one sweep.
     """
-    scenes_by_slug: dict[str, list[Scene]] = hierarchy['scenes_by_slug']
-
-    # Ancestor slugs reachable from start_slug, parents before children.
-    order: list[str] = []
-    seen: set[str] = set()
-    stack: list[tuple[str, bool]] = [(start_slug, False)] if start_slug else []
-    while stack:
-        slug, expanded = stack.pop()
-        if expanded:
-            order.append(slug)
-            continue
-        if slug in seen or slug not in scenes_by_slug:
-            continue
-        seen.add(slug)
-        stack.append((slug, True))
-        for candidate in reversed(scenes_by_slug[slug]):
-            if candidate.parent and candidate.parent not in seen:
-                stack.append((candidate.parent, False))
-
-    # slug -> {(profiles, bare login): labels in discovery order}
-    Found = dict[tuple[tuple[str, ...], bool], list[str]]
-    values: dict[str, Found] = {slug: {} for slug in order}
-    top_of_chain: list[tuple[tuple[str, ...], bool, tuple[str, ...]]] = [((), False, ())]
-    # Login-only scenes whose every route upward only loops: their own login
-    # stands, as it would at the top of a chain.
-    looping_logins: set[str] = set()
-
-    def inherited(parent: str | None) -> list[tuple[tuple[str, ...], bool, tuple[str, ...]]]:
-        if not parent or parent not in values:
-            return top_of_chain  # top of the chain, or a dangling reference
-        return [(profiles, auth, tuple(labels)) for (profiles, auth), labels in values[parent].items()]
-
-    def solve(slug: str) -> Found:
-        found: Found = {}
-
-        def merge(profiles: tuple[str, ...], auth: bool, labels: tuple[str, ...]) -> None:
-            bucket = found.setdefault((profiles, auth), [])
-            for label in labels:
-                if label not in bucket:
-                    bucket.append(label)
-
-        for candidate in scenes_by_slug[slug]:
-            label = _scene_label(candidate)
-            profiles = _get_allowed_profile_keys(candidate)
-            if profiles:
-                merge(tuple(profiles), False, (label,))
-                continue
-            # A bare login requirement does not end the walk: the scene still
-            # sits behind every ancestor, so a login page above it that limits
-            # profiles still decides which roles get in (issue #27).
-            bare_auth = candidate.authenticated is True
-            if candidate.key in looping_logins:
-                merge((), True, (label,))
-            for inherited_profiles, inherited_auth, inherited_labels in inherited(candidate.parent):
-                if bare_auth and not inherited_profiles:
-                    # Nothing stricter above: this scene's own login is the
-                    # restriction, so name it.
-                    merge((), True, (label,))
-                    continue
-                # Name this scene when the branch above it named nobody, so
-                # an unprotected route can still say where it ran out.
-                merge(inherited_profiles, inherited_auth, inherited_labels or (label,))
-        return found
-
-    def as_sets(found: Found) -> dict[tuple[tuple[str, ...], bool], frozenset[str]]:
-        return {key: frozenset(labels) for key, labels in found.items()}
-
-    while True:
-        changed = True
-        while changed:
-            changed = False
-            for slug in order:
-                solved = solve(slug)
-                if as_sets(solved) != as_sets(values[slug]):
-                    changed = True
-                values[slug] = solved
-        newly_looping = {
-            candidate.key
-            for slug in order
-            for candidate in scenes_by_slug[slug]
-            if candidate.authenticated is True
-            and not _get_allowed_profile_keys(candidate)
-            and candidate.parent in values
-            and not values[candidate.parent]
-        } - looping_logins
-        if not newly_looping:
-            break
-        looping_logins |= newly_looping
-
+    values = _solve_inheritance(hierarchy)
+    if start_slug not in values:
+        return [((), False, None)]  # dangling parent reference
     restrictions = [
         (profiles, auth, " / ".join(labels) or None)
-        for profiles, auth, labels in inherited(start_slug)
+        for (profiles, auth), labels in values[start_slug].items()
     ]
     # Every route was a cycle: nothing is actually inherited.
     return restrictions or [((), False, None)]

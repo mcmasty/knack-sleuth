@@ -575,6 +575,42 @@ class TestNavigationHierarchy:
         assert analysis.allowed_profiles == ["Admin"]
         assert elapsed < 2.0, f"ancestor walk took {elapsed:.1f}s -- cycle defeated memoization"
 
+    def test_many_scenes_sharing_a_slug_stay_fast_across_the_report(self):
+        # Hundreds of scenes behind one shared slug all contribute a label to
+        # the same restriction, and every scene in the chain below inherits
+        # it. Re-deriving that per scene, or merging labels by list scans,
+        # turns the full report quadratic or worse.
+        import time
+
+        width = depth = 200
+        scenes = [
+            Scene(
+                key=f"scene_shared_{i}", name=f"Shared {i}", slug="shared",
+                allowed_profiles=["profile_admin"],
+            )
+            for i in range(width)
+        ]
+        parent = "shared"
+        for level in range(depth):
+            scenes.append(
+                Scene(key=f"scene_chain_{level}", name=f"Chain {level}",
+                      slug=f"chain_{level}", parent=parent)
+            )
+            parent = f"chain_{level}"
+        app = Application(
+            id="app_wide", name="Wide", slug="wide",
+            home_scene={"key": "scene_shared_0", "slug": "shared"},
+            scenes=scenes, objects=[],
+        )
+
+        started = time.perf_counter()
+        report = generate_security_report(app)
+        elapsed = time.perf_counter() - started
+
+        deepest = next(a for a in report.scene_analyses if a.scene_key == f"scene_chain_{depth - 1}")
+        assert deepest.allowed_profiles == ["profile_admin"]
+        assert elapsed < 2.0, f"security report took {elapsed:.1f}s"
+
     def test_conflicting_duplicate_parent_does_not_abort_the_report(self):
         # The whole-report path is what users actually run; a per-scene
         # ambiguity must not take the entire security report down with it.
@@ -824,11 +860,50 @@ class TestRoleAccessSummaryCli:
                 expected[key] = "public"
             elif not a.allowed_profiles:
                 expected[key] = "any_login"
+            if key in expected and a.scene_type == "user":
+                expected[key] = "utility"
         assert {row["scene_key"]: row["access_basis"] for row in rows} == expected
         assert "role" in expected.values()
-        for basis in ("role", "any_login", "public"):
+        for basis in ("role", "any_login", "public", "utility"):
             count = sum(1 for v in expected.values() if v == basis)
             assert f"{basis}: {count}" in result.output
+
+    @pytest.mark.parametrize("authenticated", [None, True])
+    def test_utility_pages_have_their_own_access_basis(self, tmp_path, authenticated):
+        # Utility pages (type "user") need a Knack system-level account, so
+        # neither "public" nor "any logged-in user" describes them.
+        app = {
+            "application": {
+                "id": "app_utility", "name": "Utility", "slug": "utility",
+                "home_scene": {"key": "scene_home", "slug": "home"},
+                "objects": [{
+                    "key": "object_1", "name": "Staff", "user": True,
+                    "profile_key": "profile_staff", "fields": [],
+                }],
+                "scenes": [
+                    {"key": "scene_home", "name": "Home", "slug": "home", "views": []},
+                    {
+                        "key": "scene_utility", "name": "Account Settings",
+                        "slug": "account-settings", "type": "user",
+                        "authenticated": authenticated, "views": [],
+                    },
+                ],
+            }
+        }
+        app_file = tmp_path / "app.json"
+        app_file.write_text(json.dumps(app))
+        out = tmp_path / "summary.csv"
+
+        result = runner.invoke(
+            cli,
+            ["role-access-summary", "--profile-key", "profile_staff", str(app_file), "-o", str(out)],
+            env=WIDE,
+        )
+        assert result.exit_code == 0, result.output
+        with out.open(newline="") as f:
+            rows = {row["scene_key"]: row["access_basis"] for row in csv.DictReader(f)}
+        assert rows["scene_utility"] == "utility"
+        assert "utility: 1" in result.output
 
     def test_unknown_role_exits_1_and_lists_available_roles(self):
         result = runner.invoke(
