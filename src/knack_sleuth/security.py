@@ -96,14 +96,21 @@ def _resolve_scene_by_slug(
     so the path stays deterministic. Security inheritance does not come through
     here -- see ``_inherited_restrictions``, which explores every branch.
     """
-    candidates = hierarchy['scenes_by_slug'].get(slug, [])
-    if not candidates:
-        return None, None
-    if len(candidates) == 1:
-        return candidates[0], candidates[0].name
-
-    label = " / ".join(_scene_label(scene) for scene in candidates)
-    return candidates[0], label
+    # Cached per slug: a path walk resolves the same slugs for every scene
+    # under it, and a heavily duplicated slug has a long label to join.
+    cache = hierarchy.setdefault('_resolved_slugs', {})
+    resolved = cache.get(slug)
+    if resolved is None:
+        candidates = hierarchy['scenes_by_slug'].get(slug, [])
+        if not candidates:
+            resolved = (None, None)
+        elif len(candidates) == 1:
+            resolved = (candidates[0], candidates[0].name)
+        else:
+            label = " / ".join(_scene_label(scene) for scene in candidates)
+            resolved = (candidates[0], label)
+        cache[slug] = resolved
+    return resolved
 
 
 # (allowed profile keys, requires authentication, where it came from)
@@ -120,8 +127,9 @@ def _restriction_strength(restriction: Restriction) -> int:
 
 # (profiles, bare login) -> labels; a dict keeps discovery order with O(1) dedupe
 _Found = dict[tuple[tuple[str, ...], bool], dict[str, None]]
-_Entry = tuple[tuple[str, ...], bool, tuple[str, ...]]
-_TOP_OF_CHAIN: list[_Entry] = [((), False, ())]
+# What a scene inherits above the top of a chain, or past a dangling parent
+# reference: no restriction, and no label (the scene names itself).
+_TOP_OF_CHAIN: _Found = {((), False): {}}
 
 
 def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:
@@ -150,34 +158,39 @@ def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:
         for candidate in candidates
     }
 
-    # Every slug, parents before children.
+    # Every slug, parents before children. A parent that is still open on the
+    # DFS path is a back edge: the slug graph has a cycle, and one sweep is
+    # not enough.
     order: list[str] = []
     seen: set[str] = set()
+    finished: set[str] = set()
+    cyclic = False
     for root in scenes_by_slug:
         stack: list[tuple[str, bool]] = [(root, False)]
         while stack:
             slug, expanded = stack.pop()
             if expanded:
                 order.append(slug)
+                finished.add(slug)
                 continue
-            if slug in seen or slug not in scenes_by_slug:
+            if slug in seen:
                 continue
             seen.add(slug)
             stack.append((slug, True))
             for candidate in reversed(scenes_by_slug[slug]):
-                if candidate.parent and candidate.parent not in seen:
-                    stack.append((candidate.parent, False))
+                parent = candidate.parent
+                if not parent or parent not in scenes_by_slug:
+                    continue
+                if parent not in seen:
+                    stack.append((parent, False))
+                elif parent not in finished:
+                    cyclic = True
 
     values: dict[str, _Found] = {slug: {} for slug in order}
     sizes: dict[str, int] = {slug: 0 for slug in order}
     # Login-only scenes whose every route upward only loops: their own login
     # stands, as it would at the top of a chain.
     looping_logins: set[str] = set()
-
-    def inherited(parent: str | None) -> list[_Entry]:
-        if not parent or parent not in values:
-            return _TOP_OF_CHAIN  # top of the chain, or a dangling reference
-        return [(profiles, auth, tuple(labels)) for (profiles, auth), labels in values[parent].items()]
 
     def solve(slug: str) -> _Found:
         found: _Found = {}
@@ -193,7 +206,10 @@ def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:
             bare_auth = candidate.authenticated is True
             if candidate.key in looping_logins:
                 found.setdefault(((), True), {}).setdefault(label)
-            for inherited_profiles, inherited_auth, inherited_labels in inherited(candidate.parent):
+            # An unsolved parent (only possible inside a cycle) is an empty
+            # dict here and contributes nothing on this sweep.
+            inherited = values.get(candidate.parent, _TOP_OF_CHAIN)
+            for (inherited_profiles, inherited_auth), inherited_labels in inherited.items():
                 if bare_auth and not inherited_profiles:
                     # Nothing stricter above: this scene's own login is the
                     # restriction, so name it.
@@ -206,18 +222,24 @@ def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:
                     bucket.setdefault(inherited_label)
         return found
 
-    while True:
-        changed = True
-        while changed:
-            changed = False
-            for slug in order:
-                solved = solve(slug)
-                # Sweeps only ever add, so a size change is a change.
-                size = sum(len(labels) for labels in solved.values()) + len(solved)
-                if size != sizes[slug]:
-                    changed = True
-                    sizes[slug] = size
-                values[slug] = solved
+    def sweep() -> bool:
+        changed = False
+        for slug in order:
+            solved = solve(slug)
+            # Sweeps only ever add, so a size change is a change.
+            size = sum(len(labels) for labels in solved.values()) + len(solved)
+            if size != sizes[slug]:
+                changed = True
+                sizes[slug] = size
+            values[slug] = solved
+        return changed
+
+    sweep()
+    # Parents-first order makes one sweep exact on an acyclic graph, and no
+    # route can loop there, so the fixpoint iteration only runs for cycles.
+    while cyclic:
+        while sweep():
+            pass
         newly_looping = {
             candidate.key
             for slug in order
@@ -255,6 +277,44 @@ def _inherited_restrictions(start_slug: str, hierarchy: dict[str, Any]) -> list[
     return restrictions or [((), False, None)]
 
 
+def _walk_ancestors(
+    parent_slug: str,
+    hierarchy: dict[str, Any],
+) -> tuple[list[str], str | None, str | None]:
+    """Walk the parent chain once for everything a navigation path needs.
+
+    Returns the ancestor labels root-first, the name of the nearest menu an
+    ancestor belongs to, and the label of the top-most ancestor (the root
+    login page for a "Direct" chain). A slug that does not resolve ends the
+    chain with the slug itself, and a repeated slug ends it silently.
+    """
+    scenes_by_key = hierarchy['scenes_by_key']
+    chain: list[str] = []
+    menu_name: str | None = None
+    root_login_name: str | None = None
+    current_slug: str | None = parent_slug
+    visited_slugs: set[str] = set()
+
+    while current_slug and current_slug not in visited_slugs:
+        visited_slugs.add(current_slug)
+        current_scene, current_label = _resolve_scene_by_slug(current_slug, hierarchy)
+        if not current_scene:
+            chain.append(current_slug)
+            break
+        chain.append(current_label)
+        if not current_scene.parent:
+            root_login_name = current_label
+        if menu_name is None:
+            menu_ref = current_scene.model_extra.get('menu') if current_scene.model_extra else None
+            menu_scene = scenes_by_key.get(menu_ref) if menu_ref else None
+            if menu_scene:
+                menu_name = menu_scene.name
+        current_slug = current_scene.parent
+
+    chain.reverse()
+    return chain, menu_name, root_login_name
+
+
 def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, str]:
     """Build navigation path for a scene showing menu > parent > page.
     
@@ -286,35 +346,15 @@ def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, 
             root_nav = menu_scene.name
     
     # If no direct menu but has parent, walk up parent chain to find menu or root login page
-    if root_nav == "Direct" and parent_slug:
-        current_slug = parent_slug
-        root_login_name = None  # Track the topmost scene (potential login page)
-        visited_slugs = set()
-        
-        while current_slug and current_slug not in visited_slugs and root_nav == "Direct":
-            visited_slugs.add(current_slug)
-            current_scene, current_label = _resolve_scene_by_slug(current_slug, hierarchy)
-            if current_scene:
-                # Track this as potential root login page
-                if not current_scene.parent:
-                    root_login_name = current_label
-                
-                # Check for menu in parent
-                parent_menu_ref = current_scene.model_extra.get('menu') if hasattr(current_scene, 'model_extra') and current_scene.model_extra else None
-                if parent_menu_ref:
-                    menu_scene = scenes_by_key.get(parent_menu_ref)
-                    if menu_scene:
-                        root_nav = menu_scene.name
-                        break
-                # Move to next parent
-                current_slug = current_scene.parent
-            else:
-                break
-        
-        # If still Direct and we found a root login page, use its name
-        if root_nav == "Direct" and root_login_name:
-            root_scene_name = root_login_name
-    
+    parent_chain: list[str] = []
+    if parent_slug:
+        parent_chain, menu_name, root_login_name = _walk_ancestors(parent_slug, hierarchy)
+        if root_nav == "Direct":
+            if menu_name:
+                root_nav = menu_name
+            elif root_login_name:
+                root_scene_name = root_login_name
+
     # If this scene itself is a top-level (no parent, no menu) authentication page, use its name
     if root_nav == "Direct" and not parent_slug and scene_type == 'authentication':
         root_scene_name = scene_name
@@ -331,25 +371,6 @@ def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, 
         page_nav = scene_name
     elif parent_slug:
         nav_level = "Child"
-        # Build full parent chain recursively
-        parent_chain = []
-        current_slug = parent_slug
-        visited_slugs = set()
-        
-        # Walk up the parent chain
-        while current_slug and current_slug not in visited_slugs:
-            visited_slugs.add(current_slug)
-            current_scene, current_label = _resolve_scene_by_slug(current_slug, hierarchy)
-            if current_scene:
-                parent_chain.append(current_label)
-                current_slug = current_scene.parent
-            else:
-                parent_chain.append(current_slug)
-                break
-        
-        # Reverse to get root-to-leaf order
-        parent_chain.reverse()
-        
         # Build path: [Menu/Root >] Grandparent > Parent > Page
         if root_nav != "Direct":
             page_nav = f"{root_nav} > {' > '.join(parent_chain)} > {scene_name}"
@@ -515,16 +536,19 @@ def count_children(scene_key: str, all_scenes: list[SceneSecurity]) -> int:
     Returns:
         Count of child scenes
     """
-    count = 0
-    for scene in all_scenes:
-        # Check if this scene's page_nav contains the parent's name
-        # This is a simplified check - could be more sophisticated
-        parent_scene = next((s for s in all_scenes if s.scene_key == scene_key), None)
-        if parent_scene and parent_scene.scene_name in scene.page_nav and scene.scene_key != scene_key:
-            # Make sure it's actually a descendant, not just mentioned in the path
-            if scene.nav_level == "Child":
-                count += 1
-    return count
+    parent_scene = next((s for s in all_scenes if s.scene_key == scene_key), None)
+    if parent_scene is None:
+        return 0
+    # Check if this scene's page_nav contains the parent's name. This is a
+    # simplified check - could be more sophisticated. "Child" makes sure it is
+    # actually a descendant, not just mentioned in the path.
+    return sum(
+        1
+        for scene in all_scenes
+        if scene.scene_key != scene_key
+        and scene.nav_level == "Child"
+        and parent_scene.scene_name in scene.page_nav
+    )
 
 
 def get_views_for_profile(scene: Scene, profile_key: str, profile_name: str) -> tuple[list[str], list[str]]:
