@@ -2753,11 +2753,6 @@ def role_access_summary(
     scenes_by_key = {s.key: s for s in app_export.application.scenes}
 
     for scene_analysis in report.scene_analyses:
-        # Check if profile has access to this scene
-        # Profile has access if:
-        # 1. Scene is public (no login required), OR
-        # 2. Scene has no profile restrictions (unrestricted authenticated), OR
-        # 3. Profile is in the allowed_profiles list
         # Record *why* the profile gets in, so a reader can tell a scene that
         # names this role from one any logged-in user can open (issue #27).
         if target_profile_name in scene_analysis.allowed_profiles:
@@ -2786,8 +2781,8 @@ def role_access_summary(
                     'page_nav': scene_analysis.page_nav,
                     'scene_key': scene_analysis.scene_key,
                     'scene_slug': scene_analysis.scene_slug,
-                    'view_names': ', '.join(view_names) if view_names else '',
-                    'view_keys': ', '.join(view_keys) if view_keys else '',
+                    'view_names': ', '.join(view_names),
+                    'view_keys': ', '.join(view_keys),
                     'view_count': len(view_names),
                     'access_basis': access_basis,
                 })

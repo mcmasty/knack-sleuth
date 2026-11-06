@@ -4,10 +4,23 @@ This module provides functions to analyze which user profiles (roles) can
 access which scenes (pages) in a Knack application.
 """
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from typing import Any
 
+from pydantic import BaseModel
+
 from knack_sleuth.models import Application, Scene, SceneSecurity, SecurityReport
+
+
+def _extra(model: BaseModel) -> dict[str, Any]:
+    """Fields Knack sends that the model does not declare (``extra="allow"``)."""
+    return model.model_extra or {}
+
+
+def _menu_name(scene: Scene, scenes_by_key: dict[str, Scene]) -> str | None:
+    """Name of the menu a scene belongs to, if its ``menu`` reference resolves."""
+    menu_scene = scenes_by_key.get(_extra(scene).get('menu') or '')
+    return menu_scene.name if menu_scene else None
 
 
 def get_profile_mapping(app: Application) -> dict[str, str]:
@@ -48,8 +61,7 @@ def build_navigation_hierarchy(scenes: list[Scene]) -> dict[str, Any]:
     # Group scenes by their menu (using extra attributes if they exist)
     scenes_by_menu = defaultdict(list)
     for scene in scenes:
-        # Access menu via model_extra if available
-        menu_ref = scene.model_extra.get('menu') if hasattr(scene, 'model_extra') and scene.model_extra else None
+        menu_ref = _extra(scene).get('menu')
         if menu_ref:
             scenes_by_menu[menu_ref].append(scene)
     
@@ -63,20 +75,15 @@ def build_navigation_hierarchy(scenes: list[Scene]) -> dict[str, Any]:
 
 def _get_allowed_profile_keys(scene: Scene) -> list[str]:
     """Return direct scene/view profile restrictions in stable order."""
-    allowed_profiles: list[str] = []
-    if scene.model_extra:
-        allowed_profiles = scene.model_extra.get('allowed_profiles', []) or []
-        if not allowed_profiles:
-            allowed_profiles = scene.model_extra.get('profile_keys', []) or []
-
-    if allowed_profiles:
-        return list(dict.fromkeys(allowed_profiles))
-
-    view_profiles = []
-    for view in scene.views:
-        if view.model_extra:
-            view_profiles.extend(view.model_extra.get('allowed_profiles', []) or [])
-    return list(dict.fromkeys(view_profiles))
+    extra = _extra(scene)
+    allowed_profiles = extra.get('allowed_profiles') or extra.get('profile_keys') or []
+    if not allowed_profiles:
+        allowed_profiles = [
+            profile
+            for view in scene.views
+            for profile in _extra(view).get('allowed_profiles') or []
+        ]
+    return list(dict.fromkeys(allowed_profiles))
 
 
 def _scene_label(scene: Scene) -> str:
@@ -187,7 +194,6 @@ def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:
                     cyclic = True
 
     values: dict[str, _Found] = {slug: {} for slug in order}
-    sizes: dict[str, int] = {slug: 0 for slug in order}
     # Login-only scenes whose every route upward only loops: their own login
     # stands, as it would at the top of a chain.
     looping_logins: set[str] = set()
@@ -226,11 +232,10 @@ def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:
         changed = False
         for slug in order:
             solved = solve(slug)
-            # Sweeps only ever add, so a size change is a change.
-            size = sum(len(labels) for labels in solved.values()) + len(solved)
-            if size != sizes[slug]:
+            if solved != values[slug]:
                 changed = True
-                sizes[slug] = size
+            # Store even when equal: dict equality ignores label order, and
+            # the report uses the order of the last sweep.
             values[slug] = solved
         return changed
 
@@ -305,10 +310,7 @@ def _walk_ancestors(
         if not current_scene.parent:
             root_login_name = current_label
         if menu_name is None:
-            menu_ref = current_scene.model_extra.get('menu') if current_scene.model_extra else None
-            menu_scene = scenes_by_key.get(menu_ref) if menu_ref else None
-            if menu_scene:
-                menu_name = menu_scene.name
+            menu_name = _menu_name(current_scene, scenes_by_key)
         current_slug = current_scene.parent
 
     chain.reverse()
@@ -325,26 +327,18 @@ def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, 
     Returns:
         Dict with root_nav, page_nav, nav_level
     """
-    scenes_by_key = hierarchy['scenes_by_key']
     scene_name = scene.name
     scene_type = scene.type
     parent_slug = scene.parent
-    
-    # Get menu reference from extra attributes
-    menu_ref = scene.model_extra.get('menu') if hasattr(scene, 'model_extra') and scene.model_extra else None
-    
-    # Determine root navigation
-    root_nav = "Direct"
+
+    # Determine root navigation: a menu scene is its own root, otherwise the
+    # menu the scene belongs to.
     root_scene_name = None  # Track root login page for Direct pages
-    
-    # If this scene IS a menu, use its own name
     if scene_type == 'menu':
         root_nav = scene_name
-    elif menu_ref:
-        menu_scene = scenes_by_key.get(menu_ref)
-        if menu_scene:
-            root_nav = menu_scene.name
-    
+    else:
+        root_nav = _menu_name(scene, hierarchy['scenes_by_key']) or "Direct"
+
     # If no direct menu but has parent, walk up parent chain to find menu or root login page
     parent_chain: list[str] = []
     if parent_slug:
@@ -363,30 +357,18 @@ def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, 
     if scene_type == 'user':
         display_root_nav = "Utility Page"
     else:
-        display_root_nav = root_scene_name if root_scene_name else root_nav
-    
-    # Determine navigation level
+        display_root_nav = root_scene_name or root_nav
+
+    # Navigation level and path: [Menu/Root >] Grandparent > Parent > Page
     if scene_type == 'menu':
         nav_level = "Menu"
         page_nav = scene_name
-    elif parent_slug:
-        nav_level = "Child"
-        # Build path: [Menu/Root >] Grandparent > Parent > Page
-        if root_nav != "Direct":
-            page_nav = f"{root_nav} > {' > '.join(parent_chain)} > {scene_name}"
-        elif root_scene_name:
-            page_nav = f"{' > '.join(parent_chain)} > {scene_name}"
-        else:
-            page_nav = f"{' > '.join(parent_chain)} > {scene_name}"
     else:
-        nav_level = "Top-Level"
+        nav_level = "Child" if parent_slug else "Top-Level"
+        page_nav = " > ".join([*parent_chain, scene_name])
         if root_nav != "Direct":
-            page_nav = f"{root_nav} > {scene_name}"
-        elif root_scene_name:
-            page_nav = scene_name
-        else:
-            page_nav = scene_name
-    
+            page_nav = f"{root_nav} > {page_nav}"
+
     return {
         'root_nav': display_root_nav,
         'page_nav': page_nav,
@@ -429,12 +411,11 @@ def analyze_scene_security(
     has_parent = bool(parent_slug)
     inherits_security = False
     inherited_from_name = None
+
+    ambiguous_parents = None
     # Only a profile restriction is final. A bare authenticated=True still
     # inherits any profile restriction from a login page above it (issue #27).
-    has_own_security = bool(allowed_profile_keys)
-    
-    ambiguous_parents = None
-    if has_parent and not has_own_security:
+    if has_parent and not allowed_profile_keys:
         restrictions = _inherited_restrictions(parent_slug, hierarchy)
         # Least restrictive branches win. If any route to this scene is
         # unprotected, that is the finding; a stricter sibling route must not
@@ -565,32 +546,20 @@ def get_views_for_profile(scene: Scene, profile_key: str, profile_name: str) -> 
     accessible_views_names = []
     accessible_views_keys = []
 
-    # Check scene-level security first
-    scene_allowed_profiles = []
-    if hasattr(scene, 'model_extra') and scene.model_extra:
-        scene_allowed_profiles = scene.model_extra.get('allowed_profiles', [])
-
     # If scene has no restrictions, all views are accessible (if no view-level restrictions)
     # If scene has restrictions, profile must be in the list
+    scene_allowed_profiles = _extra(scene).get('allowed_profiles', [])
     scene_accessible = not scene_allowed_profiles or profile_key in scene_allowed_profiles
 
     for view in scene.views:
-        view_accessible = False
-
-        # Check view-level security
-        view_allowed_profiles = []
-        limit_profile_access = False
-
-        if hasattr(view, 'model_extra') and view.model_extra:
-            view_allowed_profiles = view.model_extra.get('allowed_profiles', [])
-            limit_profile_access = view.model_extra.get('limit_profile_access', False)
-
-        if limit_profile_access and view_allowed_profiles:
+        extra = _extra(view)
+        view_allowed_profiles = extra.get('allowed_profiles', [])
+        if extra.get('limit_profile_access', False) and view_allowed_profiles:
             # View has explicit restrictions
             view_accessible = profile_key in view_allowed_profiles
-        elif scene_accessible:
+        else:
             # View inherits scene-level access (no view-level restrictions)
-            view_accessible = True
+            view_accessible = scene_accessible
 
         if view_accessible:
             accessible_views_names.append(view.name)
@@ -611,10 +580,9 @@ def generate_security_report(app: Application) -> SecurityReport:
     profiles = get_profile_mapping(app)
     hierarchy = build_navigation_hierarchy(app.scenes)
 
-    scene_analyses = []
-    for scene in app.scenes:
-        analysis = analyze_scene_security(scene, profiles, hierarchy)
-        scene_analyses.append(analysis)
+    scene_analyses = [
+        analyze_scene_security(scene, profiles, hierarchy) for scene in app.scenes
+    ]
 
     # Sort by navigation path for better readability
     # Put "Direct" and "Utility Page" pages after menu pages
@@ -640,10 +608,9 @@ def generate_security_report(app: Application) -> SecurityReport:
     utility_pages = sum(1 for s in scene_analyses if s.scene_type == 'user')
 
     # Profile access summary
-    profile_access = defaultdict(int)
-    for scene in scene_analyses:
-        for profile in scene.allowed_profiles:
-            profile_access[profile] += 1
+    profile_access = Counter(
+        profile for scene in scene_analyses for profile in scene.allowed_profiles
+    )
 
     return SecurityReport(
         app_name=app.name,
