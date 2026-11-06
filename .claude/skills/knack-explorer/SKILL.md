@@ -7,7 +7,7 @@ agent: knack-dev
 context: fork
 ---
 
-<!-- knack-sleuth-version: 0.7.1 -->
+<!-- knack-sleuth-version: 0.8.0 -->
 
 # Knack App Explorer
 
