@@ -1,7 +1,7 @@
 from dataclasses import asdict
 from importlib import resources
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 import json
 import re
 
@@ -395,7 +395,7 @@ def list_objects(
     app_export = load_app_metadata(file_path, app_id, refresh)
 
     # Collect rows and calculate totals
-    entries = []
+    entries: list[dict[str, Any]] = []
     total_rows = 0
     total_fields = 0
     total_afferent = 0
@@ -1715,10 +1715,10 @@ def export_db_schema(
 
         # Save to file
         with output_file.open("w") as f:
-            if format == "json":
-                json.dump(schema, f, indent=2)
-            else:
+            if isinstance(schema, str):
                 f.write(schema)
+            else:
+                json.dump(schema, f, indent=2)
 
         file_size = output_file.stat().st_size
         file_size_kb = file_size / 1024
@@ -1943,10 +1943,10 @@ def export_schema_subgraph(
 
         # Save to file
         with output_file.open("w") as f:
-            if format == "json":
-                json.dump(schema, f, indent=2)
-            else:
+            if isinstance(schema, str):
                 f.write(schema)
+            else:
+                json.dump(schema, f, indent=2)
 
         file_size = output_file.stat().st_size
         file_size_kb = file_size / 1024
@@ -2729,7 +2729,7 @@ def role_access_summary(
         matching_profiles = [(k, v) for k, v in report.profiles.items() if v == role]
         if not matching_profiles:
             # Try case-insensitive match
-            matching_profiles = [(k, v) for k, v in report.profiles.items() if v.lower() == role.lower()]
+            matching_profiles = [(k, v) for k, v in report.profiles.items() if v.lower() == (role or "").lower()]
 
         if not matching_profiles:
             err_console.print(f"[red]Error:[/red] Role '{role}' not found in application")
@@ -2749,7 +2749,7 @@ def role_access_summary(
     # Filter scenes accessible by this profile
     console.print(f"[dim]Filtering scenes accessible by '{target_profile_name}' ({target_profile_key})...[/dim]")
 
-    accessible_scenes = []
+    accessible_scenes: list[dict[str, Any]] = []
     scenes_by_key = {s.key: s for s in app_export.application.scenes}
 
     for scene_analysis in report.scene_analyses:

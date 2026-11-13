@@ -225,7 +225,7 @@ def diff_applications(old: Application, new: Application) -> dict[str, Any]:
         views_removed.extend(removed)
         views_changed.extend(changed)
 
-    result = {
+    result: dict[str, Any] = {
         "summary": {
             "old_app_name": old.name,
             "new_app_name": new.name,

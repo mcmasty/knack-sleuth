@@ -22,6 +22,7 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "bump-my-version>=1.2.4",
+    "pyrefly>=1.3.2,<1.4",
     "pytest>=8.4.2",
     "pytest-mock>=3.15.1",
     "ruff>=0.14.2",
@@ -71,7 +72,12 @@ Repository = "https://github.com/mcmasty/knack-sleuth"
 Issues = "https://github.com/mcmasty/knack-sleuth/issues"
 
 [tool.ruff]
-exclude = ["tests/*"]
+target-version = "py311"
+
+[tool.ruff.lint]
+# Ruff's default rule set (pyflakes + pycodestyle errors), stated explicitly so
+# CI gates on a known set. Types are pyrefly's job.
+select = ["E4", "E7", "E9", "F"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
@@ -84,3 +90,7 @@ addopts = [
     "--strict-markers",
     "--strict-config",
 ]
+
+[tool.pyrefly]
+project-includes = ["src", "tests", "examples"]
+python-version = "3.11"

@@ -6,7 +6,12 @@ on:
       - 'v*'
 
 jobs:
+  checks:
+    # Same lint, type and test gates as pull requests; publish waits on them.
+    uses: ./.github/workflows/test.yml
+
   publish:
+    needs: checks
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # Required for trusted publishing

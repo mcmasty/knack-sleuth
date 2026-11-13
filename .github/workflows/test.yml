@@ -5,8 +5,31 @@ on:
     branches: [ main, master, develop ]
   pull_request:
     branches: [ main, master, develop ]
+  # The publish workflow calls this one so a release cannot skip the gates.
+  workflow_call:
 
 jobs:
+  lint:
+    name: Lint and type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        # --locked fails the job if uv.lock is out of date with pyproject.toml.
+        run: uv sync --locked --python 3.11
+
+      - name: Ruff
+        run: uv run --locked ruff check --output-format=github .
+
+      - name: Pyrefly
+        run: uv run --locked pyrefly check
+
   test:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -29,7 +52,7 @@ jobs:
           enable-cache: true
       
       - name: Install dependencies
-        run: uv sync --all-extras --dev
+        run: uv sync --locked --all-extras --dev
       
       - name: Run tests
         run: uv run pytest -v

@@ -33,6 +33,8 @@ def main():
     # Example 1: Search for an object (with cascading to fields)
     object_key = "object_12"  # Example object from test data
     obj = sleuth.get_object_info(object_key)
+    if obj is None:
+        raise SystemExit(f"{object_key} not found in the sample metadata")
 
     print(f"Searching for object: {obj.name} ({object_key})")
     print(f"  Fields in this object: {len(obj.fields)}")
@@ -75,7 +77,7 @@ def main():
     field_key = "field_116"  # Connection field from test data
     obj_info, field_info = sleuth.get_field_info(field_key)
 
-    if field_info:
+    if field_info and obj_info:
         print(f"Searching for field: {obj_info.name}.{field_info.name} ({field_key})")
         print(f"  Field type: {field_info.type}\n")
 

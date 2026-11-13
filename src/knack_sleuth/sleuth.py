@@ -850,7 +850,7 @@ class KnackSleuth:
     ) -> dict[str, Any]:
         """Analyze impact of changes to a field."""
         obj_info, field_info = self.get_field_info(field_key)
-        if not field_info:
+        if not field_info or not obj_info:
             analysis["error"] = f"Field {field_key} not found"
             return analysis
 
@@ -1013,7 +1013,7 @@ class KnackSleuth:
             },
         }
 
-    def _classify_object_roles(self, obj: KnackObject) -> dict[str, bool]:
+    def _classify_object_roles(self, obj: KnackObject) -> dict[str, Any]:
         """Classify an object into multiple orthogonal categories.
         
         Returns a dict with boolean flags:
@@ -1120,7 +1120,7 @@ class KnackSleuth:
             if obj.connections:
                 total_connections = len(obj.connections.inbound) + len(obj.connections.outbound)
 
-            obj_summary = {
+            obj_summary: dict[str, Any] = {
                 "object_key": obj.key,
                 "name": obj.name,
                 "record_count": record_count,
@@ -1228,7 +1228,11 @@ class KnackSleuth:
                             "from": obj.key,
                             "from_name": obj.name,
                             "to": conn.object,
-                            "to_name": self.objects_by_key.get(conn.object, type('obj', (), {'name': 'Unknown'})).name,
+                            "to_name": (
+                                self.objects_by_key[conn.object].name
+                                if conn.object in self.objects_by_key
+                                else "Unknown"
+                            ),
                             "via": conn.key,
                             "connection_name": conn.name,
                             "type": f"{conn.has}_to_{conn.belongs_to}",
@@ -1570,10 +1574,12 @@ class KnackSleuth:
                         obj_connections = set(
                             c.object for c in obj.connections.outbound
                         )
-                        target_connections = set(
-                            c.object
-                            for c in target.connections.outbound
+                        # The old inline filter ran after the iterable was
+                        # built, so a target without connections crashed.
+                        target_connections = (
+                            {c.object for c in target.connections.outbound}
                             if target.connections
+                            else set()
                         )
                         shared = obj_connections & target_connections
 
