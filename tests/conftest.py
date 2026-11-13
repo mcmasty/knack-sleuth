@@ -50,17 +50,10 @@ def mock_api_error():
     """Mock API error response."""
     import httpx
     
-    class MockResponse:
-        status_code = 404
-        text = "Application not found"
-    
     def raise_error(*args, **kwargs):
         """Raise HTTPStatusError regardless of arguments."""
-        response = MockResponse()
-        raise httpx.HTTPStatusError(
-            "404 Not Found",
-            request=None,
-            response=response
-        )
+        request = httpx.Request("GET", "https://api.knack.com/v1/applications/invalid")
+        response = httpx.Response(404, text="Application not found", request=request)
+        raise httpx.HTTPStatusError("404 Not Found", request=request, response=response)
     
     return raise_error

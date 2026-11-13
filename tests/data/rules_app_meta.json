@@ -1,0 +1,518 @@
+{
+  "application": {
+    "id": "app_rules",
+    "name": "Rules Fixture",
+    "slug": "rules-fixture",
+    "account": {
+      "slug": "acme"
+    },
+    "home_scene": {
+      "key": "scene_1",
+      "slug": "apply"
+    },
+    "objects": [
+      {
+        "key": "object_1",
+        "name": "Applicants",
+        "inflections": {
+          "singular": "Applicant",
+          "plural": "Applicants"
+        },
+        "fields": [
+          {
+            "key": "field_1",
+            "name": "Name",
+            "type": "name"
+          },
+          {
+            "key": "field_2",
+            "name": "Email",
+            "type": "email"
+          },
+          {
+            "key": "field_3",
+            "name": "Status",
+            "type": "multiple_choice",
+            "conditional": true,
+            "rules": [
+              {
+                "key": "1",
+                "criteria": [
+                  {
+                    "field": "field_4",
+                    "operator": "contains",
+                    "value": "duplicate"
+                  }
+                ],
+                "values": [
+                  {
+                    "type": "value",
+                    "field": "field_3",
+                    "value": "Rejected",
+                    "input": "",
+                    "connection_field": null
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "field_4",
+            "name": "Reviewer Notes",
+            "type": "paragraph_text"
+          },
+          {
+            "key": "field_5",
+            "name": "Program",
+            "type": "connection",
+            "relationship": {
+              "has": "one",
+              "object": "object_2",
+              "belongs_to": "many"
+            }
+          }
+        ],
+        "tasks": [
+          {
+            "key": "task_1",
+            "name": "Weekly reminder",
+            "object_key": "object_1",
+            "type": "actions",
+            "scheduled": true,
+            "run_status": "paused",
+            "schedule": {
+              "repeat": "weekly",
+              "date": "01/05/2026",
+              "time": "8:00am"
+            },
+            "action": {
+              "action": "email",
+              "criteria": [
+                {
+                  "field": "field_3",
+                  "operator": "is",
+                  "value": "Pending"
+                }
+              ],
+              "email": {
+                "subject": "Reminder",
+                "message": "TASK_BODY_SECRET",
+                "from_email": "noreply@sender.example",
+                "email": "task.custom@staff.example",
+                "recipient_type": "custom",
+                "recipients": [
+                  {
+                    "recipient_mode": "to",
+                    "recipient_type": "field",
+                    "field": "field_2",
+                    "email": "x@applicant.example"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "key": "object_2",
+        "name": "Programs",
+        "inflections": {
+          "singular": "Program",
+          "plural": "Programs"
+        },
+        "fields": [
+          {
+            "key": "field_10",
+            "name": "Title",
+            "type": "short_text"
+          }
+        ]
+      }
+    ],
+    "scenes": [
+      {
+        "key": "scene_1",
+        "name": "Apply",
+        "slug": "apply",
+        "groups": [
+          {
+            "columns": [
+              {
+                "keys": [
+                  "view_1"
+                ]
+              }
+            ]
+          }
+        ],
+        "views": [
+          {
+            "key": "view_1",
+            "name": "Application Form",
+            "type": "form",
+            "action": "insert",
+            "source": {
+              "object": "object_1"
+            },
+            "rules": {
+              "emails": [
+                {
+                  "key": "1",
+                  "action": "email",
+                  "criteria": [],
+                  "connection": "",
+                  "email": {
+                    "subject": "Thanks for applying",
+                    "message": "<p>BODY_SECRET {field_4}</p>",
+                    "from_name": "Intake",
+                    "from_email": "noreply@sender.example",
+                    "recipients": [
+                      {
+                        "recipient_mode": "to",
+                        "recipient_type": "field",
+                        "field": "field_2",
+                        "email": "leftover@applicant.example"
+                      },
+                      {
+                        "recipient_mode": "bcc",
+                        "recipient_type": "custom",
+                        "field": "field_2",
+                        "email": "intake.officer@staff.example"
+                      }
+                    ]
+                  },
+                  "values": [
+                    {
+                      "type": "value",
+                      "input": "",
+                      "value": "",
+                      "connection_field": ""
+                    }
+                  ]
+                }
+              ],
+              "records": [
+                {
+                  "key": "1",
+                  "action": "record",
+                  "criteria": [],
+                  "connection": "",
+                  "values": [
+                    {
+                      "type": "value",
+                      "field": "field_4",
+                      "value": "",
+                      "input": "",
+                      "connection_field": ""
+                    }
+                  ]
+                }
+              ],
+              "submits": [
+                {
+                  "key": "submit_1",
+                  "action": "message",
+                  "message": "<p>Thanks!</p>\n",
+                  "criteria": []
+                }
+              ],
+              "fields": [
+                {
+                  "key": "1",
+                  "actions": [
+                    {
+                      "action": "hide",
+                      "field": "field_4",
+                      "value": ""
+                    }
+                  ],
+                  "criteria": [
+                    {
+                      "field": "field_3",
+                      "operator": "is not",
+                      "value": "Rejected"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "key": "scene_2",
+        "name": "Review",
+        "slug": "review",
+        "groups": [
+          {
+            "columns": [
+              {
+                "keys": [
+                  "view_2",
+                  "view_3",
+                  "view_6",
+                  "view_7"
+                ]
+              }
+            ]
+          }
+        ],
+        "views": [
+          {
+            "key": "view_2",
+            "name": "Applicants Table",
+            "type": "table",
+            "source": {
+              "object": "object_1"
+            },
+            "columns": [
+              {
+                "type": "field",
+                "field": {
+                  "key": "field_1"
+                },
+                "header": "Name"
+              },
+              {
+                "type": "action_link",
+                "header": "",
+                "link_text": "Reject",
+                "action_rules": [
+                  {
+                    "key": "1",
+                    "link_text": "Reject",
+                    "criteria": [],
+                    "record_rules": [
+                      {
+                        "key": "1",
+                        "action": "record",
+                        "criteria": null,
+                        "values": [
+                          {
+                            "type": "value",
+                            "field": "field_3",
+                            "value": "Rejected",
+                            "input": "",
+                            "connection_field": null
+                          }
+                        ]
+                      }
+                    ],
+                    "submit_rules": [
+                      {
+                        "action": "message",
+                        "message": "Applicant rejected",
+                        "reload_show": false
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "view_3",
+            "name": "Applicant Details",
+            "type": "details",
+            "source": {
+              "object": "object_1"
+            },
+            "columns": [
+              {
+                "groups": [
+                  {
+                    "columns": [
+                      [
+                        {
+                          "key": "field_1",
+                          "type": "field"
+                        },
+                        {
+                          "type": "action_link",
+                          "link_text": "Approve",
+                          "action_rules": [
+                            {
+                              "key": "1",
+                              "link_text": "Approve",
+                              "criteria": [],
+                              "record_rules": [
+                                {
+                                  "key": "1",
+                                  "action": "record",
+                                  "criteria": [],
+                                  "values": [
+                                    {
+                                      "type": "value",
+                                      "field": "field_3",
+                                      "value": "Approved"
+                                    }
+                                  ]
+                                }
+                              ],
+                              "submit_rules": [],
+                              "email_rules": [
+                                {
+                                  "key": "1",
+                                  "action": "email",
+                                  "criteria": [],
+                                  "email": {
+                                    "subject": "You're in",
+                                    "message": "APPROVE_BODY_SECRET",
+                                    "recipients": [
+                                      {
+                                        "recipient_mode": "to",
+                                        "recipient_type": "field",
+                                        "field": "field_2",
+                                        "email": "y@applicant.example"
+                                      }
+                                    ]
+                                  }
+                                }
+                              ],
+                              "future_rules": []
+                            }
+                          ]
+                        }
+                      ]
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "view_4",
+            "name": "Old Withdraw Form",
+            "type": "form",
+            "action": "update",
+            "source": {
+              "object": "object_1"
+            },
+            "rules": {
+              "emails": [],
+              "submits": [],
+              "records": [
+                {
+                  "key": "1",
+                  "action": "record",
+                  "criteria": [],
+                  "values": [
+                    {
+                      "type": "value",
+                      "field": "field_3",
+                      "value": "Withdrawn"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "key": "view_6",
+            "name": "Applicant List",
+            "type": "list",
+            "source": {
+              "object": "object_1"
+            },
+            "columns": [
+              {
+                "type": "action_link",
+                "link_text": "Notify",
+                "action_rules": [
+                  {
+                    "key": "1",
+                    "link_text": "Notify",
+                    "criteria": [],
+                    "record_rules": [
+                      {
+                        "key": "1",
+                        "action": "email",
+                        "criteria": [],
+                        "email": {
+                          "subject": "Status update",
+                          "message": "NOTIFY_BODY_SECRET",
+                          "recipients": [
+                            {
+                              "recipient_mode": "to",
+                              "recipient_type": "field",
+                              "field": "field_2",
+                              "email": "z@applicant.example"
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "submit_rules": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "view_7",
+            "name": "Plain Table",
+            "type": "table",
+            "source": {
+              "object": "object_1"
+            },
+            "columns": [
+              {
+                "type": "field",
+                "field": {
+                  "key": "field_1"
+                },
+                "header": "Name"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "key": "scene_3",
+        "name": "Programs",
+        "slug": "programs",
+        "groups": [
+          {
+            "columns": [
+              {
+                "keys": [
+                  "view_5"
+                ]
+              }
+            ]
+          }
+        ],
+        "views": [
+          {
+            "key": "view_5",
+            "name": "Close Program",
+            "type": "form",
+            "action": "update",
+            "source": {
+              "object": "object_2"
+            },
+            "rules": {
+              "emails": [],
+              "submits": [],
+              "records": [
+                {
+                  "key": "1",
+                  "action": "connection",
+                  "connection": "object_1.field_5",
+                  "criteria": [],
+                  "values": [
+                    {
+                      "type": "value",
+                      "field": "field_3",
+                      "value": "Program closed"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

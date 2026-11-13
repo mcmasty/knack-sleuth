@@ -6,22 +6,27 @@ on:
       - 'v*'
 
 jobs:
+  checks:
+    # Same lint, type and test gates as pull requests; publish waits on them.
+    uses: ./.github/workflows/test.yml
+
   publish:
+    needs: checks
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # Required for trusted publishing
       contents: read
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
       

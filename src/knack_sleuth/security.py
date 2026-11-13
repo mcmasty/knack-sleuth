@@ -214,7 +214,11 @@ def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:
                 found.setdefault(((), True), {}).setdefault(label)
             # An unsolved parent (only possible inside a cycle) is an empty
             # dict here and contributes nothing on this sweep.
-            inherited = values.get(candidate.parent, _TOP_OF_CHAIN)
+            inherited = (
+                values.get(candidate.parent, _TOP_OF_CHAIN)
+                if candidate.parent
+                else _TOP_OF_CHAIN
+            )
             for (inherited_profiles, inherited_auth), inherited_labels in inherited.items():
                 if bare_auth and not inherited_profiles:
                     # Nothing stricter above: this scene's own login is the
@@ -306,7 +310,7 @@ def _walk_ancestors(
         if not current_scene:
             chain.append(current_slug)
             break
-        chain.append(current_label)
+        chain.append(current_label or current_slug)
         if not current_scene.parent:
             root_login_name = current_label
         if menu_name is None:

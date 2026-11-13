@@ -1,17 +1,20 @@
 ---
 name: knack-explorer
-description: Explore Knack.app database structure using knack-sleuth CLI. Use when analyzing Knack apps, objects, fields, or relationships.
+description: "Answer questions about what a Knack.app app DOES and how it is built, using the knack-sleuth CLI. Use for behaviour questions (does this form, button, action link or status change send an email, create, update or delete records, or redirect? what happens when a user submits X or clicks Y? which pages, views or roles can see or change this?) as well as objects, fields and relationships. Knack Builder rules run outside any code repo, so a search of custom code that finds nothing does not prove that nothing happens."
 allowed-tools:
   - Bash(uvx knack-sleuth *)
 agent: knack-dev
 context: fork
 ---
 
-<!-- knack-sleuth-version: 0.8.0 -->
+<!-- knack-sleuth-version: 0.9.0 -->
 
 # Knack App Explorer
 
-You have access to `knack-sleuth`, a CLI for exploring Knack.app databases.
+You have access to `knack-sleuth`, a CLI for exploring Knack.app apps: their schema *and* their
+behaviour. Emails, record updates, redirects and scheduled jobs are configured as Builder rules
+that live in the app metadata, not in any code repo. If a question is about what the app does,
+answer it from the metadata. Do not say you "can't see Builder rules". `show-rules` shows them.
 
 **Important:** The Knack metadata API is public — no API key is required. You only need the
 application ID (`--app-id`), or have `KNACK_APP_ID` set as an environment variable.
@@ -28,9 +31,11 @@ Each command is invoked via `uvx knack-sleuth <command> ...`. Run any command wi
   - Key flags: `--no-fields` to suppress field-level detail
 - `search-field` — Find all usages of a single field (by key or name) without cascading through the whole object.
 - `show-coupling` — Show afferent (inbound) and efferent (outbound) coupling for an object.
+- `show-rules` — Show what an object's forms, action links and scheduled tasks **do**: email rules (subject, recipients, conditions; never the body), record rules (field = value, connected-record updates and inserts), submit rules (message, redirect, child page), and tasks with their run status. It also lists record rules on *other* objects' views that change this object through a connection, and flags rules on orphaned views as unreachable.
+  - Key flags: `--object NAME_OR_KEY`, `--view view_NNN`
 - `find-orphans` — List orphaned fields and objects (defined but not used anywhere), plus page-layout debt: orphaned views (defined on a scene but left out of its layout, so they never render), dangling layout keys, and stale view rule references. Orphaned views carry a builder deep link — there is no API to delete a view.
 
-All five discovery/search commands support `--format rich|json`; use `--format json` for machine-readable output (status messages go to stderr, so stdout stays clean).
+All six discovery/search commands support `--format rich|json`; use `--format json` for machine-readable output (status messages go to stderr, so stdout stays clean).
 
 ### Schema export
 
@@ -64,6 +69,53 @@ All five discovery/search commands support `--format rich|json`; use `--format j
 
 - `download-metadata` — Download and save Knack app metadata to a local JSON file (the output path is a positional argument).
 - `cache` — Manage the local metadata cache: `cache list`, `cache clear [--app-id ID]`, `cache dir`.
+
+## Behaviour lives in view rules
+
+Questions like "does rejecting an applicant email them?" are answered by rules, not schema.
+Run `show-rules --object <object>` first. This is where each kind of rule sits in the raw metadata:
+
+| What fires it | Where it is in the metadata | Rule lists |
+|---|---|---|
+| Form submit | `scenes[].views[].rules` | `emails`, `records`, `submits`, `fields` |
+| Action link in a table or details view | `views[].columns[].action_rules[]` (column `type: "action_link"`; details views nest it under `columns[].groups[].columns[]`) | `record_rules`, `submit_rules`, email rules when present |
+| Schedule | `objects[].tasks` | task actions and criteria |
+| Any save of the record (form, link, import, API) | `objects[].fields[].rules` (conditional fields) | values and criteria |
+
+- **A status can change through a form or through an action link. Check both.** It can also change
+  from another object's form or link, through a connection, and through a conditional field rule
+  on every save. `show-rules` lists both.
+- **Email rules run after record rules.** A record rule that blanks a field can break the email
+  that uses it. `show-rules` warns when it sees this on the same trigger.
+- **A scene's `views` array is a registry, not the layout.** A view renders only if its key is in
+  `scenes[].groups[].columns[].keys`. Rules on a view outside the layout never fire.
+  `show-rules` marks those views UNREACHABLE, and `find-orphans` lists them. There are two
+  exceptions: login views render from the page itself, and a scene with an empty layout (such
+  as the child pages Knack generates for Edit and Details links) renders its views anyway.
+- **Who can see or change it:** `search-object` / `search-field` list the views that show or edit
+  the data, and `role-access-summary` / `role-access-review` say which roles can reach those pages.
+- **Check the task's run status.** A task marked `paused` sends nothing.
+- **Say "nothing" only after looking.** "Email rules: none" on every trigger that can change the
+  record is the evidence. An empty code search is not.
+
+### Example
+
+> "Does rejecting an applicant email them?"
+
+1. `uvx knack-sleuth show-rules --object Applicant --app-id YOUR_APP_ID`
+2. The Reject action link has `record_rules: [field_X = Rejected]`, `submit_rules: [message]` and no
+   email rule. No form on the object sets that status with an email attached, no connected rule
+   or conditional field rule does either, and no task emails on it.
+3. Answer: "No, it sends nothing. Reject only sets the status to Rejected and shows a message."
+
+### Fresh metadata
+
+A cached snapshot can be weeks old. Compare its date with the question before you trust it.
+Snapshot files carry a `YYYYMMDDHHMM` timestamp in their name, and `cache list` shows the age of
+each cached file. When the date matters, add `--refresh` (or run `download-metadata` again).
+You need no credentials: app metadata is public and read by application ID alone. knack-sleuth
+fetches it for you, so you never need `curl`. Knack's public loader endpoint,
+`https://loader.knack.com/v1/applications/<app_id>?t=<epoch>`, also serves it without credentials.
 
 ## Usage
 
@@ -106,11 +158,15 @@ so redirect with `>`:
 - `uvx knack-sleuth list-objects --format json > objects.json`
 - `uvx knack-sleuth search-object object_12 --format json > usage.json`
 - `uvx knack-sleuth find-orphans --format json > orphans.json`
+- `uvx knack-sleuth show-rules --object object_12 --format json > rules.json`
 
 Use `--format markdown` when the output is for human consumption.
 
 ### Common patterns
 
+- What does submitting a form or clicking an action link do? (emails, record changes, redirects):
+  - `uvx knack-sleuth show-rules --object "Applicant" --app-id YOUR_APP_ID`
+  - `uvx knack-sleuth show-rules --view view_123 --app-id YOUR_APP_ID --format json`
 - Search usages of one field:
   - `uvx knack-sleuth search-field field_116 --app-id YOUR_APP_ID`
 - Find unused fields/objects (cleanup candidates):
@@ -127,7 +183,7 @@ Use `--format markdown` when the output is for human consumption.
 ## Typical workflow
 
 1. **Orient** — Run `list-objects` to see all objects, row counts, and coupling metrics.
-2. **Investigate** — Use `search-object`, `search-field`, and `show-coupling` to trace how specific objects and fields are used.
+2. **Investigate** — Use `search-object`, `search-field`, and `show-coupling` to trace how specific objects and fields are used. For "what does it do?" questions, use `show-rules`.
 3. **Visualize** — Export schemas with `export-db-schema` or `export-schema-subgraph` (DBML or Mermaid for diagrams, YAML for readability).
 4. **Assess** — Run `impact-analysis` on objects/fields being considered for change, or `app-summary` for a full architectural overview.
 5. **Clean up** — Use `find-orphans` to list unused resources — but flag identifier/system fields, which can be orphans by design. Orphaned views can only be removed through the builder link the command prints. Knack's REST API is record-only, and its MCP server mutates tables/fields but explicitly not pages/views — so no API can delete a view.
@@ -140,4 +196,6 @@ Use `--format markdown` when the output is for human consumption.
 - Highlight important objects (high coupling, high row count, hub objects).
 - When reporting on relationships, note the direction (inbound vs outbound).
 - For impact analysis, call out the risk level and affected workflows.
+- For behaviour questions, name the trigger (form or action link, page, view key) and quote the rule that answers it.
+  Do not quote email bodies or full addresses. Email rules can hold personal data.
 - When multiple objects are involved, organize findings by domain cluster or dependency chain.
