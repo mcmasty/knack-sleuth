@@ -201,7 +201,7 @@ This displays a table showing:
 - Low Ca, High Ce = Highly coupled objects with many dependencies (potentially fragile)
 - High Ca + High Ce = Central, complex objects (review for potential refactoring)
 
-**Machine-readable output:** All discovery/search commands (`list-objects`, `search-object`, `search-field`, `show-coupling`, `find-orphans`) accept `--format json` for machine-readable output, with status messages routed to stderr so piped stdout stays clean:
+**Machine-readable output:** All discovery/search commands (`list-objects`, `search-object`, `search-field`, `show-coupling`, `show-rules`, `find-orphans`) accept `--format json` for machine-readable output, with status messages routed to stderr so piped stdout stays clean:
 ```bash
 knack-sleuth list-objects app.json --format json
 ```
@@ -286,6 +286,21 @@ This displays:
 - Connection details: field names, keys, and relationship types
 
 Perfect for understanding an object's role in your data model from its perspective.
+
+### Show What Forms, Action Links and Tasks Do
+
+Knack Builder rules (emails, record updates, redirects, scheduled tasks) live in the app metadata, not in any code repo. `show-rules` answers questions like "does rejecting an applicant email them?":
+
+```bash
+knack-sleuth show-rules my_app.json --object Applicant
+knack-sleuth show-rules --app-id YOUR_APP_ID --view view_123 --format json
+```
+
+For each form and action link on the object, it lists the email rules, record rules and submit
+rules. Email rules show subject, recipients and conditions, but never the body; custom addresses
+are masked to their domain. It also lists rules on other objects' views that change this object
+through a connection, and the object's scheduled tasks with their run status. Views that never
+render are marked unreachable.
 
 ### Find Orphaned Fields and Objects
 

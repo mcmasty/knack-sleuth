@@ -3,7 +3,8 @@
 Every command that accepts an "object or field, by key or by name" argument
 should resolve it through this module so lookup semantics stay consistent:
 keys (``object_12`` / ``field_116``) match case-insensitively and exactly;
-anything else is treated as a name and matched case-insensitively.
+anything else is treated as a name and matched case-insensitively, then (for
+objects) against the singular/plural inflections when exactly one matches.
 """
 
 from difflib import get_close_matches
@@ -26,6 +27,17 @@ def resolve_object(app: Application, identifier: str) -> KnackObject | None:
     for obj in app.objects:
         if obj.name.lower() == ident:
             return obj
+
+    # People say "Applicant" for an object named "Applicants". Fall back to the
+    # inflections, but only when they point at a single object.
+    inflected = [
+        obj
+        for obj in app.objects
+        if obj.inflections
+        and ident in (obj.inflections.singular.lower(), obj.inflections.plural.lower())
+    ]
+    if len(inflected) == 1:
+        return inflected[0]
 
     return None
 

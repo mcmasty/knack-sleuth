@@ -9,11 +9,13 @@ import httpx
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
 from knack_sleuth import __version__
 from knack_sleuth.models import KnackAppMetadata, KnackObject
+from knack_sleuth.rules import collect_rules
 from knack_sleuth.sleuth import KnackSleuth
 from knack_sleuth.config import Settings
 from knack_sleuth.core import (
@@ -31,7 +33,9 @@ from knack_sleuth.lookup import (
     suggest_field_names,
 )
 
-cli = typer.Typer()
+# No locals in crash dumps: commands hold raw metadata, and show-rules in
+# particular holds email bodies and addresses it must never print.
+cli = typer.Typer(pretty_exceptions_show_locals=False)
 console = Console()
 err_console = Console(stderr=True)  # status + error output; keeps stdout clean for data
 
@@ -1173,6 +1177,239 @@ def find_orphans(
     console.print(
         "[dim]Review before deleting: identifier/system fields can be orphans by design[/dim]"
     )
+    console.print()
+
+
+def _fmt_field(entry: dict) -> str:
+    name = entry.get("field_name")
+    key = entry.get("field") or "?"
+    return f"{key} ({name})" if name else str(key)
+
+
+def _fmt_criteria(criteria: list) -> str:
+    if not criteria:
+        return ""
+    parts = [
+        f"{_fmt_field(c)} {c.get('operator')} {c.get('value')!r}"
+        if c.get("value") not in (None, "", [])
+        else f"{_fmt_field(c)} {c.get('operator')}"
+        for c in criteria
+    ]
+    return " [dim]when " + escape(" and ".join(parts)) + "[/dim]"
+
+
+def _print_rule_lists(item: dict, indent: str, note_no_email: bool = True) -> None:
+    """Print the email/record/submit rules shared by every trigger kind.
+
+    "Email rules: none" is printed on purpose: the question this answers is
+    usually "does this send anything?", and silence reads as "not checked".
+    """
+    emails = item.get("emails", [])
+    if not emails and note_no_email:
+        console.print(f"{indent}[green]Email rules: none[/green]")
+    for email in emails:
+        recipients = ", ".join(
+            f"{r.get('mode')}: "
+            + (r["address"] if r.get("type") == "custom" else f"{r.get('type')} {_fmt_field(r)}")
+            for r in email["recipients"]
+        ) or "no recipients"
+        console.print(
+            f"{indent}[magenta]Email[/magenta] {escape(repr(email.get('subject') or ''))} "
+            f"→ {escape(recipients)}{_fmt_criteria(email['criteria'])}"
+        )
+    for record in item.get("records", []):
+        values = "; ".join(
+            f"{_fmt_field(v)} = {v['set_to']}" + (f" ({v['mode']})" if v.get("mode") else "")
+            for v in record["values"]
+        ) or "no values"
+        target = f" via {record['connection']}" if record.get("connection") else ""
+        console.print(
+            f"{indent}[cyan]Record[/cyan] {escape(str(record['description']))}{escape(target)}: "
+            f"{escape(values)}{_fmt_criteria(record['criteria'])}"
+        )
+    for submit in item.get("submits", []):
+        detail = submit.get("target_page") or submit.get("url") or submit.get("message") or ""
+        console.print(
+            f"{indent}[blue]Submit[/blue] {escape(str(submit.get('action')))}"
+            f"{': ' + escape(repr(detail)) if detail else ''}{_fmt_criteria(submit['criteria'])}"
+        )
+    for warning in item.get("warnings", []):
+        console.print(f"{indent}[yellow]⚠ {escape(warning)}[/yellow]")
+    if item.get("unrecognised_keys"):
+        console.print(
+            f"{indent}[yellow]⚠ rule keys knack-sleuth does not interpret (check them in the Builder): "
+            f"{escape(', '.join(item['unrecognised_keys']))}[/yellow]"
+        )
+
+
+def _print_view_heading(trigger: dict, label: str) -> None:
+    where = escape(
+        f"{trigger['scene_name']} ({trigger['scene_key']}) › "
+        f"{trigger['view_name']} ({trigger['view_key']}, {trigger['view_type']})"
+    )
+    flag = "" if trigger["reachable"] else " [red]UNREACHABLE: orphaned view, never renders[/red]"
+    console.print(f"\n[bold]{label}[/bold] {where}{flag}")
+
+
+@cli.command(name="show-rules")
+def show_rules(
+    file_path: Optional[Path] = typer.Argument(
+        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+    ),
+    object_identifier: Optional[str] = typer.Option(
+        None, "--object", help="Object key (e.g., 'object_12') or name"
+    ),
+    view_key: Optional[str] = typer.Option(
+        None, "--view", help="Limit to one view (e.g., 'view_123')"
+    ),
+    app_id: Optional[str] = typer.Option(
+        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+    ),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Force refresh cached API data (ignore cache)"
+    ),
+    output_format: str = typer.Option(
+        "rich", "--format", help="Output format: rich or json"
+    ),
+):
+    """
+    Show what an object's forms, action links and scheduled tasks DO.
+
+    Knack Builder rules (emails, record updates, redirects) live in the app
+    metadata, not in any code repo. For an object this lists every view
+    sourced on it that has form rules or action links, with:
+
+      - email rules: subject, recipients (record fields by key/name; custom
+        addresses masked to their domain) and conditions — never the body;
+      - record rules: field = value, and connected-record updates/inserts;
+      - submit rules: message, redirect or child page;
+
+    plus record rules on OTHER objects' views that change this object through a
+    connection, conditional field rules (applied on every save), and the
+    object's scheduled tasks (with run status).
+
+    Views left out of their page layout are flagged unreachable: their rules
+    never fire.
+
+
+    Examples:
+
+        knack-sleuth show-rules my_app.json --object Applicant
+
+        knack-sleuth show-rules --app-id YOUR_APP_ID --object object_12 --format json
+
+        knack-sleuth show-rules my_app.json --view view_123
+    """
+    _validate_output_format(output_format)
+    if not object_identifier and not view_key:
+        err_console.print("[red]Error:[/red] Pass --object, --view, or both.")
+        raise typer.Exit(1)
+
+    app_export = load_app_metadata(file_path, app_id, refresh)
+
+    target = resolve_object_or_exit(app_export, object_identifier) if object_identifier else None
+    if view_key and not any(
+        view.key == view_key for scene in app_export.application.scenes for view in scene.views
+    ):
+        err_console.print(f"[red]Error:[/red] View '{view_key}' not found in application")
+        raise typer.Exit(1)
+
+    try:
+        report = collect_rules(app_export, target.key if target else None, view_key)
+    except Exception as exc:  # noqa: BLE001 - never echo the raw rules
+        err_console.print(
+            f"[red]Error:[/red] could not interpret this app's rules ({type(exc).__name__}). "
+            "Please report it at https://github.com/mcmasty/knack-sleuth/issues"
+        )
+        raise typer.Exit(1)
+
+    if output_format == "json":
+        payload = {
+            "object": {"key": target.key, "name": target.name} if target else None,
+            "view": view_key,
+            **report,
+        }
+        typer.echo(json.dumps(payload, indent=2, default=str))
+        return
+
+    title = f"{target.name} ({target.key})" if target else view_key
+    console.print(Panel(f"[bold cyan]{escape(str(title))}[/bold cyan]", title="Builder Rules"))
+
+    triggers = report["triggers"]
+    if not triggers:
+        console.print("\n[dim]No forms or action links with rules found.[/dim]")
+    for trigger in triggers:
+        if trigger["trigger"] == "form_submit":
+            action = (
+                f" — form {escape(str(trigger['form_action']))}" if trigger.get("form_action") else ""
+            )
+            _print_view_heading(trigger, f"Form submit{action}:")
+            _print_rule_lists(trigger, "  ")
+            if trigger["display_rules"]:
+                console.print(
+                    f"  [dim]{len(trigger['display_rules'])} display rule(s) "
+                    "(show/hide inputs; see --format json)[/dim]"
+                )
+        else:
+            _print_view_heading(
+                trigger, f"Action link {escape(repr(trigger.get('link_text') or ''))}:"
+            )
+            for action_rule in trigger["action_rules"]:
+                console.print(
+                    f"  Rule {escape(str(action_rule.get('key')))}"
+                    f"{_fmt_criteria(action_rule['criteria'])}"
+                )
+                _print_rule_lists(action_rule, "    ")
+
+    quiet = report["views_without_rules"]
+    if quiet:
+        console.print(
+            f"\n[dim]{len(quiet)} other view(s) on this object have no form rules or action links: "
+            + escape(", ".join(v["view_key"] for v in quiet))
+            + "[/dim]"
+        )
+
+    connected = report["connected_record_rules"]
+    if connected:
+        console.print("\n[bold cyan]Changed from other objects' views (via connection):[/bold cyan]")
+        for entry in connected:
+            label = (
+                f"Action link {escape(repr(entry.get('link_text') or ''))}:"
+                if entry["trigger"] == "action_link"
+                else "Form submit:"
+            )
+            _print_view_heading(entry, label + _fmt_criteria(entry["trigger_criteria"]))
+            _print_rule_lists(
+                {"records": [entry["record_rule"]], "emails": entry["emails_on_same_trigger"]},
+                "  ",
+                note_no_email=False,
+            )
+
+    field_rules = report["conditional_field_rules"]
+    if field_rules:
+        console.print(
+            "\n[bold cyan]Conditional field rules[/bold cyan] "
+            "[dim](applied whenever a record is saved, by any form, link, import or API call):[/dim]"
+        )
+        for entry in field_rules:
+            for rule in entry["rules"]:
+                values = "; ".join(f"{_fmt_field(v)} = {v['set_to']}" for v in rule["values"])
+                console.print(f"  {escape(values)}{_fmt_criteria(rule['criteria'])}")
+
+    if target:
+        console.print("\n[bold cyan]Scheduled tasks:[/bold cyan]")
+        if not report["tasks"]:
+            console.print("  [dim]none[/dim]")
+        for task in report["tasks"]:
+            schedule = task.get("schedule") or {}
+            console.print(
+                f"\n  [bold]{escape(str(task.get('name')))}[/bold] ({escape(str(task.get('key')))}) — "
+                f"{escape(str(task.get('action')))}, {escape(str(schedule.get('repeat')))} "
+                f"at {escape(str(schedule.get('time')))}, status: "
+                f"[{'green' if task.get('run_status') == 'running' else 'yellow'}]"
+                f"{escape(str(task.get('run_status')))}[/]"
+            )
+            _print_rule_lists(task, "    ", note_no_email=False)
     console.print()
 
 
