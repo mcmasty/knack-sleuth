@@ -1,8 +1,18 @@
 """Pytest configuration and shared fixtures."""
 
 import json
+import os
 from pathlib import Path
+
 import pytest
+from hypothesis import settings
+
+# CI runs gate releases (publish.yml calls test.yml), so property tests there
+# must not fail on a newly drawn counterexample. Derandomize in CI; local runs
+# keep exploring and can find new cases.
+settings.register_profile("ci", derandomize=True, print_blob=True)
+if os.environ.get("CI"):
+    settings.load_profile("ci")
 
 
 @pytest.fixture(autouse=True)
@@ -33,15 +43,16 @@ def sample_metadata_dict(sample_metadata_file):
 @pytest.fixture
 def mock_api_response(sample_metadata_dict):
     """Mock API response with sample metadata."""
+
     class MockResponse:
         status_code = 200
-        
+
         def json(self):
             return sample_metadata_dict
-        
+
         def raise_for_status(self):
             pass
-    
+
     return MockResponse()
 
 
@@ -49,11 +60,11 @@ def mock_api_response(sample_metadata_dict):
 def mock_api_error():
     """Mock API error response."""
     import httpx
-    
-    def raise_error(*args, **kwargs):
+
+    def raise_error(*_args, **_kwargs):
         """Raise HTTPStatusError regardless of arguments."""
         request = httpx.Request("GET", "https://api.knack.com/v1/applications/invalid")
         response = httpx.Response(404, text="Application not found", request=request)
         raise httpx.HTTPStatusError("404 Not Found", request=request, response=response)
-    
+
     return raise_error

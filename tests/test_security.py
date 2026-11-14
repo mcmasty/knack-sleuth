@@ -124,18 +124,24 @@ class TestGenerateSecurityReportTopLine:
 
         assert report.public_scenes == 0
         assert report.login_required_scenes == 65
-        assert report.public_scenes + report.login_required_scenes == report.total_scenes
+        assert (
+            report.public_scenes + report.login_required_scenes == report.total_scenes
+        )
 
     def test_total_profiles_matches_profile_objects(self, report, raw_objects):
         # A "profile object" per get_profile_mapping = object with user=True
         # AND a non-empty profile_key.
-        profile_objs = [o for o in raw_objects if o.get("user") and o.get("profile_key")]
+        profile_objs = [
+            o for o in raw_objects if o.get("user") and o.get("profile_key")
+        ]
         assert len(profile_objs) == 4
         assert report.total_profiles == len(profile_objs)
 
     def test_profiles_dict_matches_raw_profile_objects(self, report, raw_objects):
         expected = {
-            o["profile_key"]: o["name"] for o in raw_objects if o.get("user") and o.get("profile_key")
+            o["profile_key"]: o["name"]
+            for o in raw_objects
+            if o.get("user") and o.get("profile_key")
         }
         # Spot-check one entry against the raw JSON directly.
         assert expected["profile_3"] == "Object Name 3"
@@ -144,11 +150,15 @@ class TestGenerateSecurityReportTopLine:
 
     def test_scene_analyses_has_one_entry_per_scene(self, report, raw_scenes):
         assert len(report.scene_analyses) == len(raw_scenes)
-        assert {s.scene_key for s in report.scene_analyses} == {s["key"] for s in raw_scenes}
+        assert {s.scene_key for s in report.scene_analyses} == {
+            s["key"] for s in raw_scenes
+        }
 
 
 class TestAnalyzeSceneSecurityDirect:
-    def test_matches_generate_security_report_for_same_scene(self, application, report, analyses_by_key):
+    def test_matches_generate_security_report_for_same_scene(
+        self, application, report, analyses_by_key
+    ):
         # analyze_scene_security is the per-scene building block that
         # generate_security_report calls in a loop; calling it directly
         # with the same profiles/hierarchy inputs should reproduce the
@@ -203,7 +213,9 @@ class TestSecurityInheritance:
         assert login_view["limit_profile_access"] is True
         assert login_view["allowed_profiles"] == ["profile_10"]
 
-    def test_child_without_own_auth_inherits_from_restricted_parent(self, analyses_by_key):
+    def test_child_without_own_auth_inherits_from_restricted_parent(
+        self, analyses_by_key
+    ):
         analysis = analyses_by_key["scene_3"]
         assert analysis.requires_login is True
         assert analysis.inherits_security is True
@@ -275,7 +287,6 @@ class TestSecurityInheritance:
         assert analysis.inherits_security is False
         assert analysis.allowed_profiles == ["Child"]
 
-
     def _login_gated_chain(self):
         # Mirrors issue #27: a login page whose login view limits access to
         # Admin, a child that sets authenticated=True itself with no profiles
@@ -285,13 +296,15 @@ class TestSecurityInheritance:
             name="Reporting Login",
             slug="reporting-login",
             type="authentication",
-            views=[{
-                "key": "view_login",
-                "name": "Login",
-                "type": "login",
-                "limit_profile_access": True,
-                "allowed_profiles": ["profile_admin"],
-            }],
+            views=[
+                {
+                    "key": "view_login",
+                    "name": "Login",
+                    "type": "login",
+                    "limit_profile_access": True,
+                    "allowed_profiles": ["profile_admin"],
+                }
+            ],
         )
         bare_auth = Scene(
             key="scene_bare",
@@ -313,7 +326,9 @@ class TestSecurityInheritance:
         login, bare_auth, grandchild = self._login_gated_chain()
         hierarchy = build_navigation_hierarchy([login, bare_auth, grandchild])
 
-        analysis = analyze_scene_security(bare_auth, {"profile_admin": "Admin"}, hierarchy)
+        analysis = analyze_scene_security(
+            bare_auth, {"profile_admin": "Admin"}, hierarchy
+        )
 
         assert analysis.requires_login is True
         assert analysis.inherits_security is True
@@ -324,7 +339,9 @@ class TestSecurityInheritance:
         login, bare_auth, grandchild = self._login_gated_chain()
         hierarchy = build_navigation_hierarchy([login, bare_auth, grandchild])
 
-        analysis = analyze_scene_security(grandchild, {"profile_admin": "Admin"}, hierarchy)
+        analysis = analyze_scene_security(
+            grandchild, {"profile_admin": "Admin"}, hierarchy
+        )
 
         assert analysis.requires_login is True
         assert analysis.inherits_security is True
@@ -333,15 +350,22 @@ class TestSecurityInheritance:
 
     def test_bare_authentication_without_restricted_ancestor_stays_login_only(self):
         parent = Scene(
-            key="scene_parent", name="Public Parent", slug="public-parent",
+            key="scene_parent",
+            name="Public Parent",
+            slug="public-parent",
             authenticated=False,
         )
         bare_auth = Scene(
-            key="scene_bare", name="Members Area", slug="members-area",
-            parent="public-parent", authenticated=True,
+            key="scene_bare",
+            name="Members Area",
+            slug="members-area",
+            parent="public-parent",
+            authenticated=True,
         )
         child = Scene(
-            key="scene_child", name="Member Page", slug="member-page",
+            key="scene_child",
+            name="Member Page",
+            slug="member-page",
             parent="members-area",
         )
         hierarchy = build_navigation_hierarchy([parent, bare_auth, child])
@@ -358,13 +382,17 @@ class TestSecurityInheritance:
 
 
 class TestNavigationPath:
-    def test_child_scene_page_nav_contains_parent_then_child_in_order(self, analyses_by_key):
+    def test_child_scene_page_nav_contains_parent_then_child_in_order(
+        self, analyses_by_key
+    ):
         analysis = analyses_by_key["scene_3"]
         assert analysis.nav_level == "Child"
         page_nav = analysis.page_nav
         assert "System Admin Home Login" in page_nav
         assert "Organizational Ref Data" in page_nav
-        assert page_nav.index("System Admin Home Login") < page_nav.index("Organizational Ref Data")
+        assert page_nav.index("System Admin Home Login") < page_nav.index(
+            "Organizational Ref Data"
+        )
 
     def test_top_level_scene_classified_as_top_level(self, analyses_by_key, raw_scenes):
         # scene_4 has parent=None in the raw JSON and type="authentication"
@@ -382,10 +410,16 @@ class TestNavigationPath:
 
 
 class TestNavigationHierarchy:
-    def test_menu_scenes_list_matches_raw_menu_type_scenes(self, application, raw_scenes):
+    def test_menu_scenes_list_matches_raw_menu_type_scenes(
+        self, application, raw_scenes
+    ):
         hierarchy = build_navigation_hierarchy(application.scenes)
         expected_keys = {s["key"] for s in raw_scenes if s.get("type") == "menu"}
-        assert {s.key for s in hierarchy["menu_scenes"]} == expected_keys == {"scene_45", "scene_46"}
+        assert (
+            {s.key for s in hierarchy["menu_scenes"]}
+            == expected_keys
+            == {"scene_45", "scene_46"}
+        )
 
     def test_duplicate_slug_collision_documented(self, application, raw_scenes):
         # Two scenes share the slug "users": scene_6 ("Users") appears
@@ -395,7 +429,9 @@ class TestNavigationHierarchy:
         assert slug_owners == ["scene_6", "scene_14"]
 
         hierarchy = build_navigation_hierarchy(application.scenes)
-        assert [scene.key for scene in hierarchy["scenes_by_slug"]["users"]] == slug_owners
+        assert [
+            scene.key for scene in hierarchy["scenes_by_slug"]["users"]
+        ] == slug_owners
 
         scene_13 = hierarchy["scenes_by_key"]["scene_13"]
         nav = build_navigation_path(scene_13, hierarchy)
@@ -405,7 +441,9 @@ class TestNavigationHierarchy:
         # Knack slugs are path-scoped, so the same child slug under two
         # different parents is a normal layout, not an error. Both branches
         # here end at an authenticated root, so the child inherits cleanly.
-        orders = Scene(key="scene_orders", name="Orders", slug="orders", authenticated=True)
+        orders = Scene(
+            key="scene_orders", name="Orders", slug="orders", authenticated=True
+        )
         invoices = Scene(
             key="scene_invoices", name="Invoices", slug="invoices", authenticated=True
         )
@@ -413,9 +451,14 @@ class TestNavigationHierarchy:
             key="scene_detail_a", name="Order Detail", slug="detail", parent="orders"
         )
         detail_b = Scene(
-            key="scene_detail_b", name="Invoice Detail", slug="detail", parent="invoices"
+            key="scene_detail_b",
+            name="Invoice Detail",
+            slug="detail",
+            parent="invoices",
         )
-        child = Scene(key="scene_child", name="Line Item", slug="line-item", parent="detail")
+        child = Scene(
+            key="scene_child", name="Line Item", slug="line-item", parent="detail"
+        )
         hierarchy = build_navigation_hierarchy(
             [orders, invoices, detail_a, detail_b, child]
         )
@@ -489,7 +532,9 @@ class TestNavigationHierarchy:
             key="scene_login", name="Login Only", slug="duplicate", authenticated=True
         )
         role_locked = Scene(
-            key="scene_role", name="Role Locked", slug="duplicate",
+            key="scene_role",
+            name="Role Locked",
+            slug="duplicate",
             allowed_profiles=["profile_x"],
         )
         child = Scene(key="scene_child", name="Child", slug="child", parent="duplicate")
@@ -520,7 +565,9 @@ class TestNavigationHierarchy:
                         parent=f"level_{level - 1}",
                     )
                 )
-        leaf = Scene(key="scene_leaf", name="Leaf", slug="leaf", parent=f"level_{depth}")
+        leaf = Scene(
+            key="scene_leaf", name="Leaf", slug="leaf", parent=f"level_{depth}"
+        )
         scenes.append(leaf)
         hierarchy = build_navigation_hierarchy(scenes)
 
@@ -532,7 +579,9 @@ class TestNavigationHierarchy:
         assert elapsed < 2.0, f"ancestor walk took {elapsed:.1f}s -- not memoized"
 
     @pytest.mark.parametrize("authenticated", [True, None])
-    def test_cyclic_duplicate_slugs_do_not_make_the_walk_exponential(self, authenticated):
+    def test_cyclic_duplicate_slugs_do_not_make_the_walk_exponential(
+        self, authenticated
+    ):
         # A duplicate slug can point back down the chain, so resolving parents
         # by slug alone produces a cycle. A cycle must not switch memoization
         # off for the whole chain, or the walk doubles per level again. Bare
@@ -543,7 +592,9 @@ class TestNavigationHierarchy:
         depth = 20
         scenes = [
             Scene(
-                key="scene_root", name="Root", slug="level_0",
+                key="scene_root",
+                name="Root",
+                slug="level_0",
                 allowed_profiles=["profile_admin"],
             )
         ]
@@ -560,9 +611,13 @@ class TestNavigationHierarchy:
                 )
         # Reuses the root's slug but hangs below the deepest level.
         scenes.append(
-            Scene(key="scene_loop", name="Loop", slug="level_0", parent=f"level_{depth}")
+            Scene(
+                key="scene_loop", name="Loop", slug="level_0", parent=f"level_{depth}"
+            )
         )
-        leaf = Scene(key="scene_leaf", name="Leaf", slug="leaf", parent=f"level_{depth}")
+        leaf = Scene(
+            key="scene_leaf", name="Leaf", slug="leaf", parent=f"level_{depth}"
+        )
         scenes.append(leaf)
         hierarchy = build_navigation_hierarchy(scenes)
 
@@ -573,7 +628,9 @@ class TestNavigationHierarchy:
         # The only route that reaches a root goes through the Admin-only scene.
         assert analysis.requires_login is True
         assert analysis.allowed_profiles == ["Admin"]
-        assert elapsed < 2.0, f"ancestor walk took {elapsed:.1f}s -- cycle defeated memoization"
+        assert elapsed < 2.0, (
+            f"ancestor walk took {elapsed:.1f}s -- cycle defeated memoization"
+        )
 
     def test_many_scenes_sharing_a_slug_stay_fast_across_the_report(self):
         # Hundreds of scenes behind one shared slug all contribute a label to
@@ -585,7 +642,9 @@ class TestNavigationHierarchy:
         width = depth = 200
         scenes = [
             Scene(
-                key=f"scene_shared_{i}", name=f"Shared {i}", slug="shared",
+                key=f"scene_shared_{i}",
+                name=f"Shared {i}",
+                slug="shared",
                 allowed_profiles=["profile_admin"],
             )
             for i in range(width)
@@ -593,21 +652,32 @@ class TestNavigationHierarchy:
         parent = "shared"
         for level in range(depth):
             scenes.append(
-                Scene(key=f"scene_chain_{level}", name=f"Chain {level}",
-                      slug=f"chain_{level}", parent=parent)
+                Scene(
+                    key=f"scene_chain_{level}",
+                    name=f"Chain {level}",
+                    slug=f"chain_{level}",
+                    parent=parent,
+                )
             )
             parent = f"chain_{level}"
         app = Application(
-            id="app_wide", name="Wide", slug="wide",
+            id="app_wide",
+            name="Wide",
+            slug="wide",
             home_scene={"key": "scene_shared_0", "slug": "shared"},
-            scenes=scenes, objects=[],
+            scenes=scenes,
+            objects=[],
         )
 
         started = time.perf_counter()
         report = generate_security_report(app)
         elapsed = time.perf_counter() - started
 
-        deepest = next(a for a in report.scene_analyses if a.scene_key == f"scene_chain_{depth - 1}")
+        deepest = next(
+            a
+            for a in report.scene_analyses
+            if a.scene_key == f"scene_chain_{depth - 1}"
+        )
         assert deepest.allowed_profiles == ["profile_admin"]
         assert elapsed < 2.0, f"security report took {elapsed:.1f}s"
 
@@ -680,7 +750,9 @@ class TestCountChildren:
                 slug = parent.get("parent")
             return False
 
-        expected = sum(1 for s in raw_scenes if s["key"] != "scene_4" and is_descendant(s))
+        expected = sum(
+            1 for s in raw_scenes if s["key"] != "scene_4" and is_descendant(s)
+        )
         assert expected == 33
 
         assert count_children("scene_4", report.scene_analyses) == expected
@@ -697,7 +769,9 @@ class TestCountChildren:
 
 
 class TestGetViewsForProfile:
-    def test_unrestricted_scene_all_views_accessible_to_any_profile(self, scenes_by_key, raw_scenes):
+    def test_unrestricted_scene_all_views_accessible_to_any_profile(
+        self, scenes_by_key, raw_scenes
+    ):
         # scene_6 ("Users") has neither scene-level nor view-level profile
         # restrictions anywhere in the raw JSON.
         scene_6_raw = next(s for s in raw_scenes if s["key"] == "scene_6")
@@ -715,13 +789,19 @@ class TestGetViewsForProfile:
             assert key.startswith("view_")
             assert key.split("_", 1)[1].isdigit()
 
-    def test_view_restricted_login_scene_only_allowed_profiles_see_view(self, scenes_by_key, raw_scenes):
+    def test_view_restricted_login_scene_only_allowed_profiles_see_view(
+        self, scenes_by_key, raw_scenes
+    ):
         # scene_52 ("Catalog Login") restricts its single Login Form view
         # to profile_3, profile_4, and profile_10 (limit_profile_access=true).
         scene_52_raw = next(s for s in raw_scenes if s["key"] == "scene_52")
         login_view = scene_52_raw["views"][0]
         assert login_view["limit_profile_access"] is True
-        assert set(login_view["allowed_profiles"]) == {"profile_3", "profile_4", "profile_10"}
+        assert set(login_view["allowed_profiles"]) == {
+            "profile_3",
+            "profile_4",
+            "profile_10",
+        }
 
         scene = scenes_by_key["scene_52"]
 
@@ -731,7 +811,9 @@ class TestGetViewsForProfile:
         assert len(names) == len(keys)
 
         # 'all_users' is not in the view's allowed_profiles list.
-        names_excluded, keys_excluded = get_views_for_profile(scene, "all_users", "Object Name 2")
+        names_excluded, keys_excluded = get_views_for_profile(
+            scene, "all_users", "Object Name 2"
+        )
         assert names_excluded == []
         assert keys_excluded == []
 
@@ -743,7 +825,7 @@ class TestGetViewsForProfile:
 
 class TestProfileAccessCountsSanity:
     def test_every_count_within_total_scenes(self, report):
-        for profile_name, count in report.profile_access_counts.items():
+        for _profile_name, count in report.profile_access_counts.items():
             assert 0 < count <= report.total_scenes
 
     def test_profile_referenced_in_raw_json_has_nonzero_count(self, report, raw_scenes):
@@ -759,7 +841,9 @@ class TestProfileAccessCountsSanity:
             if "profile_10" in (v.get("allowed_profiles") or [])
         ]
         assert len(scenes_referencing_profile_10) == 7
-        assert report.profile_access_counts.get("Object Name 10", 0) >= len(scenes_referencing_profile_10)
+        assert report.profile_access_counts.get("Object Name 10", 0) >= len(
+            scenes_referencing_profile_10
+        )
 
     def test_profile_never_referenced_has_zero_count(self, report, raw_scenes):
         # 'all_users' (Object Name 2) never appears in any scene- or
@@ -802,11 +886,19 @@ class TestRoleAccessReviewCli:
         summary_path = tmp_path / "summary.csv"
 
         full_result = runner.invoke(
-            cli, ["role-access-review", str(SAMPLE_FILE), "-o", str(full_path)], env=WIDE
+            cli,
+            ["role-access-review", str(SAMPLE_FILE), "-o", str(full_path)],
+            env=WIDE,
         )
         summary_result = runner.invoke(
             cli,
-            ["role-access-review", str(SAMPLE_FILE), "-o", str(summary_path), "--summary-only"],
+            [
+                "role-access-review",
+                str(SAMPLE_FILE),
+                "-o",
+                str(summary_path),
+                "--summary-only",
+            ],
             env=WIDE,
         )
         assert full_result.exit_code == 0
@@ -828,7 +920,14 @@ class TestRoleAccessSummaryCli:
         out = tmp_path / "role_summary.csv"
         result = runner.invoke(
             cli,
-            ["role-access-summary", "--role", "Object Name 3", str(SAMPLE_FILE), "-o", str(out)],
+            [
+                "role-access-summary",
+                "--role",
+                "Object Name 3",
+                str(SAMPLE_FILE),
+                "-o",
+                str(out),
+            ],
             env=WIDE,
         )
         assert result.exit_code == 0
@@ -844,7 +943,14 @@ class TestRoleAccessSummaryCli:
         out = tmp_path / "role_summary.csv"
         result = runner.invoke(
             cli,
-            ["role-access-summary", "--role", "Object Name 3", str(SAMPLE_FILE), "-o", str(out)],
+            [
+                "role-access-summary",
+                "--role",
+                "Object Name 3",
+                str(SAMPLE_FILE),
+                "-o",
+                str(out),
+            ],
             env=WIDE,
         )
         assert result.exit_code == 0
@@ -874,18 +980,28 @@ class TestRoleAccessSummaryCli:
         # neither "public" nor "any logged-in user" describes them.
         app = {
             "application": {
-                "id": "app_utility", "name": "Utility", "slug": "utility",
+                "id": "app_utility",
+                "name": "Utility",
+                "slug": "utility",
                 "home_scene": {"key": "scene_home", "slug": "home"},
-                "objects": [{
-                    "key": "object_1", "name": "Staff", "user": True,
-                    "profile_key": "profile_staff", "fields": [],
-                }],
+                "objects": [
+                    {
+                        "key": "object_1",
+                        "name": "Staff",
+                        "user": True,
+                        "profile_key": "profile_staff",
+                        "fields": [],
+                    }
+                ],
                 "scenes": [
                     {"key": "scene_home", "name": "Home", "slug": "home", "views": []},
                     {
-                        "key": "scene_utility", "name": "Account Settings",
-                        "slug": "account-settings", "type": "user",
-                        "authenticated": authenticated, "views": [],
+                        "key": "scene_utility",
+                        "name": "Account Settings",
+                        "slug": "account-settings",
+                        "type": "user",
+                        "authenticated": authenticated,
+                        "views": [],
                     },
                 ],
             }
@@ -896,7 +1012,14 @@ class TestRoleAccessSummaryCli:
 
         result = runner.invoke(
             cli,
-            ["role-access-summary", "--profile-key", "profile_staff", str(app_file), "-o", str(out)],
+            [
+                "role-access-summary",
+                "--profile-key",
+                "profile_staff",
+                str(app_file),
+                "-o",
+                str(out),
+            ],
             env=WIDE,
         )
         assert result.exit_code == 0, result.output

@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- `export-schema --mode <unknown>` no longer prints a second, misleading "Failed to generate
+  or save schema: 1" error after the real one. This was found by ruff's TRY301 rule.
+- `export-db-schema --format mermaid` no longer emits attribute names that Mermaid can't parse
+  when a field name contains ª, ¹, ², ³, µ, º, ¼, ½ or ¾ (e.g. "Area m²"). Field names are
+  Unicode-normalised first, so "Area m²" becomes `areaM2`. This was found by a hypothesis
+  property test.
+
+### Changed
+
+- `rich` is now a declared dependency. It was already installed through typer, but the CLI
+  imports it directly.
+- Development: CI also checks formatting (`ruff format`), dead code (vulture), declared
+  dependencies (deptry), a minimum coverage (lines and branches combined) and the built wheel.
+  The 3.11–3.13 test jobs now actually run on those versions; previously `.python-version`
+  made every job run on 3.14. Dependency vulnerabilities are audited by a separate workflow
+  that doesn't gate releases. A pre-commit config, an expanded ruff rule set and hypothesis
+  property tests were added.
+
 ## 0.9.0
 
 ### Added

@@ -91,7 +91,12 @@ class TestActionLinks:
             ("field_3", "Rejected")
         ]
         assert rule["submits"] == [
-            {"key": None, "action": "message", "criteria": [], "message": "Applicant rejected"}
+            {
+                "key": None,
+                "action": "message",
+                "criteria": [],
+                "message": "Applicant rejected",
+            }
         ]
 
     def test_details_view_action_link_is_found_with_its_email_rule(self, report):
@@ -130,7 +135,9 @@ class TestReachabilityAndScope:
         (orphan,) = _by_view(report, "view_4")
         assert orphan["reachable"] is False
         assert "never renders" in orphan["unreachable_reason"]
-        assert all(t["reachable"] for t in report["triggers"] if t["view_key"] != "view_4")
+        assert all(
+            t["reachable"] for t in report["triggers"] if t["view_key"] != "view_4"
+        )
 
     def test_rich_output_flags_orphan(self):
         result = runner.invoke(
@@ -208,15 +215,14 @@ class TestCli:
 
 class TestInflectionLookup:
     def test_ambiguous_inflection_does_not_resolve(self):
-        app = KnackAppMetadata(
-            **json.loads(FIXTURE.read_text())
-        ).application
+        app = KnackAppMetadata(**json.loads(FIXTURE.read_text())).application
         inflections = app.objects[1].inflections
         assert inflections is not None
         inflections.singular = "Applicant"
         assert resolve_object(app, "Applicant") is None
         resolved = resolve_object(app, "Applicants")
-        assert resolved is not None and resolved.key == "object_1"
+        assert resolved is not None
+        assert resolved.key == "object_1"
 
 
 def _mutated(mutate):
@@ -236,13 +242,17 @@ class TestReviewRegressions:
         def mutate(app):
             form = app["scenes"][0]["views"][0]
             form["rules"]["emails"][0]["email"]["message"] = ["BODY_SECRET"]
-            form["rules"]["emails"].append({"key": "2", "action": "email", "email": "BODY_SECRET"})
+            form["rules"]["emails"].append(
+                {"key": "2", "action": "email", "email": "BODY_SECRET"}
+            )
             form["rules"]["records"][0]["values"][0]["field"] = {"key": "field_4"}
             form["rules"]["records"][0]["criteria"] = "oops"
             app["objects"][0]["tasks"][0]["action"] = "oops"
 
         for fmt in ("rich", "json"):
-            result = _run_on(tmp_path, _mutated(mutate), "--object", "object_1", "--format", fmt)
+            result = _run_on(
+                tmp_path, _mutated(mutate), "--object", "object_1", "--format", fmt
+            )
             assert result.exit_code == 0, result.output
             assert not [s for s in SECRETS if s in result.output]
 
@@ -252,9 +262,9 @@ class TestReviewRegressions:
                 "record_rules"
             ][0].update(email={})
         )
-        (rule,) = _by_view(collect_rules(KnackAppMetadata(**data), "object_1"), "view_2")[0][
-            "action_rules"
-        ]
+        (rule,) = _by_view(
+            collect_rules(KnackAppMetadata(**data), "object_1"), "view_2"
+        )[0]["action_rules"]
         assert rule["emails"] == []
         assert rule["records"][0]["values"][0]["set_to"] == "Rejected"
 
@@ -263,13 +273,17 @@ class TestReviewRegressions:
             form = app["scenes"][0]["views"][0]
             form["rules"] = {"fields": form["rules"]["fields"]}
 
-        (form,) = _by_view(collect_rules(KnackAppMetadata(**_mutated(mutate)), "object_1"), "view_1")
+        (form,) = _by_view(
+            collect_rules(KnackAppMetadata(**_mutated(mutate)), "object_1"), "view_1"
+        )
         assert len(form["display_rules"]) == 1
         assert form["emails"] == []
 
     def test_details_view_display_rules_alone_are_not_a_trigger(self):
         def mutate(app):
-            app["scenes"][1]["views"][1]["rules"] = {"fields": [{"key": "1", "actions": []}]}
+            app["scenes"][1]["views"][1]["rules"] = {
+                "fields": [{"key": "1", "actions": []}]
+            }
             app["scenes"][1]["views"][1]["columns"] = []
 
         report = collect_rules(KnackAppMetadata(**_mutated(mutate)), "object_1")
@@ -289,35 +303,89 @@ class TestReviewRegressions:
     def test_connected_rule_keeps_link_conditions_and_emails(self):
         def mutate(app):
             app["scenes"][2]["views"].append(
-                {"key": "view_8", "name": "Programs Table", "type": "table",
-                 "source": {"object": "object_2"},
-                 "columns": [{"type": "action_link", "link_text": "Close", "action_rules": [
-                     {"key": "1", "link_text": "Close",
-                      "criteria": [{"field": "field_10", "operator": "is", "value": "Summer"}],
-                      "record_rules": [
-                          {"key": "1", "action": "connection", "connection": "object_1.field_5",
-                           "values": [{"type": "value", "field": "field_3", "value": "Closed"}]},
-                          {"key": "2", "action": "email", "email": {
-                              "subject": "Programme closed", "message": "BODY_SECRET",
-                              "recipients": [{"recipient_mode": "to", "recipient_type": "field",
-                                              "field": "field_2"}]}}],
-                      "submit_rules": []}]}]}
+                {
+                    "key": "view_8",
+                    "name": "Programs Table",
+                    "type": "table",
+                    "source": {"object": "object_2"},
+                    "columns": [
+                        {
+                            "type": "action_link",
+                            "link_text": "Close",
+                            "action_rules": [
+                                {
+                                    "key": "1",
+                                    "link_text": "Close",
+                                    "criteria": [
+                                        {
+                                            "field": "field_10",
+                                            "operator": "is",
+                                            "value": "Summer",
+                                        }
+                                    ],
+                                    "record_rules": [
+                                        {
+                                            "key": "1",
+                                            "action": "connection",
+                                            "connection": "object_1.field_5",
+                                            "values": [
+                                                {
+                                                    "type": "value",
+                                                    "field": "field_3",
+                                                    "value": "Closed",
+                                                }
+                                            ],
+                                        },
+                                        {
+                                            "key": "2",
+                                            "action": "email",
+                                            "email": {
+                                                "subject": "Programme closed",
+                                                "message": "BODY_SECRET",
+                                                "recipients": [
+                                                    {
+                                                        "recipient_mode": "to",
+                                                        "recipient_type": "field",
+                                                        "field": "field_2",
+                                                    }
+                                                ],
+                                            },
+                                        },
+                                    ],
+                                    "submit_rules": [],
+                                }
+                            ],
+                        }
+                    ],
+                }
             )
             app["scenes"][2]["groups"][0]["columns"][0]["keys"].append("view_8")
 
         report = collect_rules(KnackAppMetadata(**_mutated(mutate)), "object_1")
-        (entry,) = [e for e in report["connected_record_rules"] if e["view_key"] == "view_8"]
+        (entry,) = [
+            e for e in report["connected_record_rules"] if e["view_key"] == "view_8"
+        ]
         assert entry["trigger_criteria"][0]["field_name"] == "Title"
-        assert [e["subject"] for e in entry["emails_on_same_trigger"]] == ["Programme closed"]
+        assert [e["subject"] for e in entry["emails_on_same_trigger"]] == [
+            "Programme closed"
+        ]
 
     def test_redirect_target_uses_existing_page_and_ignores_stale_url(self):
         def mutate(app):
             app["scenes"][0]["views"][0]["rules"]["submits"] = [
-                {"key": "submit_1", "action": "existing_page", "existing_page": "review",
-                 "scene": "stale-scene", "url": "https://stale.example", "criteria": []}
+                {
+                    "key": "submit_1",
+                    "action": "existing_page",
+                    "existing_page": "review",
+                    "scene": "stale-scene",
+                    "url": "https://stale.example",
+                    "criteria": [],
+                }
             ]
 
-        (form,) = _by_view(collect_rules(KnackAppMetadata(**_mutated(mutate)), "object_1"), "view_1")
+        (form,) = _by_view(
+            collect_rules(KnackAppMetadata(**_mutated(mutate)), "object_1"), "view_1"
+        )
         (submit,) = form["submits"]
         assert submit["target_page"] == "review"
         assert "url" not in submit

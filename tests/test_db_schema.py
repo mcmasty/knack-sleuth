@@ -1,6 +1,5 @@
 """Tests for database schema export functionality."""
 
-
 import pytest
 import yaml
 
@@ -205,7 +204,7 @@ class TestYAMLExport:
         # Verify all objects are present
         assert len(data["objects"]) == len(sample_app.objects)
 
-        for obj_data, obj in zip(data["objects"], sample_app.objects):
+        for obj_data, obj in zip(data["objects"], sample_app.objects, strict=False):
             assert obj_data["key"] == obj.key
             assert obj_data["name"] == obj.name
             assert "fields" in obj_data
@@ -216,11 +215,11 @@ class TestYAMLExport:
         yaml_str = export_to_yaml(sample_app)
         data = yaml.safe_load(yaml_str)
 
-        for obj_data, obj in zip(data["objects"], sample_app.objects):
+        for obj_data, obj in zip(data["objects"], sample_app.objects, strict=False):
             # Verify fields
             assert len(obj_data["fields"]) == len(obj.fields)
 
-            for field_data, field in zip(obj_data["fields"], obj.fields):
+            for field_data, field in zip(obj_data["fields"], obj.fields, strict=False):
                 assert field_data["key"] == field.key
                 assert field_data["name"] == field.name
                 assert field_data["type"] == field.type
@@ -233,14 +232,18 @@ class TestYAMLExport:
         yaml_str = export_to_yaml(sample_app)
         data = yaml.safe_load(yaml_str)
 
-        for obj_data, obj in zip(data["objects"], sample_app.objects):
-            if obj.connections and (obj.connections.outbound or obj.connections.inbound):
+        for obj_data, obj in zip(data["objects"], sample_app.objects, strict=False):
+            if obj.connections and (
+                obj.connections.outbound or obj.connections.inbound
+            ):
                 assert "connections" in obj_data
 
                 if obj.connections.outbound:
                     assert "outbound" in obj_data["connections"]
                     for conn_data, conn in zip(
-                        obj_data["connections"]["outbound"], obj.connections.outbound
+                        obj_data["connections"]["outbound"],
+                        obj.connections.outbound,
+                        strict=False,
                     ):
                         assert conn_data["key"] == conn.key
                         assert conn_data["name"] == conn.name
@@ -320,9 +323,13 @@ class TestDetailLevels:
             # Check that only connection fields are included
             for field in obj.fields:
                 if field.type == "connection":
-                    assert field.key in fields_in_schema, f"Connection field {field.key} should be in minimal detail"
+                    assert field.key in fields_in_schema, (
+                        f"Connection field {field.key} should be in minimal detail"
+                    )
                 else:
-                    assert field.key not in fields_in_schema, f"Non-connection field {field.key} should not be in minimal detail"
+                    assert field.key not in fields_in_schema, (
+                        f"Non-connection field {field.key} should not be in minimal detail"
+                    )
 
     def test_compact_detail_json(self, sample_app):
         """Test compact detail includes identifier, required, and connection fields."""
@@ -339,15 +346,19 @@ class TestDetailLevels:
             # Check field inclusion rules
             for field in obj.fields:
                 should_include = (
-                    field.type == "connection" or
-                    field.key == obj.identifier or
-                    field.required
+                    field.type == "connection"
+                    or field.key == obj.identifier
+                    or field.required
                 )
 
                 if should_include:
-                    assert field.key in fields_in_schema, f"Field {field.key} should be in compact detail"
+                    assert field.key in fields_in_schema, (
+                        f"Field {field.key} should be in compact detail"
+                    )
                 else:
-                    assert field.key not in fields_in_schema, f"Field {field.key} should not be in compact detail"
+                    assert field.key not in fields_in_schema, (
+                        f"Field {field.key} should not be in compact detail"
+                    )
 
     def test_standard_detail_json(self, sample_app):
         """Test standard detail includes all fields."""
@@ -360,7 +371,9 @@ class TestDetailLevels:
 
             # All fields should be present
             for field in obj.fields:
-                assert field.key in fields_in_schema, f"All fields should be in standard detail, missing {field.key}"
+                assert field.key in fields_in_schema, (
+                    f"All fields should be in standard detail, missing {field.key}"
+                )
 
     def test_minimal_detail_dbml(self, sample_app):
         """Test minimal detail DBML includes only connection fields."""
@@ -370,7 +383,9 @@ class TestDetailLevels:
         assert "Table" in dbml
 
         # Check that connections are still present
-        if any(obj.connections and obj.connections.outbound for obj in sample_app.objects):
+        if any(
+            obj.connections and obj.connections.outbound for obj in sample_app.objects
+        ):
             assert "Ref:" in dbml
 
     def test_compact_detail_yaml(self, sample_app):
@@ -395,9 +410,9 @@ class TestDetailLevels:
 
             for field in obj.fields:
                 should_include = (
-                    field.type == "connection" or
-                    field.key == obj.identifier or
-                    field.required
+                    field.type == "connection"
+                    or field.key == obj.identifier
+                    or field.required
                 )
 
                 if should_include:
@@ -414,4 +429,6 @@ class TestDetailLevels:
             for obj in sample_app.objects:
                 if obj.connections:
                     obj_schema = schema["definitions"][obj.key]
-                    assert "x-connections" in obj_schema, f"Connections should be preserved in {detail} detail"
+                    assert "x-connections" in obj_schema, (
+                        f"Connections should be preserved in {detail} detail"
+                    )

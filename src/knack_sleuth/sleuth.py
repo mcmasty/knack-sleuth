@@ -1,8 +1,8 @@
 """Core search functionality for finding object and field usages in Knack metadata."""
 
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass
-import re
 from typing import Any
 
 from knack_sleuth.models import KnackAppMetadata, KnackObject, Scene, View
@@ -12,7 +12,9 @@ from knack_sleuth.models import KnackAppMetadata, KnackObject, Scene, View
 class Usage:
     """Represents a usage of an object or field."""
 
-    location_type: str  # "connection", "view_source", "view_column", "field_equation", etc.
+    location_type: (
+        str  # "connection", "view_source", "view_column", "field_equation", etc.
+    )
     context: str  # Human-readable description of where it's used
     details: dict[str, Any]  # Additional context-specific information
 
@@ -150,12 +152,17 @@ class KnackSleuth:
         # Untyped view containers vary by view type and Knack version. Index
         # their field references once so orphan checks remain linear in the
         # metadata size rather than recursively scanning every view per field.
-        self.view_field_references: dict[str, list[tuple[Any, Any, tuple[str, ...]]]] = {}
+        self.view_field_references: dict[
+            str, list[tuple[Any, Any, tuple[str, ...]]]
+        ] = {}
         for scene in self.app.scenes:
             for view in scene.views:
                 view_data = view.model_dump(mode="python", exclude_none=True)
                 for field_key, path in _iter_field_references(view_data):
-                    if field_key not in self.field_to_object or _is_typed_view_reference(path):
+                    if (
+                        field_key not in self.field_to_object
+                        or _is_typed_view_reference(path)
+                    ):
                         continue
                     reference = (scene, view, path)
                     references = self.view_field_references.setdefault(field_key, [])
@@ -201,7 +208,7 @@ class KnackSleuth:
 
         return self._find_field_usages(field_key)
 
-    def _find_object_usages(self, object_key: str) -> list[Usage]:
+    def _find_object_usages(self, object_key: str) -> list[Usage]:  # noqa: C901
         """Find all places where an object is referenced."""
         usages: list[Usage] = []
 
@@ -293,7 +300,7 @@ class KnackSleuth:
                 usage.details["orphaned_view"] = view_key in self.orphaned_view_keys
         return usages
 
-    def _find_field_usages(self, field_key: str) -> list[Usage]:
+    def _find_field_usages(self, field_key: str) -> list[Usage]:  # noqa: C901, PLR0912
         """Find all places where a field is referenced."""
         usages: list[Usage] = []
 
@@ -694,7 +701,7 @@ class KnackSleuth:
 
         return analysis
 
-    def _analyze_object_impact(
+    def _analyze_object_impact(  # noqa: C901, PLR0912, PLR0915
         self, object_key: str, analysis: dict[str, Any]
     ) -> dict[str, Any]:
         """Analyze impact of changes to an object."""
@@ -845,7 +852,7 @@ class KnackSleuth:
 
         return analysis
 
-    def _analyze_field_impact(
+    def _analyze_field_impact(  # noqa: C901, PLR0912
         self, field_key: str, analysis: dict[str, Any]
     ) -> dict[str, Any]:
         """Analyze impact of changes to a field."""
@@ -968,7 +975,7 @@ class KnackSleuth:
         Returns:
             A structured dictionary with complete app architecture summary
         """
-        summary = {
+        return {
             "application": self._analyze_application_metadata(),
             "domain_model": self._analyze_domain_model(),
             "relationship_map": self._analyze_relationship_topology(),
@@ -978,8 +985,6 @@ class KnackSleuth:
             "technical_debt_indicators": self._analyze_technical_debt(),
             "extensibility_assessment": self._analyze_extensibility(),
         }
-
-        return summary
 
     def _analyze_application_metadata(self) -> dict[str, Any]:
         """Extract basic application metadata and complexity metrics."""
@@ -1015,17 +1020,17 @@ class KnackSleuth:
 
     def _classify_object_roles(self, obj: KnackObject) -> dict[str, Any]:
         """Classify an object into multiple orthogonal categories.
-        
+
         Returns a dict with boolean flags:
         - is_user_profile: User/account/auth object (has profile_key)
         - is_core_entity: Determined dynamically in _analyze_domain_model (set post-hoc)
         - primary_role: One of 'transactional', 'reference', 'supporting'
-        
+
         Primary roles are mutually exclusive:
         - Transactional: medium-high record count with connections
         - Reference: low record count, used by others (inbound >> outbound)
         - Supporting: low record count, low connectivity
-        
+
         Note: is_core_entity is a placeholder here; actual core entity selection
         happens in _analyze_domain_model based on top N by volume/connectivity.
         """
@@ -1060,13 +1065,13 @@ class KnackSleuth:
         if not obj.connections:
             return 0.0
 
-        connection_count = len(obj.connections.inbound) + len(
-            obj.connections.outbound
-        )
+        connection_count = len(obj.connections.inbound) + len(obj.connections.outbound)
         max_connections = len(self.app.objects) - 1
 
         # Factor in both connections and usage
-        connection_score = connection_count / max_connections if max_connections > 0 else 0
+        connection_score = (
+            connection_count / max_connections if max_connections > 0 else 0
+        )
 
         # Count how many views use this object
         view_usage = 0
@@ -1083,14 +1088,14 @@ class KnackSleuth:
 
         return round(centrality, 3)
 
-    def _analyze_domain_model(self) -> dict[str, Any]:
+    def _analyze_domain_model(self) -> dict[str, Any]:  # noqa: C901, PLR0912, PLR0915
         """Analyze domain model and classify objects into orthogonal categories.
-        
+
         Core entity selection: Top N objects by record count OR connectivity.
         - Maximum: 20% of total objects, capped at 10
         - Minimum: Top 2 (highest volume) + Top 2 (most connected), deduplicated
         - Always exclude user profiles from this calculation
-        
+
         Returns:
             - user_profiles: Objects that represent user/auth entities
             - core_entities: Top N most important by volume or connectivity
@@ -1118,7 +1123,9 @@ class KnackSleuth:
             # Calculate total connections
             total_connections = 0
             if obj.connections:
-                total_connections = len(obj.connections.inbound) + len(obj.connections.outbound)
+                total_connections = len(obj.connections.inbound) + len(
+                    obj.connections.outbound
+                )
 
             obj_summary: dict[str, Any] = {
                 "object_key": obj.key,
@@ -1164,19 +1171,27 @@ class KnackSleuth:
         # Normalize scores to 0-1 range
         if all_objects_summary:
             max_volume = max(obj["record_count"] for obj in all_objects_summary) or 1
-            max_connectivity = max(obj["total_connections"] for obj in all_objects_summary) or 1
+            max_connectivity = (
+                max(obj["total_connections"] for obj in all_objects_summary) or 1
+            )
 
             for obj in all_objects_summary:
                 volume_score = obj["record_count"] / max_volume
                 connectivity_score = obj["total_connections"] / max_connectivity
                 # Weighted: 60% volume, 40% connectivity
-                obj["importance_score"] = (volume_score * 0.6) + (connectivity_score * 0.4)
-        
+                obj["importance_score"] = (volume_score * 0.6) + (
+                    connectivity_score * 0.4
+                )
+
         # Get top N by importance score
         ranked_objects = sorted(
-            all_objects_summary, key=lambda x: x.get("importance_score", 0), reverse=True
+            all_objects_summary,
+            key=lambda x: x.get("importance_score", 0),
+            reverse=True,
         )
-        core_entity_keys = {obj["object_key"] for obj in ranked_objects[:max_core_entities]}
+        core_entity_keys = {
+            obj["object_key"] for obj in ranked_objects[:max_core_entities]
+        }
 
         # Mark core entities and separate them
         core_entities = []
@@ -1281,16 +1296,15 @@ class KnackSleuth:
         total = inbound + outbound
         if total == 0:
             return "Isolated"
-        elif inbound > outbound * 2:
+        if inbound > outbound * 2:
             return "Central dependency - many objects depend on this"
-        elif outbound > inbound * 2:
+        if outbound > inbound * 2:
             return "Aggregator - depends on many objects"
-        elif total >= 5:
+        if total >= 5:
             return "Core hub - high bidirectional connectivity"
-        else:
-            return "Moderately connected"
+        return "Moderately connected"
 
-    def _identify_clusters(self) -> list[dict[str, Any]]:
+    def _identify_clusters(self) -> list[dict[str, Any]]:  # noqa: C901, PLR0912
         """Identify groups of highly interconnected objects (simplified clustering)."""
         # Build adjacency map
         adjacency = {obj.key: set() for obj in self.app.objects}
@@ -1359,7 +1373,8 @@ class KnackSleuth:
                     {
                         "objects": cluster_names,
                         "object_keys": list(cluster_members),
-                        "internal_connections": internal // 2,  # Divide by 2 to avoid double-counting
+                        "internal_connections": internal
+                        // 2,  # Divide by 2 to avoid double-counting
                         "external_connections": external,
                         "cohesion": cohesion,
                     }
@@ -1399,7 +1414,13 @@ class KnackSleuth:
         for obj in self.app.objects:
             has_formula = False
             for field in obj.fields:
-                if field.type in ["equation", "concatenation", "count", "sum", "average"]:
+                if field.type in [
+                    "equation",
+                    "concatenation",
+                    "count",
+                    "sum",
+                    "average",
+                ]:
                     total_formula_fields += 1
                     has_formula = True
             if has_formula:
@@ -1571,9 +1592,7 @@ class KnackSleuth:
                     target = self.objects_by_key.get(conn.object)
                     if target:
                         # Check if they have many shared connections
-                        obj_connections = set(
-                            c.object for c in obj.connections.outbound
-                        )
+                        obj_connections = {c.object for c in obj.connections.outbound}
                         # The old inline filter ran after the iterable was
                         # built, so a target without connections crashed.
                         target_connections = (
@@ -1613,7 +1632,7 @@ class KnackSleuth:
 
         # Sort by shared connections count (most coupled first)
         tight_coupling.sort(key=lambda x: x["shared_connections_count"], reverse=True)
-        
+
         return {
             "modularity_score": round(modularity_score, 2),
             "tight_coupling_pairs": tight_coupling[:5],  # Top 5 most coupled

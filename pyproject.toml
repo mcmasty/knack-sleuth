@@ -9,6 +9,7 @@ dependencies = [
     "pydantic>=2.12.3",
     "pydantic-settings>=2.11.0",
     "pyyaml>=6.0.3",
+    "rich>=14.2.0",
     "typer>=0.20.0",
 ]
 
@@ -22,10 +23,16 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "bump-my-version>=1.2.4",
+    "deptry>=0.25.1",
+    "hypothesis>=6.170.15",
+    "pre-commit>=4.7.0",
     "pyrefly>=1.3.2,<1.4",
     "pytest>=8.4.2",
+    "pytest-cov>=7.1.0",
     "pytest-mock>=3.15.1",
     "ruff>=0.14.2",
+    "types-pyyaml>=6.0.12.20261113",
+    "vulture>=2.16",
 ]
 
 
@@ -75,9 +82,68 @@ Issues = "https://github.com/mcmasty/knack-sleuth/issues"
 target-version = "py311"
 
 [tool.ruff.lint]
-# Ruff's default rule set (pyflakes + pycodestyle errors), stated explicitly so
-# CI gates on a known set. Types are pyrefly's job.
-select = ["E4", "E7", "E9", "F"]
+# Types are pyrefly's job; formatting is `ruff format`'s.
+select = [
+    "E", "W", "F",  # pycodestyle + pyflakes
+    "I",            # import sorting
+    "B",            # bugbear: likely bugs
+    "UP",           # pyupgrade
+    "SIM",          # simplifications
+    "C4",           # comprehensions
+    "C90",          # mccabe complexity
+    "PL",           # pylint subset, incl. size limits (PLR091x)
+    "RUF",          # ruff-specific
+    "S",            # bandit security
+    "PT",           # pytest style
+    "RET", "PIE", "PTH", "TRY", "ERA",
+]
+ignore = [
+    "E501",     # line length is the formatter's job; it leaves long strings alone
+    "PLC0415",  # imports inside functions keep CLI startup fast
+    "TRY003",   # long messages in exception constructors are fine
+    "PLR2004",  # magic numbers: the heuristic thresholds read better inline
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.flake8-bugbear]
+# Typer declares CLI parameters as call defaults by design.
+extend-immutable-calls = ["typer.Option", "typer.Argument"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]  # assert is how pytest tests
+# Typer commands take one parameter per CLI option.
+"src/knack_sleuth/cli.py" = ["PLR0913"]
+# Examples are linear demo scripts; size limits do not help them.
+"examples/**" = ["C901", "PLR0912", "PLR0915"]
+
+[tool.vulture]
+# Dead-code finder. Scans tests and examples too, so code only they use counts.
+paths = ["src", "tests", "examples", "vulture_whitelist.py"]
+min_confidence = 60
+# Framework entry points that nothing calls by name.
+ignore_decorators = [
+    "@*.command",
+    "@*.callback",
+    "@field_validator",
+    "@model_validator",
+    "@pytest.fixture",
+]
+ignore_names = ["model_config", "cls"]
+
+[tool.deptry]
+known_first_party = ["knack_sleuth"]
+
+[tool.coverage.run]
+source = ["knack_sleuth"]
+branch = true
+
+[tool.coverage.report]
+# Ratchet: raise as coverage improves, never lower.
+fail_under = 72
+show_missing = true
+skip_covered = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"

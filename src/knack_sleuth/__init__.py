@@ -24,7 +24,6 @@ from knack_sleuth.sleuth import (
 )
 
 __all__ = [
-    "__version__",
     "Application",
     "Connection",
     "Connections",
@@ -40,6 +39,7 @@ __all__ = [
     "Usage",
     "View",
     "ViewSource",
+    "__version__",
     "builder_url",
     "load_app_metadata",
 ]

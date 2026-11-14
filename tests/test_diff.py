@@ -172,7 +172,10 @@ class TestSceneAndViewDiffs:
 
         changed = {e["key"]: e for e in result["views"]["changed"]}
         assert renamed_view_key in changed
-        assert changed[renamed_view_key]["changes"]["name"]["new"] == "Totally Renamed View"
+        assert (
+            changed[renamed_view_key]["changes"]["name"]["new"]
+            == "Totally Renamed View"
+        )
 
     def test_added_scene_views_not_listed(self, result):
         """Noise rule: adding scene_999 must not spam the added-views list."""

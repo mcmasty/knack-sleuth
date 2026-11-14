@@ -4,8 +4,8 @@ This module provides functions to export the actual database structure described
 a Knack application into various schema formats (JSON Schema, DBML, YAML, Mermaid).
 """
 
-from typing import Any, Optional
 from collections import deque
+from typing import Any
 
 import yaml
 
@@ -13,7 +13,7 @@ from knack_sleuth.lookup import resolve_object
 from knack_sleuth.models import Application, KnackField, KnackObject
 
 
-def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> bool:
+def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> bool:  # noqa: PLR0911
     """Determine if a field should be included based on detail level.
 
     Args:
@@ -43,9 +43,7 @@ def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> b
         # Include identifier fields, required fields, and connection fields
         if field.key == obj.identifier:
             return True
-        if field.required:
-            return True
-        return False
+        return field.required
 
     return True
 
@@ -124,7 +122,7 @@ def _get_field_json_type(field: KnackField) -> str:
     return type_mapping.get(field.type, "string")
 
 
-def find_object_by_identifier(app: Application, identifier: str) -> Optional[KnackObject]:
+def find_object_by_identifier(app: Application, identifier: str) -> KnackObject | None:
     """Find an object by key or name.
 
     Kept for backward compatibility; delegates to knack_sleuth.lookup.
@@ -206,6 +204,7 @@ def filter_app_to_subgraph(app: Application, subgraph_keys: set[str]) -> Applica
 
     # Create a copy of the application with filtered objects
     from copy import deepcopy
+
     filtered_app = deepcopy(app)
     filtered_app.objects = filtered_objects
 
@@ -215,12 +214,14 @@ def filter_app_to_subgraph(app: Application, subgraph_keys: set[str]) -> Applica
         if obj.connections:
             if obj.connections.outbound:
                 obj.connections.outbound = [
-                    conn for conn in obj.connections.outbound
+                    conn
+                    for conn in obj.connections.outbound
                     if conn.object in subgraph_keys
                 ]
             if obj.connections.inbound:
                 obj.connections.inbound = [
-                    conn for conn in obj.connections.inbound
+                    conn
+                    for conn in obj.connections.inbound
                     if conn.object in subgraph_keys
                 ]
 
@@ -268,7 +269,7 @@ def _build_field_json_schema(field: KnackField) -> dict[str, Any]:
     return schema
 
 
-def export_to_json_schema(app: Application, detail: str = "standard") -> dict[str, Any]:
+def export_to_json_schema(app: Application, detail: str = "standard") -> dict[str, Any]:  # noqa: C901
     """Generate JSON Schema representing the actual database structure.
 
     Args:
@@ -356,7 +357,7 @@ def export_to_json_schema(app: Application, detail: str = "standard") -> dict[st
     return schema
 
 
-def export_to_dbml(app: Application, detail: str = "standard") -> str:
+def export_to_dbml(app: Application, detail: str = "standard") -> str:  # noqa: C901, PLR0912, PLR0915
     """Generate DBML (Database Markup Language) schema.
 
     DBML is a simple, readable DSL language designed to define database schemas.
@@ -391,7 +392,7 @@ def export_to_dbml(app: Application, detail: str = "standard") -> str:
         # Table name and metadata
         table_name = obj.key
         lines.append(f"Table {table_name} {{")
-        lines.append(f'  // {obj.name}')
+        lines.append(f"  // {obj.name}")
 
         record_count = app.counts.get(obj.key, 0)
         if record_count > 0:
@@ -458,17 +459,21 @@ def export_to_dbml(app: Application, detail: str = "standard") -> str:
 
             # Get target object's identifier field
             target_obj = objects_by_key.get(conn.object)
-            target_field = target_obj.identifier if target_obj and target_obj.identifier else conn.key
+            target_field = (
+                target_obj.identifier
+                if target_obj and target_obj.identifier
+                else conn.key
+            )
 
             lines.append(
                 f"Ref: {obj.key}.{conn.key} {rel_type} {conn.object}.{target_field} "
-                f'// {conn.name}'
+                f"// {conn.name}"
             )
 
     return "\n".join(lines)
 
 
-def export_to_yaml(app: Application, detail: str = "standard") -> str:
+def export_to_yaml(app: Application, detail: str = "standard") -> str:  # noqa: C901
     """Generate YAML representation of the database structure.
 
     Args:
@@ -582,12 +587,12 @@ def _get_relationship_type(has: str, belongs_to: str) -> str:
     """Determine the relationship type from has/belongs_to values."""
     if has == "one" and belongs_to == "one":
         return "one-to-one"
-    elif has == "one" and belongs_to == "many":
+    if has == "one" and belongs_to == "many":
         return "one-to-many"
-    elif has == "many" and belongs_to == "one":
+    if has == "many" and belongs_to == "one":
         return "many-to-one"
-    else:  # many-to-many
-        return "many-to-many"
+    # many-to-many
+    return "many-to-many"
 
 
 def _get_mermaid_type(field: KnackField) -> str:
@@ -638,12 +643,12 @@ def _get_mermaid_relationship(has: str, belongs_to: str) -> str:
     """
     if has == "one" and belongs_to == "one":
         return "||--||"
-    elif has == "one" and belongs_to == "many":
+    if has == "one" and belongs_to == "many":
         return "||--o{"
-    elif has == "many" and belongs_to == "one":
+    if has == "many" and belongs_to == "one":
         return "}o--||"
-    else:  # many-to-many
-        return "}o--o{"
+    # many-to-many
+    return "}o--o{"
 
 
 def _sanitize_entity_name(name: str) -> str:
@@ -664,16 +669,16 @@ def _sanitize_entity_name(name: str) -> str:
     sanitized = name.upper()
 
     # Replace spaces, underscores, and other separators with dashes
-    sanitized = re.sub(r'[\s_/]+', '-', sanitized)
+    sanitized = re.sub(r"[\s_/]+", "-", sanitized)
 
     # Remove any characters that aren't alphanumeric, dash, or underscore
-    sanitized = re.sub(r'[^\w\-]', '', sanitized)
+    sanitized = re.sub(r"[^\w\-]", "", sanitized)
 
     # Replace multiple consecutive dashes with single dash
-    sanitized = re.sub(r'-+', '-', sanitized)
+    sanitized = re.sub(r"-+", "-", sanitized)
 
     # Remove leading/trailing dashes
-    sanitized = sanitized.strip('-')
+    sanitized = sanitized.strip("-")
 
     # Ensure it doesn't start with a number
     if sanitized and sanitized[0].isdigit():
@@ -699,12 +704,18 @@ def _sanitize_field_name(name: str) -> str:
         A camelCase identifier suitable for Mermaid
     """
     import re
+    import unicodedata
+
+    # Mermaid attribute names accept non-ASCII only from U+00C0 up, but Python's
+    # \w keeps a few word characters below that (ª ² ³ µ º ¹ ¼ ½ ¾). NFKC folds
+    # them into equivalents Mermaid accepts: "m²" -> "m2", "µ" -> "μ".
+    name = unicodedata.normalize("NFKC", name)
 
     # Split on spaces, dashes, slashes, parentheses, and underscores
-    words = re.split(r'[\s\-/()_]+', name)
+    words = re.split(r"[\s\-/()_]+", name)
 
     # Filter out empty strings and remove non-alphanumeric characters
-    words = [re.sub(r'[^\w]', '', word) for word in words if word]
+    words = [re.sub(r"[^\w]", "", word) for word in words if word]
 
     if not words:
         return "field"
@@ -738,24 +749,22 @@ def _strip_html(text: str) -> str:
     import re
 
     # Remove HTML tags
-    text = re.sub(r'<[^>]+>', '', text)
+    text = re.sub(r"<[^>]+>", "", text)
 
     # Decode common HTML entities
-    text = text.replace('&nbsp;', ' ')
-    text = text.replace('&amp;', '&')
-    text = text.replace('&lt;', '<')
-    text = text.replace('&gt;', '>')
-    text = text.replace('&quot;', '"')
-    text = text.replace('&#39;', "'")
+    text = text.replace("&nbsp;", " ")
+    text = text.replace("&amp;", "&")
+    text = text.replace("&lt;", "<")
+    text = text.replace("&gt;", ">")
+    text = text.replace("&quot;", '"')
+    text = text.replace("&#39;", "'")
 
     # Clean up whitespace
-    text = re.sub(r'\s+', ' ', text)
-    text = text.strip()
-
-    return text
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
 
 
-def export_to_mermaid(app: Application, detail: str = "standard") -> str:
+def export_to_mermaid(app: Application, detail: str = "standard") -> str:  # noqa: C901, PLR0912, PLR0915
     """Generate Mermaid ER diagram syntax.
 
     Mermaid is a JavaScript-based diagramming tool that renders markdown-inspired
@@ -815,7 +824,9 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
             target_name = entity_names.get(conn.object, conn.object)
 
             # Format: SOURCE_TABLE NOTATION TARGET_TABLE : "relationship_name"
-            lines.append(f'    {source_name} {rel_notation} {target_name} : "{conn.name}"')
+            lines.append(
+                f'    {source_name} {rel_notation} {target_name} : "{conn.name}"'
+            )
 
     if relationships_added:
         lines.append("")
@@ -833,7 +844,7 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
                 field_name = _sanitize_field_name(field.name)
 
                 # Determine primary constraint (Mermaid supports one key constraint)
-                # Priority: PK > FK > UK (unique)
+                # Priority: PK, then FK, then UK (unique)
                 constraint = ""
                 if field.key == obj.identifier:
                     constraint = " PK"
@@ -847,10 +858,14 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
 
                 # Try to get description from field metadata
                 description = None
-                if hasattr(field, 'meta') and field.meta:
-                    meta = field.meta if isinstance(field.meta, dict) else field.meta.__dict__
-                    if 'description' in meta and meta['description']:
-                        description = _strip_html(meta['description'])
+                if hasattr(field, "meta") and field.meta:
+                    meta = (
+                        field.meta
+                        if isinstance(field.meta, dict)
+                        else field.meta.__dict__
+                    )
+                    if meta.get("description"):
+                        description = _strip_html(meta["description"])
 
                 if description:
                     # Use the field description as comment
@@ -888,15 +903,18 @@ def export_database_schema(
     """
     valid_details = ["structural", "minimal", "compact", "standard"]
     if detail not in valid_details:
-        raise ValueError(f"Unsupported detail level: {detail}. Use 'structural', 'minimal', 'compact', or 'standard'")
+        raise ValueError(
+            f"Unsupported detail level: {detail}. Use 'structural', 'minimal', 'compact', or 'standard'"
+        )
 
     if format == "json":
         return export_to_json_schema(app, detail=detail)
-    elif format == "dbml":
+    if format == "dbml":
         return export_to_dbml(app, detail=detail)
-    elif format == "yaml":
+    if format == "yaml":
         return export_to_yaml(app, detail=detail)
-    elif format == "mermaid":
+    if format == "mermaid":
         return export_to_mermaid(app, detail=detail)
-    else:
-        raise ValueError(f"Unsupported format: {format}. Use 'json', 'dbml', 'yaml', or 'mermaid'")
+    raise ValueError(
+        f"Unsupported format: {format}. Use 'json', 'dbml', 'yaml', or 'mermaid'"
+    )

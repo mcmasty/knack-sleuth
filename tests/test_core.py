@@ -3,7 +3,6 @@
 import json
 import os
 import time
-from pathlib import Path
 
 import pytest
 
@@ -32,9 +31,9 @@ class TestLoadFromFile:
         assert len(metadata.application.objects) == 19
         assert len(metadata.application.scenes) == 65
 
-    def test_load_from_file_not_found(self):
+    def test_load_from_file_not_found(self, tmp_path):
         """Test FileNotFoundError when file doesn't exist."""
-        non_existent = Path("/tmp/does_not_exist.json")
+        non_existent = tmp_path / "does_not_exist.json"
 
         with pytest.raises(FileNotFoundError):
             load_app_metadata(file_path=non_existent)
@@ -142,7 +141,9 @@ class TestCacheExpiry:
         # 2h-old cache is stale under a 1h TTL
         mock_get.assert_called_once()
 
-    def test_corrupt_cache_falls_back_to_api(self, cache_dir, mocker, mock_api_response):
+    def test_corrupt_cache_falls_back_to_api(
+        self, cache_dir, mocker, mock_api_response
+    ):
         """An unreadable cache file falls through to a fresh API fetch."""
         (cache_dir / "test123_app_metadata_202501011200.json").write_text("{ not json")
         mock_get = mocker.patch(
@@ -283,7 +284,10 @@ class TestBuilderUrl:
 
         url = builder_url(self._app(), "scene_5", view_key="view_9", view_type="form")
 
-        assert url == "https://builder.knack.com/acme/portal/pages/scene_5/views/view_9/form"
+        assert (
+            url
+            == "https://builder.knack.com/acme/portal/pages/scene_5/views/view_9/form"
+        )
 
     def test_next_gen_builder_uses_its_own_host(self):
         from knack_sleuth.core import builder_url
@@ -298,4 +302,7 @@ class TestBuilderUrl:
         app = self._app()
         app.account = {}
 
-        assert builder_url(app, "scene_5") == "https://builder.knack.com/portal/portal/pages/scene_5"
+        assert (
+            builder_url(app, "scene_5")
+            == "https://builder.knack.com/portal/portal/pages/scene_5"
+        )

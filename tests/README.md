@@ -77,10 +77,10 @@ def test_new_feature(mocker, sample_metadata_file):
     """Test a new feature."""
     # Arrange
     mock_something = mocker.patch("knack_sleuth.core.something")
-    
+
     # Act
     result = load_app_metadata(file_path=sample_metadata_file)
-    
+
     # Assert
     assert result.application.name == "Sample Application"
     mock_something.assert_called_once()
@@ -104,23 +104,50 @@ def test_with_fixtures(sample_metadata_file, mock_api_response):
 
 ## CI/CD Integration
 
-To run tests in CI/CD:
+`.github/workflows/test.yml` runs on every push and PR, and `publish.yml` runs it
+before a release:
 
-```yaml
-# GitHub Actions example
-- name: Run tests
-  run: |
-    uv sync
-    uv run pytest -v
+- **Lint job (Python 3.11):** `ruff check`, `ruff format --check`, `pyrefly check`,
+  `vulture` (dead code) and `deptry src` (imports match declared dependencies).
+- **Test job (3.11–3.13, Ubuntu and macOS):** `pytest --cov`. `UV_PYTHON` is set
+  per job because `.python-version` (3.14, for local development) would otherwise
+  win, and a step fails if the interpreter doesn't match the matrix entry.
+- **Package job:** builds the wheel, installs it outside the checkout, and runs the
+  CLI and `install-skill` to confirm the package data ships.
+
+`.github/workflows/audit.yml` runs `uv audit` against `uv.lock` when dependencies
+change, weekly and on demand. It deliberately doesn't gate releases, so a failure
+there is the maintainer's to triage: upgrade the package, or add `--ignore <ID>`
+with a reason.
+
+Whether PRs must pass these checks before merging is set by branch protection on
+GitHub, not by anything in this repo.
+
+Pre-commit runs the fast subset (ruff lint and format, pyrefly, and whitespace,
+YAML/TOML and large-file checks) before each commit. Tests, coverage, vulture and
+deptry run only in CI.
+
+```bash
+uv run pre-commit install
+uv run pre-commit run --all-files   # all hooks, on demand
 ```
 
 ## Coverage
 
-To measure test coverage:
-
 ```bash
-uv add --dev pytest-cov
-uv run pytest --cov=knack_sleuth --cov-report=term-missing
+uv run pytest --cov
 ```
 
-Target: >80% coverage for core modules
+Settings live in `[tool.coverage.*]` in `pyproject.toml`. With branch coverage on,
+`fail_under` applies to the combined line-and-branch percentage, not to branches
+alone. Nothing enforces a ratchet automatically: raise `fail_under` by hand when
+coverage goes up, and don't lower it.
+
+## Property-Based Tests
+
+`test_properties.py` uses [hypothesis](https://hypothesis.readthedocs.io/) to
+check invariants over generated input. In CI (`CI` is set) the `ci` profile in
+`conftest.py` derandomizes it, so the same code gets the same examples on every
+run and a release won't fail on a newly drawn random counterexample. (A change to
+the tests, the code or hypothesis itself can still change which examples run.) Locally it explores freely; if it finds a failure, it prints a
+reproducible example to turn into a regression test.
