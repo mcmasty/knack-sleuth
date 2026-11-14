@@ -391,3 +391,22 @@ def test_app_summary_markdown_reports_page_layout_debt(tmp_path):
     assert "Orphaned views: 1" in result.output
     assert "Dangling layout keys: 1" in result.output
     assert "Stale view rule references: 1" in result.output
+
+
+class TestExportSchema:
+    def test_writes_schema(self, tmp_path):
+        out = tmp_path / "schema.json"
+        result = runner.invoke(cli, ["export-schema", str(out)])
+        assert result.exit_code == 0
+        assert "properties" in json.loads(out.read_text())
+
+    def test_unknown_mode_reports_one_error(self, tmp_path):
+        out = tmp_path / "schema.json"
+        result = runner.invoke(
+            cli, ["export-schema", str(out), "--mode", "bogus"], env=WIDE
+        )
+        assert result.exit_code == 1
+        assert "Unknown mode 'bogus'" in result.output
+        # typer.Exit used to be caught by the broad handler, adding a second error.
+        assert "Failed to generate" not in result.output
+        assert not out.exists()

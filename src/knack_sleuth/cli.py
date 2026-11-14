@@ -1,12 +1,12 @@
-from dataclasses import asdict
-from importlib import resources
-from pathlib import Path
-from typing import Any, Optional
 import json
 import re
+from dataclasses import asdict
+from datetime import UTC
+from importlib import resources
+from pathlib import Path
+from typing import Any
 
 import httpx
-
 import typer
 from rich.console import Console
 from rich.markup import escape
@@ -14,24 +14,26 @@ from rich.panel import Panel
 from rich.table import Table
 
 from knack_sleuth import __version__
-from knack_sleuth.models import KnackAppMetadata, KnackObject
-from knack_sleuth.rules import collect_rules
-from knack_sleuth.sleuth import KnackSleuth
 from knack_sleuth.config import Settings
 from knack_sleuth.core import (
     builder_url,
-    load_app_metadata as core_load_metadata,
-    find_valid_cache,
     fetch_metadata_from_api,
+    find_valid_cache,
     get_cache_dir,
     write_cache,
 )
-from knack_sleuth.lookup import (
-    resolve_object,
-    resolve_fields,
-    suggest_object_names,
-    suggest_field_names,
+from knack_sleuth.core import (
+    load_app_metadata as core_load_metadata,
 )
+from knack_sleuth.lookup import (
+    resolve_fields,
+    resolve_object,
+    suggest_field_names,
+    suggest_object_names,
+)
+from knack_sleuth.models import KnackAppMetadata, KnackObject
+from knack_sleuth.rules import collect_rules
+from knack_sleuth.sleuth import KnackSleuth
 
 # No locals in crash dumps: commands hold raw metadata, and show-rules in
 # particular holds email bodies and addresses it must never print.
@@ -43,7 +45,7 @@ cache_app = typer.Typer(help="Inspect and manage the local metadata cache.")
 cli.add_typer(cache_app, name="cache")
 
 
-def _cache_files(app_id: Optional[str] = None) -> list[Path]:
+def _cache_files(app_id: str | None = None) -> list[Path]:
     """All cache files (optionally for one app), newest first."""
     pattern = f"{app_id}_app_metadata_*.json" if app_id else "*_app_metadata_*.json"
     return sorted(get_cache_dir().glob(pattern), reverse=True)
@@ -57,7 +59,7 @@ def cache_dir():
 
 @cache_app.command("list")
 def cache_list(
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None, "--app-id", help="Only show cache files for this application ID"
     ),
 ):
@@ -102,7 +104,7 @@ def cache_list(
 
 @cache_app.command("clear")
 def cache_clear(
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None, "--app-id", help="Only delete cache files for this application ID"
     ),
 ):
@@ -211,8 +213,8 @@ def _warn_if_installed_skill_is_stale() -> None:
 
 
 def load_app_metadata(
-    file_path: Optional[Path],
-    app_id: Optional[str],
+    file_path: Path | None,
+    app_id: str | None,
     refresh: bool = False,
 ) -> KnackAppMetadata:
     """
@@ -340,7 +342,7 @@ def print_builder_pages(app_export: KnackAppMetadata, scenes_to_review: set) -> 
 @cli.callback()
 def main(
     ctx: typer.Context,
-    version: Optional[bool] = typer.Option(
+    version: bool | None = typer.Option(
         None,
         "--version",
         "-v",
@@ -356,11 +358,11 @@ def main(
 
 @cli.command(name="list-objects")
 def list_objects(
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None,
         "--app-id",
         help="Knack application ID (can also use KNACK_APP_ID env var)",
@@ -537,11 +539,11 @@ def search_object(
     object_identifier: str = typer.Argument(
         ..., help="Object key (e.g., 'object_12') or name to search for"
     ),
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None,
         "--app-id",
         help="Knack application ID (can also use KNACK_APP_ID env var)",
@@ -677,11 +679,11 @@ def search_field(
     field_identifier: str = typer.Argument(
         ..., help="Field key (e.g., 'field_116') or name to search for"
     ),
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None,
         "--app-id",
         help="Knack application ID (can also use KNACK_APP_ID env var)",
@@ -802,11 +804,11 @@ def show_coupling(
     object_identifier: str = typer.Argument(
         ..., help="Object key (e.g., 'object_12') or name to search for"
     ),
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None,
         "--app-id",
         help="Knack application ID (can also use KNACK_APP_ID env var)",
@@ -941,11 +943,11 @@ def show_coupling(
 
 @cli.command(name="find-orphans")
 def find_orphans(
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None,
         "--app-id",
         help="Knack application ID (can also use KNACK_APP_ID env var)",
@@ -1336,17 +1338,17 @@ def _print_view_heading(trigger: dict, label: str) -> None:
 
 @cli.command(name="show-rules")
 def show_rules(
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
-    object_identifier: Optional[str] = typer.Option(
+    object_identifier: str | None = typer.Option(
         None, "--object", help="Object key (e.g., 'object_12') or name"
     ),
-    view_key: Optional[str] = typer.Option(
+    view_key: str | None = typer.Option(
         None, "--view", help="Limit to one view (e.g., 'view_123')"
     ),
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None,
         "--app-id",
         help="Knack application ID (can also use KNACK_APP_ID env var)",
@@ -1410,7 +1412,7 @@ def show_rules(
 
     try:
         report = collect_rules(app_export, target.key if target else None, view_key)
-    except Exception as exc:  # noqa: BLE001 - never echo the raw rules
+    except Exception as exc:
         err_console.print(
             f"[red]Error:[/red] could not interpret this app's rules ({type(exc).__name__}). "
             "Please report it at https://github.com/mcmasty/knack-sleuth/issues"
@@ -1520,10 +1522,10 @@ def show_rules(
 
 @cli.command(name="download-metadata")
 def download_metadata(
-    output_file: Optional[Path] = typer.Argument(
+    output_file: Path | None = typer.Argument(
         None, help="Output file path (default: {APP_ID}_metadata.json)"
     ),
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None,
         "--app-id",
         help="Knack application ID (can also use KNACK_APP_ID env var)",
@@ -1643,12 +1645,12 @@ def download_metadata(
 @cli.command(name="diff")
 def diff(
     old_file: Path = typer.Argument(..., help="Older metadata snapshot (JSON file)"),
-    new_file: Optional[Path] = typer.Argument(
+    new_file: Path | None = typer.Argument(
         None,
         help="Newer metadata snapshot (JSON file). Omit to compare against the live API "
         "(requires --app-id or KNACK_APP_ID)",
     ),
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None,
         "--app-id",
         help="Knack application ID for live comparison (can also use KNACK_APP_ID env var)",
@@ -1661,7 +1663,7 @@ def diff(
     output_format: str = typer.Option(
         "rich", "--format", help="Output format: rich, json, or markdown"
     ),
-    output_file: Optional[Path] = typer.Option(
+    output_file: Path | None = typer.Option(
         None,
         "--output",
         "-o",
@@ -1761,7 +1763,7 @@ def diff(
 
 
 def _print_diff_rich(
-    diff_result: dict, old_file: Path, new_file: Optional[Path]
+    diff_result: dict, old_file: Path, new_file: Path | None
 ) -> None:
     """Render a diff result to the console with Rich formatting."""
     summary = diff_result["summary"]
@@ -1902,7 +1904,7 @@ def _print_diff_rich(
 
 @cli.command(name="export-schema")
 def export_schema(
-    output_file: Optional[Path] = typer.Argument(
+    output_file: Path | None = typer.Argument(
         None, help="Output file path (default: knack_metadata_schema.json)"
     ),
     mode: str = typer.Option(
@@ -1953,17 +1955,16 @@ def export_schema(
     if not output_file:
         output_file = Path("knack_metadata_schema.json")
 
-    # Generate schema based on mode
+    # Validate outside the try: typer.Exit is an Exception, so the broad
+    # handler below would swallow it and print a second, bogus error.
+    if mode not in ("validation", "serialization"):
+        err_console.print(
+            f"[red]Error:[/red] Unknown mode '{mode}'. Use 'validation' or 'serialization'."
+        )
+        raise typer.Exit(1)
+
     try:
-        if mode == "validation":
-            schema = KnackAppMetadata.model_json_schema(mode="validation")
-        elif mode == "serialization":
-            schema = KnackAppMetadata.model_json_schema(mode="serialization")
-        else:
-            err_console.print(
-                f"[red]Error:[/red] Unknown mode '{mode}'. Use 'validation' or 'serialization'."
-            )
-            raise typer.Exit(1)
+        schema = KnackAppMetadata.model_json_schema(mode=mode)
 
         # Save schema to file
         with output_file.open("w") as f:
@@ -1991,10 +1992,10 @@ def export_schema(
 
 @cli.command(name="export-db-schema")
 def export_db_schema(
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None, help="Path to Knack app export JSON file"
     ),
-    output_file: Optional[Path] = typer.Option(
+    output_file: Path | None = typer.Option(
         None, "--output", "-o", help="Output file path"
     ),
     format: str = typer.Option(
@@ -2006,7 +2007,7 @@ def export_db_schema(
         "-d",
         help="Detail level: structural, minimal, compact, or standard",
     ),
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None, "--app-id", help="Knack app ID (alternative to file)"
     ),
     refresh: bool = typer.Option(
@@ -2161,7 +2162,7 @@ def export_db_schema(
 
 @cli.command(name="export-schema-subgraph")
 def export_schema_subgraph(
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None, help="Path to Knack app export JSON file"
     ),
     object: str = typer.Option(
@@ -2174,7 +2175,7 @@ def export_schema_subgraph(
         "--depth",
         help="Traversal depth (0=object only, 1=direct connections, 2=one level deeper)",
     ),
-    output_file: Optional[Path] = typer.Option(
+    output_file: Path | None = typer.Option(
         None, "--output", "-o", help="Output file path"
     ),
     format: str = typer.Option(
@@ -2186,7 +2187,7 @@ def export_schema_subgraph(
         "-d",
         help="Detail level: structural, minimal, compact, or standard",
     ),
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None, "--app-id", help="Knack app ID (alternative to file)"
     ),
     refresh: bool = typer.Option(
@@ -2249,10 +2250,10 @@ def export_schema_subgraph(
         knack-sleuth export-schema-subgraph app.json --object Events --detail minimal -f yaml
     """
     from knack_sleuth.db_schema import (
-        export_database_schema,
-        find_object_by_identifier,
         build_subgraph,
+        export_database_schema,
         filter_app_to_subgraph,
+        find_object_by_identifier,
     )
 
     # Validate depth
@@ -2414,11 +2415,11 @@ def impact_analysis(
         ...,
         help="Object or field key/name to analyze (e.g., 'object_12' or 'field_116')",
     ),
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None,
         "--app-id",
         help="Knack application ID (can also use KNACK_APP_ID env var)",
@@ -2429,7 +2430,7 @@ def impact_analysis(
     output_format: str = typer.Option(
         "json", "--format", help="Output format: json, yaml, or markdown"
     ),
-    output_file: Optional[Path] = typer.Option(
+    output_file: Path | None = typer.Option(
         None, "--output", "-o", help="Save output to file instead of stdout"
     ),
 ):
@@ -2701,11 +2702,11 @@ def impact_analysis(
 
 @cli.command(name="app-summary")
 def app_summary(
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None,
         "--app-id",
         help="Knack application ID (can also use KNACK_APP_ID env var)",
@@ -2716,7 +2717,7 @@ def app_summary(
     output_format: str = typer.Option(
         "json", "--format", help="Output format: json, yaml, or markdown"
     ),
-    output_file: Optional[Path] = typer.Option(
+    output_file: Path | None = typer.Option(
         None, "--output", "-o", help="Save output to file instead of stdout"
     ),
 ):
@@ -2956,11 +2957,11 @@ def app_summary(
 
 @cli.command(name="role-access-review")
 def role_access_review(
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None,
         "--app-id",
         help="Knack application ID (can also use KNACK_APP_ID env var)",
@@ -2968,7 +2969,7 @@ def role_access_review(
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
     ),
-    output: Optional[Path] = typer.Option(
+    output: Path | None = typer.Option(
         None,
         "--output",
         "-o",
@@ -3013,9 +3014,10 @@ def role_access_review(
 
         knack-sleuth role-access-review app.json --summary-only  # Show only top-level pages
     """
-    from pathlib import Path
     import csv
-    from knack_sleuth.security import generate_security_report, count_children
+    from pathlib import Path
+
+    from knack_sleuth.security import count_children, generate_security_report
 
     # Load metadata
     app_export = load_app_metadata(file_path, app_id, refresh)
@@ -3084,9 +3086,9 @@ def role_access_review(
 
     # Determine output path with timestamp
     if not output:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         output = Path(f"role_access_review_{timestamp}.csv")
 
     # Export to CSV
@@ -3143,19 +3145,19 @@ def role_access_review(
 
 @cli.command(name="role-access-summary")
 def role_access_summary(
-    file_path: Optional[Path] = typer.Argument(
+    file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
-    role: Optional[str] = typer.Option(
+    role: str | None = typer.Option(
         None,
         "--role",
         help="User profile (role) name to filter by (e.g., 'Admin', 'Manager')",
     ),
-    profile_key: Optional[str] = typer.Option(
+    profile_key: str | None = typer.Option(
         None, "--profile-key", help="Profile key to filter by (e.g., 'profile_1')"
     ),
-    app_id: Optional[str] = typer.Option(
+    app_id: str | None = typer.Option(
         None,
         "--app-id",
         help="Knack application ID (can also use KNACK_APP_ID env var)",
@@ -3163,7 +3165,7 @@ def role_access_summary(
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
     ),
-    output: Optional[Path] = typer.Option(
+    output: Path | None = typer.Option(
         None,
         "--output",
         "-o",
@@ -3190,8 +3192,9 @@ def role_access_summary(
         knack-sleuth role-access-summary --profile-key "profile_1" --app-id YOUR_APP_ID
         knack-sleuth role-access-summary --role "Admin" app.json -o admin_access.csv
     """
-    from pathlib import Path
     import csv
+    from pathlib import Path
+
     from knack_sleuth.security import generate_security_report, get_views_for_profile
 
     # Validate that at least one of role or profile_key is provided
@@ -3328,9 +3331,9 @@ def role_access_summary(
 
     # Determine output path with timestamp
     if not output:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         safe_role_name = target_profile_name.replace(" ", "_").replace("/", "_")
         output = Path(f"role_access_summary_{safe_role_name}_{timestamp}.csv")
 
@@ -3361,7 +3364,7 @@ def role_access_summary(
 
 @cli.command(name="install-skill")
 def install_skill(
-    target_dir: Optional[Path] = typer.Option(
+    target_dir: Path | None = typer.Option(
         None,
         "--target",
         "-t",
