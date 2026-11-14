@@ -704,6 +704,12 @@ def _sanitize_field_name(name: str) -> str:
         A camelCase identifier suitable for Mermaid
     """
     import re
+    import unicodedata
+
+    # Mermaid attribute names accept non-ASCII only from U+00C0 up, but Python's
+    # \w keeps a few word characters below that (ª ² ³ µ º ¹ ¼ ½ ¾). NFKC folds
+    # them into equivalents Mermaid accepts: "m²" -> "m2", "µ" -> "μ".
+    name = unicodedata.normalize("NFKC", name)
 
     # Split on spaces, dashes, slashes, parentheses, and underscores
     words = re.split(r"[\s\-/()_]+", name)

@@ -6,6 +6,10 @@
 
 - `export-schema --mode <unknown>` no longer prints a second, misleading "Failed to generate
   or save schema: 1" error after the real one. This was found by ruff's TRY301 rule.
+- `export-db-schema --format mermaid` no longer emits attribute names that Mermaid can't parse
+  when a field name contains ª, ¹, ², ³, µ, º, ¼, ½ or ¾ (e.g. "Area m²"). Field names are
+  Unicode-normalised first, so "Area m²" becomes `areaM2`. This was found by a hypothesis
+  property test.
 
 ### Changed
 

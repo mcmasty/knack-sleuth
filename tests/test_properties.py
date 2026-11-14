@@ -11,6 +11,7 @@ import json
 import re
 from pathlib import Path
 
+import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -23,6 +24,14 @@ from knack_sleuth.db_schema import (
 from knack_sleuth.diff import _sort_key, diff_applications
 from knack_sleuth.lookup import resolve_fields, resolve_object
 from knack_sleuth.models import KnackAppMetadata
+
+# Mermaid's own ER lexer rules (mermaid 12.3.0, erDiagram grammar), translated
+# to Python. JS matches astral characters as surrogate pairs, which fall inside
+# \u00C0-\uFFFF, so the Python range runs to \U0010FFFF.
+MERMAID_ATTRIBUTE_WORD = re.compile(
+    r"[*A-Za-z_\u00C0-\U0010FFFF][A-Za-z0-9\-_\[\]().,\u00C0-\U0010FFFF*]*"
+)
+MERMAID_ENTITY_NAME = re.compile(r"(?:[^\x00-\x7F]|[A-Za-z0-9_]|-|\*)+")
 
 SAMPLE = json.loads(Path("tests/data/sample_knack_app_meta.json").read_text())
 APP = KnackAppMetadata(**SAMPLE).application
@@ -62,15 +71,23 @@ class TestSanitizers:
         once = _sanitize_entity_name(name)
         assert _sanitize_entity_name(once) == once
 
-    @given(st.text(alphabet=st.characters(codec="ascii")))
+    @given(st.text())
+    def test_entity_name_parses_as_mermaid_entity(self, name):
+        assert MERMAID_ENTITY_NAME.fullmatch(_sanitize_entity_name(name))
+
+    @given(st.text())
     def test_field_name_is_an_identifier(self, name):
-        # ASCII only, for now: non-ASCII letters pass through unchanged, and
-        # str.lower()/capitalize() turn a few into combining marks ('İd' ->
-        # 'i̇d'), which are not \w. Whether Mermaid accepts those is unverified.
         result = _sanitize_field_name(name)
         assert result
-        assert re.fullmatch(r"\w+", result)
         assert not result[0].isdigit()
+        assert MERMAID_ATTRIBUTE_WORD.fullmatch(result)
+
+    @pytest.mark.parametrize(
+        ("name", "expected"),
+        [("Area m²", "areaM2"), ("Nº", "no"), ("Prénom", "prénom"), ("İd", "i̇d")],
+    )
+    def test_field_name_examples(self, name, expected):
+        assert _sanitize_field_name(name) == expected
 
     @given(st.text())
     def test_strip_html_normalises_whitespace(self, text):
