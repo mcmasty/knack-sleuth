@@ -1,0 +1,30 @@
+name: Dependency Audit
+
+# Kept out of test.yml on purpose: publish.yml calls test.yml, and a newly
+# published advisory (often in a dev-only tool) shouldn't block a release.
+# This runs when dependencies change and weekly, so findings still surface.
+on:
+  push:
+    branches: [ main, master ]
+    paths: [ 'uv.lock', 'pyproject.toml' ]
+  pull_request:
+    paths: [ 'uv.lock', 'pyproject.toml' ]
+  schedule:
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: Dependency vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: uv audit
+        # Checks uv.lock against the OSV advisory database. `uv audit` is still
+        # a uv preview feature; the flag acknowledges that and silences the warning.
+        # To accept a specific advisory, add `--ignore <ID>` with a comment why.
+        run: uv audit --locked --preview-features audit-command
