@@ -41,7 +41,9 @@ def _app_without(object_keys: set[str]):
 @st.composite
 def random_case(draw, text: str) -> str:
     flips = draw(st.lists(st.booleans(), min_size=len(text), max_size=len(text)))
-    return "".join(c.upper() if f else c.lower() for c, f in zip(text, flips, strict=True))
+    return "".join(
+        c.upper() if f else c.lower() for c, f in zip(text, flips, strict=True)
+    )
 
 
 class TestSanitizers:
@@ -116,7 +118,11 @@ class TestSubgraph:
 
 
 class TestLookup:
-    @given(st.sampled_from(OBJECT_KEYS).flatmap(lambda k: st.tuples(st.just(k), random_case(k))))
+    @given(
+        st.sampled_from(OBJECT_KEYS).flatmap(
+            lambda k: st.tuples(st.just(k), random_case(k))
+        )
+    )
     def test_object_key_lookup_ignores_case(self, pair):
         key, typed = pair
         obj = resolve_object(APP, typed)
@@ -134,7 +140,11 @@ class TestLookup:
         assert obj is not None
         assert obj.name.lower() == name.lower()
 
-    @given(st.sampled_from(FIELD_KEYS).flatmap(lambda k: st.tuples(st.just(k), random_case(k))))
+    @given(
+        st.sampled_from(FIELD_KEYS).flatmap(
+            lambda k: st.tuples(st.just(k), random_case(k))
+        )
+    )
     def test_field_key_lookup_is_exact_and_unique(self, pair):
         key, typed = pair
         matches = resolve_fields(APP, typed)

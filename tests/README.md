@@ -104,23 +104,36 @@ def test_with_fixtures(sample_metadata_file, mock_api_response):
 
 ## CI/CD Integration
 
-To run tests in CI/CD:
+`.github/workflows/test.yml` runs on every push and PR, and `publish.yml` runs it
+before a release:
 
-```yaml
-# GitHub Actions example
-- name: Run tests
-  run: |
-    uv sync
-    uv run pytest -v
+- **Lint job (Python 3.11):** `ruff check`, `ruff format --check`, `pyrefly check`,
+  `vulture` (dead code) and `deptry src` (imports match declared dependencies).
+- **Test job (3.11–3.13, Ubuntu and macOS):** `pytest --cov`.
+
+`.github/workflows/audit.yml` runs `uv audit` against `uv.lock` when dependencies
+change and weekly. It is deliberately not part of the release gate.
+
+The same checks run locally before each commit once you install the hooks:
+
+```bash
+uv run pre-commit install
+uv run pre-commit run --all-files   # everything, on demand
 ```
 
 ## Coverage
 
-To measure test coverage:
-
 ```bash
-uv add --dev pytest-cov
-uv run pytest --cov=knack_sleuth --cov-report=term-missing
+uv run pytest --cov
 ```
 
-Target: >80% coverage for core modules
+Settings live in `[tool.coverage.*]` in `pyproject.toml`: branch coverage, with
+`fail_under` as a ratchet. Raise it when coverage goes up; don't lower it.
+
+## Property-Based Tests
+
+`test_properties.py` uses [hypothesis](https://hypothesis.readthedocs.io/) to
+check invariants over generated input. In CI (`CI` is set) the `ci` profile in
+`conftest.py` derandomizes it, so a release can't fail on a newly drawn
+counterexample. Locally it explores freely; if it finds a failure, it prints a
+reproducible example to turn into a regression test.

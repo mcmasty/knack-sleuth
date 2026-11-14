@@ -1,9 +1,18 @@
 """Pytest configuration and shared fixtures."""
 
 import json
+import os
 from pathlib import Path
 
 import pytest
+from hypothesis import settings
+
+# CI runs gate releases (publish.yml calls test.yml), so property tests there
+# must not fail on a newly drawn counterexample. Derandomize in CI; local runs
+# keep exploring and can find new cases.
+settings.register_profile("ci", derandomize=True, print_blob=True)
+if os.environ.get("CI"):
+    settings.load_profile("ci")
 
 
 @pytest.fixture(autouse=True)

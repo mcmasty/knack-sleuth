@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- `export-schema --mode <unknown>` no longer prints a second, misleading "Failed to generate
+  or save schema: 1" error after the real one. This was found by ruff's TRY301 rule.
+
+### Changed
+
+- `rich` is now a declared dependency. It was already installed through typer, but the CLI
+  imports it directly.
+- Development: CI also checks formatting (`ruff format`), dead code (vulture), declared
+  dependencies (deptry) and a branch-coverage floor. Dependency vulnerabilities are audited
+  weekly by a separate workflow. A pre-commit config, an expanded ruff rule set and
+  hypothesis property tests were added.
+
 ## 0.9.0
 
 ### Added
