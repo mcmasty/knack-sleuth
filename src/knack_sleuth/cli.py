@@ -275,7 +275,9 @@ def load_app_metadata(
     except Exception as e:
         # Handle httpx errors and other exceptions
         if isinstance(e, httpx.HTTPStatusError):
-            err_console.print(f"[red]Error:[/red] HTTP {e.response.status_code}: {e.response.text}")
+            err_console.print(
+                f"[red]Error:[/red] HTTP {e.response.status_code}: {e.response.text}"
+            )
         elif isinstance(e, httpx.RequestError):
             err_console.print(f"[red]Error:[/red] Failed to connect to Knack API: {e}")
         else:
@@ -292,16 +294,22 @@ def _validate_output_format(output_format: str) -> None:
         raise typer.Exit(1)
 
 
-def resolve_object_or_exit(app_export: KnackAppMetadata, identifier: str) -> KnackObject:
+def resolve_object_or_exit(
+    app_export: KnackAppMetadata, identifier: str
+) -> KnackObject:
     """Resolve an object by key or name, or exit with suggestions."""
     obj = resolve_object(app_export.application, identifier)
     if obj:
         return obj
 
-    err_console.print(f"[red]Error:[/red] Object '{identifier}' not found in application")
+    err_console.print(
+        f"[red]Error:[/red] Object '{identifier}' not found in application"
+    )
     suggestions = suggest_object_names(app_export.application, identifier)
     if suggestions:
-        console.print(f"Did you mean: [cyan]{'[/cyan], [cyan]'.join(suggestions)}[/cyan]?")
+        console.print(
+            f"Did you mean: [cyan]{'[/cyan], [cyan]'.join(suggestions)}[/cyan]?"
+        )
     raise typer.Exit(1)
 
 
@@ -312,7 +320,9 @@ def print_builder_pages(app_export: KnackAppMetadata, scenes_to_review: set) -> 
 
     settings = Settings()
 
-    console.print(f"\n[bold cyan]Builder Pages to Review:[/bold cyan] {len(scenes_to_review)} scenes")
+    console.print(
+        f"\n[bold cyan]Builder Pages to Review:[/bold cyan] {len(scenes_to_review)} scenes"
+    )
     console.print()
     for scene_key in sorted(scenes_to_review):
         url = builder_url(
@@ -322,7 +332,9 @@ def print_builder_pages(app_export: KnackAppMetadata, scenes_to_review: set) -> 
         )
         console.print(f"  [link={url}]{url}[/link]")
     console.print()
-    console.print("[dim]Tip: Set KNACK_NEXT_GEN_BUILDER=true to use Next-Gen builder URLs[/dim]")
+    console.print(
+        "[dim]Tip: Set KNACK_NEXT_GEN_BUILDER=true to use Next-Gen builder URLs[/dim]"
+    )
 
 
 @cli.callback()
@@ -345,16 +357,21 @@ def main(
 @cli.command(name="list-objects")
 def list_objects(
     file_path: Optional[Path] = typer.Argument(
-        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+        None,
+        help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
     app_id: Optional[str] = typer.Option(
-        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+        None,
+        "--app-id",
+        help="Knack application ID (can also use KNACK_APP_ID env var)",
     ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
     ),
     sort_by_rows: bool = typer.Option(
-        False, "--sort-by-rows", help="Sort by row count (largest first) instead of by name"
+        False,
+        "--sort-by-rows",
+        help="Sort by row count (largest first) instead of by name",
     ),
     output_format: str = typer.Option(
         "rich", "--format", help="Output format: rich or json"
@@ -405,34 +422,39 @@ def list_objects(
     total_afferent = 0
     total_efferent = 0
     total_connections = 0
-    
+
     # Sort objects based on flag
     if sort_by_rows:
         # Sort by row count (descending), then by name as tiebreaker
         sorted_objects = sorted(
             app_export.application.objects,
-            key=lambda o: (-app_export.application.counts.get(o.key, 0), o.name.lower())
+            key=lambda o: (
+                -app_export.application.counts.get(o.key, 0),
+                o.name.lower(),
+            ),
         )
     else:
         # Sort by name (default)
-        sorted_objects = sorted(app_export.application.objects, key=lambda o: o.name.lower())
-    
+        sorted_objects = sorted(
+            app_export.application.objects, key=lambda o: o.name.lower()
+        )
+
     for obj in sorted_objects:
         # Get row count from counts dict
         row_count = app_export.application.counts.get(obj.key, 0)
         total_rows += row_count
-        
+
         # Count fields
         field_count = len(obj.fields)
         total_fields += field_count
-        
+
         # Count connections separately
         afferent_count = 0  # Ca: inbound (other objects depend on this)
         efferent_count = 0  # Ce: outbound (this object depends on others)
         if obj.connections:
             afferent_count = len(obj.connections.inbound)
             efferent_count = len(obj.connections.outbound)
-        
+
         connection_count = afferent_count + efferent_count
         total_afferent += afferent_count
         total_efferent += efferent_count
@@ -472,15 +494,17 @@ def list_objects(
         return
 
     # Create table
-    table = Table(title=f"[bold cyan]{app_export.application.name}[/bold cyan] - Objects")
+    table = Table(
+        title=f"[bold cyan]{app_export.application.name}[/bold cyan] - Objects"
+    )
     table.add_column("Key", style="dim")
     table.add_column("Name", style="bold cyan")
     table.add_column("Rows", justify="right", style="magenta")
     table.add_column("Fields", justify="right", style="yellow")
     table.add_column("Ca", justify="right", style="blue")  # Afferent (inbound)
-    table.add_column("Ce", justify="right", style="red")   # Efferent (outbound)
+    table.add_column("Ce", justify="right", style="red")  # Efferent (outbound)
     table.add_column("Total", justify="right", style="green")
-    table.add_column("I", justify="right", style="cyan")   # Instability: Ce / (Ca + Ce)
+    table.add_column("I", justify="right", style="cyan")  # Instability: Ce / (Ca + Ce)
 
     for entry in entries:
         table.add_row(
@@ -514,10 +538,13 @@ def search_object(
         ..., help="Object key (e.g., 'object_12') or name to search for"
     ),
     file_path: Optional[Path] = typer.Argument(
-        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+        None,
+        help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
     app_id: Optional[str] = typer.Option(
-        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+        None,
+        "--app-id",
+        help="Knack application ID (can also use KNACK_APP_ID env var)",
     ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
@@ -568,13 +595,13 @@ def search_object(
     # Collect unique scenes from all usages (for builder links)
     scenes_to_review = set()
     for usage in object_usages:
-        if 'scene_key' in usage.details:
-            scenes_to_review.add(usage.details['scene_key'])
+        if "scene_key" in usage.details:
+            scenes_to_review.add(usage.details["scene_key"])
     if show_fields:
         for usages in field_usage_map.values():
             for usage in usages:
-                if 'scene_key' in usage.details:
-                    scenes_to_review.add(usage.details['scene_key'])
+                if "scene_key" in usage.details:
+                    scenes_to_review.add(usage.details["scene_key"])
 
     if output_format == "json":
         field_usages_payload = {}
@@ -613,7 +640,9 @@ def search_object(
 
     if object_usages:
         for usage in object_usages:
-            console.print(f"  [yellow]•[/yellow] \\[{usage.location_type}] {usage.context}")
+            console.print(
+                f"  [yellow]•[/yellow] \\[{usage.location_type}] {usage.context}"
+            )
     else:
         console.print("  [dim]No direct object usages found[/dim]")
 
@@ -632,7 +661,9 @@ def search_object(
                         f"\n  [bold cyan]{field_info.name}[/bold cyan] ({field_key}) - {field_info.type} - {len(usages)} usages"
                     )
                     for usage in usages:
-                        console.print(f"    [yellow]•[/yellow] \\[{usage.location_type}] {usage.context}")
+                        console.print(
+                            f"    [yellow]•[/yellow] \\[{usage.location_type}] {usage.context}"
+                        )
         else:
             console.print("\n[dim]No field usages found[/dim]")
 
@@ -647,10 +678,13 @@ def search_field(
         ..., help="Field key (e.g., 'field_116') or name to search for"
     ),
     file_path: Optional[Path] = typer.Argument(
-        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+        None,
+        help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
     app_id: Optional[str] = typer.Option(
-        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+        None,
+        "--app-id",
+        help="Knack application ID (can also use KNACK_APP_ID env var)",
     ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
@@ -700,7 +734,9 @@ def search_field(
         )
         suggestions = suggest_field_names(app_export.application, field_identifier)
         if suggestions:
-            console.print(f"Did you mean: [cyan]{'[/cyan], [cyan]'.join(suggestions)}[/cyan]?")
+            console.print(
+                f"Did you mean: [cyan]{'[/cyan], [cyan]'.join(suggestions)}[/cyan]?"
+            )
         raise typer.Exit(1)
 
     if len(matches) > 1:
@@ -719,7 +755,7 @@ def search_field(
     sleuth = KnackSleuth(app_export)
     usages = sleuth.search_field(target_field.key)
     scenes_to_review = {
-        usage.details['scene_key'] for usage in usages if 'scene_key' in usage.details
+        usage.details["scene_key"] for usage in usages if "scene_key" in usage.details
     }
 
     if output_format == "json":
@@ -749,7 +785,9 @@ def search_field(
     console.print(f"\n[bold cyan]Usages:[/bold cyan] {len(usages)}")
     if usages:
         for usage in usages:
-            console.print(f"  [yellow]•[/yellow] \\[{usage.location_type}] {usage.context}")
+            console.print(
+                f"  [yellow]•[/yellow] \\[{usage.location_type}] {usage.context}"
+            )
     else:
         console.print("  [dim]No usages found — this field may be an orphan[/dim]")
 
@@ -765,10 +803,13 @@ def show_coupling(
         ..., help="Object key (e.g., 'object_12') or name to search for"
     ),
     file_path: Optional[Path] = typer.Argument(
-        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+        None,
+        help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
     app_id: Optional[str] = typer.Option(
-        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+        None,
+        "--app-id",
+        help="Knack application ID (can also use KNACK_APP_ID env var)",
     ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
@@ -811,7 +852,9 @@ def show_coupling(
 
     if output_format == "json":
         inbound = target_object.connections.inbound if target_object.connections else []
-        outbound = target_object.connections.outbound if target_object.connections else []
+        outbound = (
+            target_object.connections.outbound if target_object.connections else []
+        )
         inbound = inbound or []
         outbound = outbound or []
 
@@ -849,10 +892,17 @@ def show_coupling(
 
     # Afferent Coupling (Ca) - Inbound connections
     if target_object.connections and target_object.connections.inbound:
-        console.print(f"\n[bold cyan]Afferent Coupling (Ca):[/bold cyan] {len(target_object.connections.inbound)} objects depend on this")
-        console.print("[dim]Objects that have connections pointing TO this object[/dim]\n")
-        
-        for conn in sorted(target_object.connections.inbound, key=lambda c: getattr(objects_by_key.get(c.object), "name", "")):
+        console.print(
+            f"\n[bold cyan]Afferent Coupling (Ca):[/bold cyan] {len(target_object.connections.inbound)} objects depend on this"
+        )
+        console.print(
+            "[dim]Objects that have connections pointing TO this object[/dim]\n"
+        )
+
+        for conn in sorted(
+            target_object.connections.inbound,
+            key=lambda c: getattr(objects_by_key.get(c.object), "name", ""),
+        ):
             source_obj = objects_by_key.get(conn.object)
             if source_obj:
                 relationship = f"{conn.has} → {conn.belongs_to}"
@@ -863,13 +913,18 @@ def show_coupling(
     else:
         console.print("\n[bold cyan]Afferent Coupling (Ca):[/bold cyan] 0 objects")
         console.print("[dim]No objects depend on this object[/dim]")
-    
+
     # Efferent Coupling (Ce) - Outbound connections
     if target_object.connections and target_object.connections.outbound:
-        console.print(f"\n[bold cyan]Efferent Coupling (Ce):[/bold cyan] {len(target_object.connections.outbound)} objects this depends on")
+        console.print(
+            f"\n[bold cyan]Efferent Coupling (Ce):[/bold cyan] {len(target_object.connections.outbound)} objects this depends on"
+        )
         console.print("[dim]Objects that this object connects TO[/dim]\n")
-        
-        for conn in sorted(target_object.connections.outbound, key=lambda c: getattr(objects_by_key.get(c.object), "name", "")):
+
+        for conn in sorted(
+            target_object.connections.outbound,
+            key=lambda c: getattr(objects_by_key.get(c.object), "name", ""),
+        ):
             target_obj = objects_by_key.get(conn.object)
             if target_obj:
                 relationship = f"{conn.has} → {conn.belongs_to}"
@@ -887,16 +942,21 @@ def show_coupling(
 @cli.command(name="find-orphans")
 def find_orphans(
     file_path: Optional[Path] = typer.Argument(
-        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+        None,
+        help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
     app_id: Optional[str] = typer.Option(
-        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+        None,
+        "--app-id",
+        help="Knack application ID (can also use KNACK_APP_ID env var)",
     ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
     ),
     include_system: bool = typer.Option(
-        False, "--include-system", help="Include Knack system fields in the orphaned fields list"
+        False,
+        "--include-system",
+        help="Include Knack system fields in the orphaned fields list",
     ),
     output_format: str = typer.Option(
         "rich", "--format", help="Output format: rich or json"
@@ -977,6 +1037,7 @@ def find_orphans(
         visible_fields = orphaned_fields
 
     if output_format == "json":
+
         def _field_notes(obj, field):
             notes = []
             if obj.identifier == field.key:
@@ -997,7 +1058,8 @@ def find_orphans(
                 "notes": _field_notes(obj, field),
             }
             for obj, field in sorted(
-                visible_fields, key=lambda pair: (pair[0].name.lower(), pair[1].name.lower())
+                visible_fields,
+                key=lambda pair: (pair[0].name.lower(), pair[1].name.lower()),
             )
         ]
         objects_payload = [
@@ -1072,7 +1134,8 @@ def find_orphans(
         table.add_column("Notes", style="dim")
 
         for obj, field in sorted(
-            visible_fields, key=lambda pair: (pair[0].name.lower(), pair[1].name.lower())
+            visible_fields,
+            key=lambda pair: (pair[0].name.lower(), pair[1].name.lower()),
         ):
             notes = []
             if obj.identifier == field.key:
@@ -1096,7 +1159,9 @@ def find_orphans(
     # Orphaned objects
     console.print()
     if orphaned_objects:
-        console.print(f"[bold cyan]Orphaned Objects:[/bold cyan] {len(orphaned_objects)}")
+        console.print(
+            f"[bold cyan]Orphaned Objects:[/bold cyan] {len(orphaned_objects)}"
+        )
         for obj in sorted(orphaned_objects, key=lambda o: o.name.lower()):
             row_count = app_export.application.counts.get(obj.key, 0)
             console.print(
@@ -1168,9 +1233,7 @@ def find_orphans(
         # Count what the table above actually showed; hidden system fields are
         # called out separately so the two numbers never silently disagree.
         f"[dim]Total: {len(visible_fields)} orphaned fields"
-        + (
-            f" (+{hidden_system_count} hidden system)" if hidden_system_count else ""
-        )
+        + (f" (+{hidden_system_count} hidden system)" if hidden_system_count else "")
         + f" | {len(orphaned_objects)} orphaned objects"
         + f" | {len(orphaned_views)} orphaned views[/dim]"
     )
@@ -1208,27 +1271,43 @@ def _print_rule_lists(item: dict, indent: str, note_no_email: bool = True) -> No
     if not emails and note_no_email:
         console.print(f"{indent}[green]Email rules: none[/green]")
     for email in emails:
-        recipients = ", ".join(
-            f"{r.get('mode')}: "
-            + (r["address"] if r.get("type") == "custom" else f"{r.get('type')} {_fmt_field(r)}")
-            for r in email["recipients"]
-        ) or "no recipients"
+        recipients = (
+            ", ".join(
+                f"{r.get('mode')}: "
+                + (
+                    r["address"]
+                    if r.get("type") == "custom"
+                    else f"{r.get('type')} {_fmt_field(r)}"
+                )
+                for r in email["recipients"]
+            )
+            or "no recipients"
+        )
         console.print(
             f"{indent}[magenta]Email[/magenta] {escape(repr(email.get('subject') or ''))} "
             f"→ {escape(recipients)}{_fmt_criteria(email['criteria'])}"
         )
     for record in item.get("records", []):
-        values = "; ".join(
-            f"{_fmt_field(v)} = {v['set_to']}" + (f" ({v['mode']})" if v.get("mode") else "")
-            for v in record["values"]
-        ) or "no values"
+        values = (
+            "; ".join(
+                f"{_fmt_field(v)} = {v['set_to']}"
+                + (f" ({v['mode']})" if v.get("mode") else "")
+                for v in record["values"]
+            )
+            or "no values"
+        )
         target = f" via {record['connection']}" if record.get("connection") else ""
         console.print(
             f"{indent}[cyan]Record[/cyan] {escape(str(record['description']))}{escape(target)}: "
             f"{escape(values)}{_fmt_criteria(record['criteria'])}"
         )
     for submit in item.get("submits", []):
-        detail = submit.get("target_page") or submit.get("url") or submit.get("message") or ""
+        detail = (
+            submit.get("target_page")
+            or submit.get("url")
+            or submit.get("message")
+            or ""
+        )
         console.print(
             f"{indent}[blue]Submit[/blue] {escape(str(submit.get('action')))}"
             f"{': ' + escape(repr(detail)) if detail else ''}{_fmt_criteria(submit['criteria'])}"
@@ -1247,14 +1326,19 @@ def _print_view_heading(trigger: dict, label: str) -> None:
         f"{trigger['scene_name']} ({trigger['scene_key']}) › "
         f"{trigger['view_name']} ({trigger['view_key']}, {trigger['view_type']})"
     )
-    flag = "" if trigger["reachable"] else " [red]UNREACHABLE: orphaned view, never renders[/red]"
+    flag = (
+        ""
+        if trigger["reachable"]
+        else " [red]UNREACHABLE: orphaned view, never renders[/red]"
+    )
     console.print(f"\n[bold]{label}[/bold] {where}{flag}")
 
 
 @cli.command(name="show-rules")
 def show_rules(
     file_path: Optional[Path] = typer.Argument(
-        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+        None,
+        help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
     object_identifier: Optional[str] = typer.Option(
         None, "--object", help="Object key (e.g., 'object_12') or name"
@@ -1263,7 +1347,9 @@ def show_rules(
         None, "--view", help="Limit to one view (e.g., 'view_123')"
     ),
     app_id: Optional[str] = typer.Option(
-        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+        None,
+        "--app-id",
+        help="Knack application ID (can also use KNACK_APP_ID env var)",
     ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
@@ -1307,11 +1393,19 @@ def show_rules(
 
     app_export = load_app_metadata(file_path, app_id, refresh)
 
-    target = resolve_object_or_exit(app_export, object_identifier) if object_identifier else None
+    target = (
+        resolve_object_or_exit(app_export, object_identifier)
+        if object_identifier
+        else None
+    )
     if view_key and not any(
-        view.key == view_key for scene in app_export.application.scenes for view in scene.views
+        view.key == view_key
+        for scene in app_export.application.scenes
+        for view in scene.views
     ):
-        err_console.print(f"[red]Error:[/red] View '{view_key}' not found in application")
+        err_console.print(
+            f"[red]Error:[/red] View '{view_key}' not found in application"
+        )
         raise typer.Exit(1)
 
     try:
@@ -1333,7 +1427,9 @@ def show_rules(
         return
 
     title = f"{target.name} ({target.key})" if target else view_key
-    console.print(Panel(f"[bold cyan]{escape(str(title))}[/bold cyan]", title="Builder Rules"))
+    console.print(
+        Panel(f"[bold cyan]{escape(str(title))}[/bold cyan]", title="Builder Rules")
+    )
 
     triggers = report["triggers"]
     if not triggers:
@@ -1341,7 +1437,9 @@ def show_rules(
     for trigger in triggers:
         if trigger["trigger"] == "form_submit":
             action = (
-                f" — form {escape(str(trigger['form_action']))}" if trigger.get("form_action") else ""
+                f" — form {escape(str(trigger['form_action']))}"
+                if trigger.get("form_action")
+                else ""
             )
             _print_view_heading(trigger, f"Form submit{action}:")
             _print_rule_lists(trigger, "  ")
@@ -1371,7 +1469,9 @@ def show_rules(
 
     connected = report["connected_record_rules"]
     if connected:
-        console.print("\n[bold cyan]Changed from other objects' views (via connection):[/bold cyan]")
+        console.print(
+            "\n[bold cyan]Changed from other objects' views (via connection):[/bold cyan]"
+        )
         for entry in connected:
             label = (
                 f"Action link {escape(repr(entry.get('link_text') or ''))}:"
@@ -1380,7 +1480,10 @@ def show_rules(
             )
             _print_view_heading(entry, label + _fmt_criteria(entry["trigger_criteria"]))
             _print_rule_lists(
-                {"records": [entry["record_rule"]], "emails": entry["emails_on_same_trigger"]},
+                {
+                    "records": [entry["record_rule"]],
+                    "emails": entry["emails_on_same_trigger"],
+                },
                 "  ",
                 note_no_email=False,
             )
@@ -1393,7 +1496,9 @@ def show_rules(
         )
         for entry in field_rules:
             for rule in entry["rules"]:
-                values = "; ".join(f"{_fmt_field(v)} = {v['set_to']}" for v in rule["values"])
+                values = "; ".join(
+                    f"{_fmt_field(v)} = {v['set_to']}" for v in rule["values"]
+                )
                 console.print(f"  {escape(values)}{_fmt_criteria(rule['criteria'])}")
 
     if target:
@@ -1419,7 +1524,9 @@ def download_metadata(
         None, help="Output file path (default: {APP_ID}_metadata.json)"
     ),
     app_id: Optional[str] = typer.Option(
-        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+        None,
+        "--app-id",
+        help="Knack application ID (can also use KNACK_APP_ID env var)",
     ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
@@ -1452,20 +1559,20 @@ def download_metadata(
         knack-sleuth download-metadata --refresh          # Force fresh download
     """
     settings = Settings()
-    
+
     # Get credentials
     final_app_id = app_id or settings.knack_app_id
-    
+
     if not final_app_id:
         err_console.print(
             "[red]Error:[/red] App ID is required. Provide via --app-id or KNACK_APP_ID environment variable."
         )
         raise typer.Exit(1)
-    
+
     # Determine output filename
     if not output_file:
         output_file = Path(f"{final_app_id}_metadata.json")
-    
+
     # Reuse a fresh cache file when available, otherwise fetch from the API.
     data = None
 
@@ -1496,7 +1603,9 @@ def download_metadata(
                 data = fetch_metadata_from_api(final_app_id)
 
         except httpx.HTTPStatusError as e:
-            err_console.print(f"[red]Error:[/red] HTTP {e.response.status_code}: {e.response.text}")
+            err_console.print(
+                f"[red]Error:[/red] HTTP {e.response.status_code}: {e.response.text}"
+            )
             raise typer.Exit(1)
         except httpx.RequestError as e:
             err_console.print(f"[red]Error:[/red] Failed to connect to Knack API: {e}")
@@ -1504,28 +1613,28 @@ def download_metadata(
         except Exception as e:
             err_console.print(f"[red]Error:[/red] Failed to fetch metadata: {e}")
             raise typer.Exit(1)
-    
+
     # Save to output file
     try:
-        with output_file.open('w') as f:
+        with output_file.open("w") as f:
             json.dump(data, f, indent=2)
-        
+
         file_size = output_file.stat().st_size
         file_size_kb = file_size / 1024
-        
+
         console.print()
         console.print(f"[green]✓[/green] Metadata saved to [bold]{output_file}[/bold]")
         console.print(f"[dim]  File size: {file_size_kb:.1f} KB[/dim]")
-        
+
         # Show app info
-        app_name = data.get('application', {}).get('name', 'Unknown')
-        object_count = len(data.get('application', {}).get('objects', []))
-        scene_count = len(data.get('application', {}).get('scenes', []))
-        
+        app_name = data.get("application", {}).get("name", "Unknown")
+        object_count = len(data.get("application", {}).get("objects", []))
+        scene_count = len(data.get("application", {}).get("scenes", []))
+
         console.print(f"[dim]  App: {app_name}[/dim]")
         console.print(f"[dim]  Objects: {object_count} | Scenes: {scene_count}[/dim]")
         console.print()
-        
+
     except Exception as e:
         err_console.print(f"[red]Error:[/red] Failed to save file: {e}")
         raise typer.Exit(1)
@@ -1533,28 +1642,35 @@ def download_metadata(
 
 @cli.command(name="diff")
 def diff(
-    old_file: Path = typer.Argument(
-        ..., help="Older metadata snapshot (JSON file)"
-    ),
+    old_file: Path = typer.Argument(..., help="Older metadata snapshot (JSON file)"),
     new_file: Optional[Path] = typer.Argument(
         None,
         help="Newer metadata snapshot (JSON file). Omit to compare against the live API "
         "(requires --app-id or KNACK_APP_ID)",
     ),
     app_id: Optional[str] = typer.Option(
-        None, "--app-id", help="Knack application ID for live comparison (can also use KNACK_APP_ID env var)"
+        None,
+        "--app-id",
+        help="Knack application ID for live comparison (can also use KNACK_APP_ID env var)",
     ),
     refresh: bool = typer.Option(
-        False, "--refresh", help="Force refresh cached API data (only applies to live comparison)"
+        False,
+        "--refresh",
+        help="Force refresh cached API data (only applies to live comparison)",
     ),
     output_format: str = typer.Option(
         "rich", "--format", help="Output format: rich, json, or markdown"
     ),
     output_file: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="Save output to file (requires --format json or markdown)"
+        None,
+        "--output",
+        "-o",
+        help="Save output to file (requires --format json or markdown)",
     ),
     exit_code: bool = typer.Option(
-        False, "--exit-code", help="Exit with code 1 if differences were found (like git diff)"
+        False,
+        "--exit-code",
+        help="Exit with code 1 if differences were found (like git diff)",
     ),
 ):
     """
@@ -1629,9 +1745,11 @@ def diff(
     if content is not None:
         if output_file:
             try:
-                with output_file.open('w') as f:
+                with output_file.open("w") as f:
                     f.write(content)
-                console.print(f"[green]✓[/green] Diff saved to [bold]{output_file}[/bold]")
+                console.print(
+                    f"[green]✓[/green] Diff saved to [bold]{output_file}[/bold]"
+                )
             except Exception as e:
                 err_console.print(f"[red]Error:[/red] Failed to save file: {e}")
                 raise typer.Exit(1)
@@ -1678,7 +1796,9 @@ def _print_diff_rich(
             f"{summary['old_app_name']} → {summary['new_app_name']}"
         )
 
-    def print_section(title: str, entries: list, render, marker: str, color: str) -> None:
+    def print_section(
+        title: str, entries: list, render, marker: str, color: str
+    ) -> None:
         if not entries:
             return
         console.print(f"\n[bold cyan]{title}:[/bold cyan] {len(entries)}")
@@ -1687,69 +1807,94 @@ def _print_diff_rich(
 
     def render_changes(entry: dict) -> str:
         changes = "; ".join(
-            f"{attr}: {c['old']!r} → {c['new']!r}" for attr, c in entry["changes"].items()
+            f"{attr}: {c['old']!r} → {c['new']!r}"
+            for attr, c in entry["changes"].items()
         )
         return f"{entry['name']} ({entry['key']}) — {changes}"
 
     print_section(
-        "Objects Added", diff_result["objects"]["added"],
+        "Objects Added",
+        diff_result["objects"]["added"],
         lambda e: f"[bold cyan]{e['name']}[/bold cyan] ({e['key']}) — {e['field_count']} fields",
-        "+", "green",
+        "+",
+        "green",
     )
     print_section(
-        "Objects Removed", diff_result["objects"]["removed"],
+        "Objects Removed",
+        diff_result["objects"]["removed"],
         lambda e: f"[bold cyan]{e['name']}[/bold cyan] ({e['key']}) — {e['field_count']} fields",
-        "-", "red",
+        "-",
+        "red",
     )
     print_section(
-        "Objects Renamed", diff_result["objects"]["renamed"],
+        "Objects Renamed",
+        diff_result["objects"]["renamed"],
         lambda e: f"{e['key']}: {e['old_name']} → {e['new_name']}",
-        "~", "yellow",
+        "~",
+        "yellow",
     )
     print_section(
-        "Fields Added", diff_result["fields"]["added"],
+        "Fields Added",
+        diff_result["fields"]["added"],
         lambda e: f"{e['object_name']} → [bold cyan]{e['name']}[/bold cyan] ({e['key']}, {e['type']})",
-        "+", "green",
+        "+",
+        "green",
     )
     print_section(
-        "Fields Removed", diff_result["fields"]["removed"],
+        "Fields Removed",
+        diff_result["fields"]["removed"],
         lambda e: f"{e['object_name']} → [bold cyan]{e['name']}[/bold cyan] ({e['key']}, {e['type']})",
-        "-", "red",
+        "-",
+        "red",
     )
     print_section(
-        "Fields Changed", diff_result["fields"]["changed"],
+        "Fields Changed",
+        diff_result["fields"]["changed"],
         lambda e: f"{e['object_name']} → {render_changes(e)}",
-        "~", "yellow",
+        "~",
+        "yellow",
     )
     print_section(
-        "Scenes Added", diff_result["scenes"]["added"],
+        "Scenes Added",
+        diff_result["scenes"]["added"],
         lambda e: f"[bold cyan]{e['name']}[/bold cyan] ({e['key']}, /{e['slug']}) — {e['view_count']} views",
-        "+", "green",
+        "+",
+        "green",
     )
     print_section(
-        "Scenes Removed", diff_result["scenes"]["removed"],
+        "Scenes Removed",
+        diff_result["scenes"]["removed"],
         lambda e: f"[bold cyan]{e['name']}[/bold cyan] ({e['key']}, /{e['slug']}) — {e['view_count']} views",
-        "-", "red",
+        "-",
+        "red",
     )
     print_section(
-        "Scenes Renamed", diff_result["scenes"]["renamed"],
+        "Scenes Renamed",
+        diff_result["scenes"]["renamed"],
         lambda e: f"{e['key']}: {e['old_name']} → {e['new_name']}",
-        "~", "yellow",
+        "~",
+        "yellow",
     )
     print_section(
-        "Views Added", diff_result["views"]["added"],
+        "Views Added",
+        diff_result["views"]["added"],
         lambda e: f"{e['scene_name']} → [bold cyan]{e['name']}[/bold cyan] ({e['key']}, {e['type']})",
-        "+", "green",
+        "+",
+        "green",
     )
     print_section(
-        "Views Removed", diff_result["views"]["removed"],
+        "Views Removed",
+        diff_result["views"]["removed"],
         lambda e: f"{e['scene_name']} → [bold cyan]{e['name']}[/bold cyan] ({e['key']}, {e['type']})",
-        "-", "red",
+        "-",
+        "red",
     )
     print_section(
-        "Views Changed", diff_result["views"]["changed"],
+        "Views Changed",
+        diff_result["views"]["changed"],
         lambda e: f"{e['scene_name']} → {render_changes(e)}",
-        "~", "yellow",
+        "~",
+        "yellow",
     )
 
     console.print()
@@ -1761,7 +1906,9 @@ def export_schema(
         None, help="Output file path (default: knack_metadata_schema.json)"
     ),
     mode: str = typer.Option(
-        "validation", "--mode", help="Schema generation mode: validation or serialization"
+        "validation",
+        "--mode",
+        help="Schema generation mode: validation or serialization",
     ),
 ):
     """
@@ -1805,7 +1952,7 @@ def export_schema(
     # Set default output path
     if not output_file:
         output_file = Path("knack_metadata_schema.json")
-    
+
     # Generate schema based on mode
     try:
         if mode == "validation":
@@ -1813,24 +1960,30 @@ def export_schema(
         elif mode == "serialization":
             schema = KnackAppMetadata.model_json_schema(mode="serialization")
         else:
-            err_console.print(f"[red]Error:[/red] Unknown mode '{mode}'. Use 'validation' or 'serialization'.")
+            err_console.print(
+                f"[red]Error:[/red] Unknown mode '{mode}'. Use 'validation' or 'serialization'."
+            )
             raise typer.Exit(1)
-        
+
         # Save schema to file
-        with output_file.open('w') as f:
+        with output_file.open("w") as f:
             json.dump(schema, f, indent=2)
-        
+
         file_size = output_file.stat().st_size
         file_size_kb = file_size / 1024
-        
+
         console.print()
-        console.print(f"[green]✓[/green] JSON schema exported to [bold]{output_file}[/bold]")
+        console.print(
+            f"[green]✓[/green] JSON schema exported to [bold]{output_file}[/bold]"
+        )
         console.print(f"[dim]  Mode: {mode}[/dim]")
         console.print(f"[dim]  File size: {file_size_kb:.1f} KB[/dim]")
         console.print()
-        console.print("[dim]Use this schema for API documentation, validation, or IDE integration[/dim]")
+        console.print(
+            "[dim]Use this schema for API documentation, validation, or IDE integration[/dim]"
+        )
         console.print()
-        
+
     except Exception as e:
         err_console.print(f"[red]Error:[/red] Failed to generate or save schema: {e}")
         raise typer.Exit(1)
@@ -1848,7 +2001,10 @@ def export_db_schema(
         "json", "--format", "-f", help="Output format: json, dbml, yaml, or mermaid"
     ),
     detail: str = typer.Option(
-        "standard", "--detail", "-d", help="Detail level: structural, minimal, compact, or standard"
+        "standard",
+        "--detail",
+        "-d",
+        help="Detail level: structural, minimal, compact, or standard",
     ),
     app_id: Optional[str] = typer.Option(
         None, "--app-id", help="Knack app ID (alternative to file)"
@@ -1931,7 +2087,12 @@ def export_db_schema(
 
     # Set default output file based on format
     if not output_file:
-        extension_map = {"json": "json", "dbml": "dbml", "yaml": "yaml", "mermaid": "mmd"}
+        extension_map = {
+            "json": "json",
+            "dbml": "dbml",
+            "yaml": "yaml",
+            "mermaid": "mmd",
+        }
         output_file = Path(f"knack_db_schema.{extension_map[format]}")
 
     # Load app metadata (the CLI wrapper handles cache messaging + error reporting)
@@ -1940,14 +2101,15 @@ def export_db_schema(
     app = app_metadata.application
 
     console.print(
-        f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] "
-        f"({len(app.objects)} objects)"
+        f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] ({len(app.objects)} objects)"
     )
     console.print()
 
     try:
         # Generate schema
-        console.print(f"[dim]Generating {format.upper()} schema ({detail} detail)...[/dim]")
+        console.print(
+            f"[dim]Generating {format.upper()} schema ({detail} detail)...[/dim]"
+        )
         schema = export_database_schema(app, format=format, detail=detail)
 
         # Save to file
@@ -2003,10 +2165,14 @@ def export_schema_subgraph(
         None, help="Path to Knack app export JSON file"
     ),
     object: str = typer.Option(
-        ..., "--object", help="Starting object (key or name, e.g., 'Events' or 'object_12')"
+        ...,
+        "--object",
+        help="Starting object (key or name, e.g., 'Events' or 'object_12')",
     ),
     depth: int = typer.Option(
-        1, "--depth", help="Traversal depth (0=object only, 1=direct connections, 2=one level deeper)"
+        1,
+        "--depth",
+        help="Traversal depth (0=object only, 1=direct connections, 2=one level deeper)",
     ),
     output_file: Optional[Path] = typer.Option(
         None, "--output", "-o", help="Output file path"
@@ -2015,7 +2181,10 @@ def export_schema_subgraph(
         "json", "--format", "-f", help="Output format: json, dbml, yaml, or mermaid"
     ),
     detail: str = typer.Option(
-        "standard", "--detail", "-d", help="Detail level: structural, minimal, compact, or standard"
+        "standard",
+        "--detail",
+        "-d",
+        help="Detail level: structural, minimal, compact, or standard",
     ),
     app_id: Optional[str] = typer.Option(
         None, "--app-id", help="Knack app ID (alternative to file)"
@@ -2120,14 +2289,20 @@ def export_schema_subgraph(
 
     # Set default output file based on format
     if not output_file:
-        extension_map = {"json": "json", "dbml": "dbml", "yaml": "yaml", "mermaid": "mmd"}
+        extension_map = {
+            "json": "json",
+            "dbml": "dbml",
+            "yaml": "yaml",
+            "mermaid": "mmd",
+        }
         # Sanitize object name for filename: replace spaces and special chars with dashes
         sanitized_name = object.lower().replace(" ", "-").replace("_", "-")
         # Remove any other problematic characters
         import re
-        sanitized_name = re.sub(r'[^\w\-]', '', sanitized_name)
+
+        sanitized_name = re.sub(r"[^\w\-]", "", sanitized_name)
         # Remove consecutive dashes
-        sanitized_name = re.sub(r'-+', '-', sanitized_name).strip('-')
+        sanitized_name = re.sub(r"-+", "-", sanitized_name).strip("-")
         output_file = Path(f"knack_subgraph_{sanitized_name}.{extension_map[format]}")
 
     # Load app metadata (the CLI wrapper handles cache messaging + error reporting)
@@ -2136,8 +2311,7 @@ def export_schema_subgraph(
     app = app_metadata.application
 
     console.print(
-        f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] "
-        f"({len(app.objects)} objects)"
+        f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] ({len(app.objects)} objects)"
     )
 
     try:
@@ -2175,7 +2349,9 @@ def export_schema_subgraph(
         filtered_app = filter_app_to_subgraph(app, subgraph_keys)
 
         # Generate schema
-        console.print(f"[dim]Generating {format.upper()} schema ({detail} detail)...[/dim]")
+        console.print(
+            f"[dim]Generating {format.upper()} schema ({detail} detail)...[/dim]"
+        )
         schema = export_database_schema(filtered_app, format=format, detail=detail)
 
         # Save to file
@@ -2193,7 +2369,9 @@ def export_schema_subgraph(
         )
         console.print(f"[dim]  Format: {format.upper()}[/dim]")
         console.print(f"[dim]  Detail: {detail}[/dim]")
-        console.print(f"[dim]  Starting object: {start_object.name} ({start_object.key})[/dim]")
+        console.print(
+            f"[dim]  Starting object: {start_object.name} ({start_object.key})[/dim]"
+        )
         console.print(f"[dim]  Depth: {depth}[/dim]")
         console.print(f"[dim]  Objects: {len(subgraph_keys)}[/dim]")
         console.print(f"[dim]  File size: {file_size_kb:.1f} KB[/dim]")
@@ -2233,13 +2411,17 @@ def export_schema_subgraph(
 @cli.command(name="impact-analysis")
 def impact_analysis(
     target_identifier: str = typer.Argument(
-        ..., help="Object or field key/name to analyze (e.g., 'object_12' or 'field_116')"
+        ...,
+        help="Object or field key/name to analyze (e.g., 'object_12' or 'field_116')",
     ),
     file_path: Optional[Path] = typer.Argument(
-        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+        None,
+        help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
     app_id: Optional[str] = typer.Option(
-        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+        None,
+        "--app-id",
+        help="Knack application ID (can also use KNACK_APP_ID env var)",
     ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
@@ -2348,7 +2530,9 @@ def impact_analysis(
             app_export.application, target_identifier
         ) or suggest_field_names(app_export.application, target_identifier)
         if suggestions:
-            console.print(f"Did you mean: [cyan]{'[/cyan], [cyan]'.join(suggestions)}[/cyan]?")
+            console.print(
+                f"Did you mean: [cyan]{'[/cyan], [cyan]'.join(suggestions)}[/cyan]?"
+            )
         raise typer.Exit(1)
 
     # Generate analysis
@@ -2368,8 +2552,8 @@ def impact_analysis(
     elif output_format == "markdown":
         # Collect unique scenes for builder URLs
         settings = Settings()
-        scenes_to_review = set(analysis['cascade_impacts']['affected_scenes'])
-        
+        scenes_to_review = set(analysis["cascade_impacts"]["affected_scenes"])
+
         # Generate markdown summary
         md_lines = [
             f"# Impact Analysis: {analysis['target']['name']}",
@@ -2389,80 +2573,96 @@ def impact_analysis(
             f"### Connections ({len(analysis['direct_impacts']['connections'])})",
         ]
 
-        for conn in analysis['direct_impacts']['connections']:
+        for conn in analysis["direct_impacts"]["connections"]:
             md_lines.append(f"- {conn['description']}")
-        if not analysis['direct_impacts']['connections']:
+        if not analysis["direct_impacts"]["connections"]:
             md_lines.append("*No connection impacts*")
 
         md_lines.append("")
         md_lines.append(f"### Views ({len(analysis['direct_impacts']['views'])})")
-        for view in analysis['direct_impacts']['views']:
+        for view in analysis["direct_impacts"]["views"]:
             md_lines.append(
                 f"- **{view['view_name']}** (`{view['view_key']}`) - {view['view_type']} in scene {view['scene_name']}"
             )
-        if not analysis['direct_impacts']['views']:
+        if not analysis["direct_impacts"]["views"]:
             md_lines.append("*No view impacts*")
 
         md_lines.append("")
         md_lines.append(f"### Forms ({len(analysis['direct_impacts']['forms'])})")
-        for form in analysis['direct_impacts']['forms']:
+        for form in analysis["direct_impacts"]["forms"]:
             md_lines.append(f"- **{form['view_name']}** (`{form['view_key']}`)")
-        if not analysis['direct_impacts']['forms']:
+        if not analysis["direct_impacts"]["forms"]:
             md_lines.append("*No form impacts*")
 
         md_lines.append("")
         md_lines.append(f"### Formulas ({len(analysis['direct_impacts']['formulas'])})")
-        for formula in analysis['direct_impacts']['formulas']:
-            md_lines.append(f"- **{formula['field_name']}** (`{formula['field_key']}`): `{formula.get('equation', 'N/A')}`")
-        if not analysis['direct_impacts']['formulas']:
+        for formula in analysis["direct_impacts"]["formulas"]:
+            md_lines.append(
+                f"- **{formula['field_name']}** (`{formula['field_key']}`): `{formula.get('equation', 'N/A')}`"
+            )
+        if not analysis["direct_impacts"]["formulas"]:
             md_lines.append("*No formula impacts*")
 
-        md_lines.extend([
-            "",
-            "## Cascade Impacts",
-            "",
-            f"### Affected Fields ({len(analysis['cascade_impacts']['affected_fields'])})",
-        ])
+        md_lines.extend(
+            [
+                "",
+                "## Cascade Impacts",
+                "",
+                f"### Affected Fields ({len(analysis['cascade_impacts']['affected_fields'])})",
+            ]
+        )
 
-        for field in analysis['cascade_impacts']['affected_fields']:
+        for field in analysis["cascade_impacts"]["affected_fields"]:
             md_lines.append(
                 f"- **{field['field_name']}** (`{field['field_key']}`) - {field['field_type']} - {field['usage_count']} usages"
             )
-        if not analysis['cascade_impacts']['affected_fields']:
+        if not analysis["cascade_impacts"]["affected_fields"]:
             md_lines.append("*No field cascade impacts*")
 
-        md_lines.extend([
-            "",
-            f"### Affected Scenes ({len(analysis['cascade_impacts']['affected_scenes'])})",
-        ])
-        for scene_key in analysis['cascade_impacts']['affected_scenes']:
+        md_lines.extend(
+            [
+                "",
+                f"### Affected Scenes ({len(analysis['cascade_impacts']['affected_scenes'])})",
+            ]
+        )
+        for scene_key in analysis["cascade_impacts"]["affected_scenes"]:
             scene_info = next(
-                (s for s in analysis['direct_impacts']['scenes'] if s['scene_key'] == scene_key),
-                None
+                (
+                    s
+                    for s in analysis["direct_impacts"]["scenes"]
+                    if s["scene_key"] == scene_key
+                ),
+                None,
             )
             if scene_info:
-                md_lines.append(f"- **{scene_info['scene_name']}** (`{scene_key}`) - /{scene_info['scene_slug']}")
-        if not analysis['cascade_impacts']['affected_scenes']:
+                md_lines.append(
+                    f"- **{scene_info['scene_name']}** (`{scene_key}`) - /{scene_info['scene_slug']}"
+                )
+        if not analysis["cascade_impacts"]["affected_scenes"]:
             md_lines.append("*No scene cascade impacts*")
 
-        md_lines.extend([
-            "",
-            "## Summary",
-            "",
-            f"- **Total Direct Impacts:** {analysis['metadata']['total_direct_impacts']}",
-            f"- **Total Cascade Impacts:** {analysis['metadata']['total_cascade_impacts']}",
-        ])
-        
+        md_lines.extend(
+            [
+                "",
+                "## Summary",
+                "",
+                f"- **Total Direct Impacts:** {analysis['metadata']['total_direct_impacts']}",
+                f"- **Total Cascade Impacts:** {analysis['metadata']['total_cascade_impacts']}",
+            ]
+        )
+
         # Add Builder Pages to Review section
         if scenes_to_review:
-            md_lines.extend([
-                "",
-                "## Builder Pages to Review",
-                "",
-                f"**{len(scenes_to_review)} scenes affected**",
-                "",
-            ])
-            
+            md_lines.extend(
+                [
+                    "",
+                    "## Builder Pages to Review",
+                    "",
+                    f"**{len(scenes_to_review)} scenes affected**",
+                    "",
+                ]
+            )
+
             for scene_key in sorted(scenes_to_review):
                 url = builder_url(
                     app_export.application,
@@ -2470,8 +2670,12 @@ def impact_analysis(
                     next_gen=settings.knack_next_gen_builder,
                 )
                 scene_name = next(
-                    (s['scene_name'] for s in analysis['direct_impacts']['scenes'] if s['scene_key'] == scene_key),
-                    scene_key
+                    (
+                        s["scene_name"]
+                        for s in analysis["direct_impacts"]["scenes"]
+                        if s["scene_key"] == scene_key
+                    ),
+                    scene_key,
                 )
                 md_lines.append(f"- [{scene_name}]({url})")
 
@@ -2483,9 +2687,11 @@ def impact_analysis(
     # Output to file or stdout
     if output_file:
         try:
-            with output_file.open('w') as f:
+            with output_file.open("w") as f:
                 f.write(output_content)
-            console.print(f"[green]✓[/green] Analysis saved to [bold]{output_file}[/bold]")
+            console.print(
+                f"[green]✓[/green] Analysis saved to [bold]{output_file}[/bold]"
+            )
         except Exception as e:
             err_console.print(f"[red]Error:[/red] Failed to save file: {e}")
             raise typer.Exit(1)
@@ -2496,10 +2702,13 @@ def impact_analysis(
 @cli.command(name="app-summary")
 def app_summary(
     file_path: Optional[Path] = typer.Argument(
-        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+        None,
+        help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
     app_id: Optional[str] = typer.Option(
-        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+        None,
+        "--app-id",
+        help="Knack application ID (can also use KNACK_APP_ID env var)",
     ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
@@ -2570,7 +2779,7 @@ def app_summary(
 
     # Create search engine and generate summary
     sleuth = KnackSleuth(app_export)
-    
+
     with console.status("[cyan]Analyzing application architecture..."):
         summary = sleuth.generate_app_summary()
 
@@ -2618,30 +2827,38 @@ def app_summary(
                 f"Importance: {entity.get('importance_score', 0):.2f}, Centrality: {entity['centrality_score']}, Records: {entity['record_count']:,}"
             )
 
-        md_lines.extend([
-            "",
-            f"### Transactional Entities ({len(domain['transactional_entities'])}) - top 5 shown",
-        ])
+        md_lines.extend(
+            [
+                "",
+                f"### Transactional Entities ({len(domain['transactional_entities'])}) - top 5 shown",
+            ]
+        )
         for entity in domain["transactional_entities"][:5]:
-            md_lines.append(f"- **{entity['name']}** - {entity['record_count']:,} records")
+            md_lines.append(
+                f"- **{entity['name']}** - {entity['record_count']:,} records"
+            )
 
-        md_lines.extend([
-            "",
-            f"### Reference Data ({len(domain['reference_data'])}) - top 5 shown",
-        ])
+        md_lines.extend(
+            [
+                "",
+                f"### Reference Data ({len(domain['reference_data'])}) - top 5 shown",
+            ]
+        )
         for entity in domain["reference_data"][:5]:
             md_lines.append(
                 f"- **{entity['name']}** - Used by {len(entity.get('used_by', []))} objects"
             )
 
-        md_lines.extend([
-            "",
-            "## Relationship Topology",
-            "",
-            f"**Total Connections:** {relationships['connection_graph']['total_connections']}",
-            "",
-            f"### Hub Objects ({len(relationships['hub_objects'])}) - top 5 shown",
-        ])
+        md_lines.extend(
+            [
+                "",
+                "## Relationship Topology",
+                "",
+                f"**Total Connections:** {relationships['connection_graph']['total_connections']}",
+                "",
+                f"### Hub Objects ({len(relationships['hub_objects'])}) - top 5 shown",
+            ]
+        )
 
         for hub in relationships["hub_objects"][:5]:
             md_lines.append(
@@ -2650,66 +2867,72 @@ def app_summary(
             )
             md_lines.append(f"  - _{hub['interpretation']}_")
 
-        md_lines.extend([
-            "",
-            f"### Dependency Clusters ({len(relationships['dependency_clusters'])})",
-        ])
+        md_lines.extend(
+            [
+                "",
+                f"### Dependency Clusters ({len(relationships['dependency_clusters'])})",
+            ]
+        )
         for cluster in relationships["dependency_clusters"][:3]:
             md_lines.append(
                 f"- {', '.join(cluster['objects'])} ({cluster['cohesion']} cohesion)"
             )
 
-        md_lines.extend([
-            "",
-            "## Data Patterns",
-            "",
-            "### Calculation Complexity",
-            f"- Formula fields: {patterns['calculation_complexity']['total_formula_fields']}",
-            f"- Objects with formulas: {patterns['calculation_complexity']['objects_with_formulas']}",
-            f"- Max chain depth: {patterns['calculation_complexity']['max_formula_chain_depth']}",
-            f"- Assessment: {patterns['calculation_complexity']['interpretation']}",
-            "",
-            "## UI Architecture",
-            "",
-            f"- Authenticated scenes: {ui['scene_patterns']['authenticated_scenes']}",
-            f"- Public scenes: {ui['scene_patterns']['public_scenes']}",
-            f"- Navigation depth: {ui['navigation_depth']['max_depth']} (max), {ui['navigation_depth']['avg_depth']} (avg)",
-            f"- Complexity: {ui['navigation_depth']['interpretation']}",
-            "",
-            "### View Types",
-        ])
+        md_lines.extend(
+            [
+                "",
+                "## Data Patterns",
+                "",
+                "### Calculation Complexity",
+                f"- Formula fields: {patterns['calculation_complexity']['total_formula_fields']}",
+                f"- Objects with formulas: {patterns['calculation_complexity']['objects_with_formulas']}",
+                f"- Max chain depth: {patterns['calculation_complexity']['max_formula_chain_depth']}",
+                f"- Assessment: {patterns['calculation_complexity']['interpretation']}",
+                "",
+                "## UI Architecture",
+                "",
+                f"- Authenticated scenes: {ui['scene_patterns']['authenticated_scenes']}",
+                f"- Public scenes: {ui['scene_patterns']['public_scenes']}",
+                f"- Navigation depth: {ui['navigation_depth']['max_depth']} (max), {ui['navigation_depth']['avg_depth']} (avg)",
+                f"- Complexity: {ui['navigation_depth']['interpretation']}",
+                "",
+                "### View Types",
+            ]
+        )
 
         for view_type, count in sorted(
             ui["view_patterns"].items(), key=lambda x: x[1], reverse=True
         ):
             md_lines.append(f"- {view_type}: {count}")
 
-        md_lines.extend([
-            "",
-            "## Access Patterns",
-            "",
-            f"- Authentication model: {access['authentication_model']}",
-            f"- User objects: {', '.join(access['user_objects']) if access['user_objects'] else 'None'}",
-            f"- Role-restricted scenes: {access['role_usage']['scenes_with_role_restrictions']}",
-            "",
-            "## Technical Debt",
-            "",
-            f"- Orphaned fields: {debt['orphaned_fields']}",
-            f"- Orphaned objects: {debt['orphaned_objects']}",
-            f"- Orphaned views: {debt['orphaned_views']}",
-            f"- Dangling layout keys: {debt['dangling_layout_keys']}",
-            f"- Stale view rule references: {debt['stale_view_rule_references']}",
-            f"- Bottleneck objects: {len(debt['bottleneck_objects'])}",
-            f"- High fan-out objects: {len(debt['high_fan_out_objects'])}",
-            f"- Assessment: {debt['interpretation']}",
-            "",
-            "## Extensibility",
-            "",
-            f"- Modularity score: {extensibility['modularity_score']}",
-            f"- Architectural style: {extensibility['architectural_style']}",
-            f"- Assessment: {extensibility['interpretation']}",
-            f"- Tight coupling pairs: {len(extensibility['tight_coupling_pairs'])}",
-        ])
+        md_lines.extend(
+            [
+                "",
+                "## Access Patterns",
+                "",
+                f"- Authentication model: {access['authentication_model']}",
+                f"- User objects: {', '.join(access['user_objects']) if access['user_objects'] else 'None'}",
+                f"- Role-restricted scenes: {access['role_usage']['scenes_with_role_restrictions']}",
+                "",
+                "## Technical Debt",
+                "",
+                f"- Orphaned fields: {debt['orphaned_fields']}",
+                f"- Orphaned objects: {debt['orphaned_objects']}",
+                f"- Orphaned views: {debt['orphaned_views']}",
+                f"- Dangling layout keys: {debt['dangling_layout_keys']}",
+                f"- Stale view rule references: {debt['stale_view_rule_references']}",
+                f"- Bottleneck objects: {len(debt['bottleneck_objects'])}",
+                f"- High fan-out objects: {len(debt['high_fan_out_objects'])}",
+                f"- Assessment: {debt['interpretation']}",
+                "",
+                "## Extensibility",
+                "",
+                f"- Modularity score: {extensibility['modularity_score']}",
+                f"- Architectural style: {extensibility['architectural_style']}",
+                f"- Assessment: {extensibility['interpretation']}",
+                f"- Tight coupling pairs: {len(extensibility['tight_coupling_pairs'])}",
+            ]
+        )
 
         output_content = "\n".join(md_lines)
     else:
@@ -2719,9 +2942,11 @@ def app_summary(
     # Output to file or stdout
     if output_file:
         try:
-            with output_file.open('w') as f:
+            with output_file.open("w") as f:
                 f.write(output_content)
-            console.print(f"[green]✓[/green] Summary saved to [bold]{output_file}[/bold]")
+            console.print(
+                f"[green]✓[/green] Summary saved to [bold]{output_file}[/bold]"
+            )
         except Exception as e:
             err_console.print(f"[red]Error:[/red] Failed to save file: {e}")
             raise typer.Exit(1)
@@ -2732,24 +2957,32 @@ def app_summary(
 @cli.command(name="role-access-review")
 def role_access_review(
     file_path: Optional[Path] = typer.Argument(
-        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+        None,
+        help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
     app_id: Optional[str] = typer.Option(
-        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+        None,
+        "--app-id",
+        help="Knack application ID (can also use KNACK_APP_ID env var)",
     ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
     ),
     output: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="Output CSV file path (default: role_access_review.csv in current directory)"
+        None,
+        "--output",
+        "-o",
+        help="Output CSV file path (default: role_access_review.csv in current directory)",
     ),
     summary_only: bool = typer.Option(
-        False, "--summary-only", help="Show only top-level and login pages with child counts (exclude individual child pages)"
+        False,
+        "--summary-only",
+        help="Show only top-level and login pages with child counts (exclude individual child pages)",
     ),
 ):
     """
     Generate a role access review showing which user profiles can access which scenes.
-    
+
     This command analyzes:
 
     - Scene navigation hierarchy (menus, login pages, utility pages)
@@ -2759,7 +2992,7 @@ def role_access_review(
     - Profile (role) restrictions on each scene
 
     - Public vs authenticated access
-    
+
     The output CSV shows:
 
     - Navigation structure (menu > parent > child)
@@ -2769,7 +3002,7 @@ def role_access_review(
     - Security inheritance relationships
 
     - Public scenes and potential concerns
-    
+
     Examples:
 
         knack-sleuth role-access-review app.json
@@ -2783,26 +3016,25 @@ def role_access_review(
     from pathlib import Path
     import csv
     from knack_sleuth.security import generate_security_report, count_children
-    
+
     # Load metadata
     app_export = load_app_metadata(file_path, app_id, refresh)
-    
+
     # Generate security report
     console.print("[dim]Analyzing scene security with navigation hierarchy...[/dim]")
     report = generate_security_report(app_export.application)
-    
+
     # Filter for summary mode if requested
     scenes_to_export = report.scene_analyses
     if summary_only:
         # Only include Menu and Top-Level scenes
         scenes_to_export = [
-            s for s in report.scene_analyses
-            if s.nav_level in ["Menu", "Top-Level"]
+            s for s in report.scene_analyses if s.nav_level in ["Menu", "Top-Level"]
         ]
         # Calculate child counts for each top-level scene
         for scene in scenes_to_export:
             scene.child_count = count_children(scene.scene_key, report.scene_analyses)
-    
+
     # Print summary to console
     console.print()
     console.print("=" * 80)
@@ -2811,79 +3043,98 @@ def role_access_review(
     console.print(f"\nTotal Scenes: {report.total_scenes}")
     console.print(f"  Menu Scenes: {report.menu_scenes}")
     console.print(f"  Utility Pages (Require Knack Account): {report.utility_pages}")
-    console.print(f"  Scenes with Parent (Inherit Security): {report.scenes_with_parents}")
-    console.print(f"  Scenes Inheriting Security from Parent: {report.scenes_inheriting_security}")
-    console.print(f"  Top-Level Scenes (No Parent): {report.total_scenes - report.scenes_with_parents}")
+    console.print(
+        f"  Scenes with Parent (Inherit Security): {report.scenes_with_parents}"
+    )
+    console.print(
+        f"  Scenes Inheriting Security from Parent: {report.scenes_inheriting_security}"
+    )
+    console.print(
+        f"  Top-Level Scenes (No Parent): {report.total_scenes - report.scenes_with_parents}"
+    )
     console.print(f"\nPublic Scenes (No Login Required): {report.public_scenes}")
     console.print(f"Login Required Scenes: {report.login_required_scenes}")
-    console.print(f"Unrestricted Authenticated Scenes: {report.unrestricted_authenticated_scenes}")
+    console.print(
+        f"Unrestricted Authenticated Scenes: {report.unrestricted_authenticated_scenes}"
+    )
     console.print(f"\nTotal User Profiles (Roles): {report.total_profiles}")
-    
+
     console.print("\n" + "=" * 80)
     console.print("[bold cyan]USER PROFILES (ROLES)[/bold cyan]")
     console.print("=" * 80)
     for profile_key, profile_name in report.profiles.items():
         access_count = report.profile_access_counts.get(profile_name, 0)
-        console.print(f"  {profile_name:30} ({profile_key:20}) - Access to {access_count} scenes")
-    
+        console.print(
+            f"  {profile_name:30} ({profile_key:20}) - Access to {access_count} scenes"
+        )
+
     console.print("\n" + "=" * 80)
     console.print("[bold cyan]SECURITY CONCERNS[/bold cyan]")
     console.print("=" * 80)
     if report.public_scenes > 0:
-        console.print(f"⚠️  {report.public_scenes} scenes are publicly accessible without login")
+        console.print(
+            f"⚠️  {report.public_scenes} scenes are publicly accessible without login"
+        )
     if report.unrestricted_authenticated_scenes > 0:
-        console.print(f"⚠️  {report.unrestricted_authenticated_scenes} scenes require login but have no profile restrictions")
+        console.print(
+            f"⚠️  {report.unrestricted_authenticated_scenes} scenes require login but have no profile restrictions"
+        )
     if report.public_scenes == 0 and report.unrestricted_authenticated_scenes == 0:
         console.print("✓ No obvious security concerns in scene access controls")
-    
+
     # Determine output path with timestamp
     if not output:
         from datetime import datetime, timezone
+
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         output = Path(f"role_access_review_{timestamp}.csv")
 
     # Export to CSV
     fieldnames = [
-        'root_nav',
-        'scene_name',
-        'nav_level',
-        'allowed_profile_count',
-        'allowed_profiles',
-        'page_nav',
-        'scene_key',
-        'scene_slug',
-        'scene_type',
-        'view_names',
-        'view_keys',
-        'security_concern',
-        'requires_login',
-        'inherits_security',
+        "root_nav",
+        "scene_name",
+        "nav_level",
+        "allowed_profile_count",
+        "allowed_profiles",
+        "page_nav",
+        "scene_key",
+        "scene_slug",
+        "scene_type",
+        "view_names",
+        "view_keys",
+        "security_concern",
+        "requires_login",
+        "inherits_security",
     ]
 
     # Add child_count column if in summary mode
     if summary_only:
-        fieldnames.insert(fieldnames.index('page_nav') + 1, 'child_count')
+        fieldnames.insert(fieldnames.index("page_nav") + 1, "child_count")
 
-    with output.open('w', newline='') as f:
+    with output.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
 
         for scene in scenes_to_export:
             row = scene.model_dump()
             # Convert lists to comma-separated strings
-            row['allowed_profiles'] = ', '.join(scene.allowed_profiles)
-            row['view_names'] = ', '.join(scene.view_names)
-            row['view_keys'] = ', '.join(scene.view_keys)
+            row["allowed_profiles"] = ", ".join(scene.allowed_profiles)
+            row["view_names"] = ", ".join(scene.view_names)
+            row["view_keys"] = ", ".join(scene.view_keys)
             # Remove fields not in fieldnames
             if not summary_only:
-                row.pop('child_count', None)
+                row.pop("child_count", None)
             writer.writerow({k: v for k, v in row.items() if k in fieldnames})
-    
+
     console.print()
     if summary_only:
         children_omitted = report.total_scenes - len(scenes_to_export)
-        console.print(f"[green]✓[/green] Summary report exported to [bold]{output}[/bold]")
-        console.print(f"[dim]  {len(scenes_to_export)} top-level scenes ({children_omitted} children omitted)[/dim]")
+        console.print(
+            f"[green]✓[/green] Summary report exported to [bold]{output}[/bold]"
+        )
+        console.print(
+            f"[dim]  {len(scenes_to_export)} top-level scenes ({children_omitted} children omitted)[/dim]"
+        )
     else:
         console.print(f"[green]✓[/green] Report exported to [bold]{output}[/bold]")
         console.print(f"[dim]  {len(scenes_to_export)} scenes[/dim]")
@@ -2893,22 +3144,30 @@ def role_access_review(
 @cli.command(name="role-access-summary")
 def role_access_summary(
     file_path: Optional[Path] = typer.Argument(
-        None, help="Path to Knack application metadata JSON file (optional if using --app-id)"
+        None,
+        help="Path to Knack application metadata JSON file (optional if using --app-id)",
     ),
     role: Optional[str] = typer.Option(
-        None, "--role", help="User profile (role) name to filter by (e.g., 'Admin', 'Manager')"
+        None,
+        "--role",
+        help="User profile (role) name to filter by (e.g., 'Admin', 'Manager')",
     ),
     profile_key: Optional[str] = typer.Option(
         None, "--profile-key", help="Profile key to filter by (e.g., 'profile_1')"
     ),
     app_id: Optional[str] = typer.Option(
-        None, "--app-id", help="Knack application ID (can also use KNACK_APP_ID env var)"
+        None,
+        "--app-id",
+        help="Knack application ID (can also use KNACK_APP_ID env var)",
     ),
     refresh: bool = typer.Option(
         False, "--refresh", help="Force refresh cached API data (ignore cache)"
     ),
     output: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="Output CSV file path (default: role_access_summary_<role>_<timestamp>.csv)"
+        None,
+        "--output",
+        "-o",
+        help="Output CSV file path (default: role_access_summary_<role>_<timestamp>.csv)",
     ),
 ):
     """
@@ -2937,7 +3196,9 @@ def role_access_summary(
 
     # Validate that at least one of role or profile_key is provided
     if not role and not profile_key:
-        err_console.print("[red]Error:[/red] You must specify either --role or --profile-key")
+        err_console.print(
+            "[red]Error:[/red] You must specify either --role or --profile-key"
+        )
         raise typer.Exit(1)
 
     # Load metadata
@@ -2955,7 +3216,9 @@ def role_access_summary(
         # Look up profile name from key
         target_profile_name = report.profiles.get(profile_key)
         if not target_profile_name:
-            err_console.print(f"[red]Error:[/red] Profile key '{profile_key}' not found in application")
+            err_console.print(
+                f"[red]Error:[/red] Profile key '{profile_key}' not found in application"
+            )
             console.print("\n[cyan]Available profiles:[/cyan]")
             for pk, pn in report.profiles.items():
                 console.print(f"  {pk}: {pn}")
@@ -2966,17 +3229,25 @@ def role_access_summary(
         matching_profiles = [(k, v) for k, v in report.profiles.items() if v == role]
         if not matching_profiles:
             # Try case-insensitive match
-            matching_profiles = [(k, v) for k, v in report.profiles.items() if v.lower() == (role or "").lower()]
+            matching_profiles = [
+                (k, v)
+                for k, v in report.profiles.items()
+                if v.lower() == (role or "").lower()
+            ]
 
         if not matching_profiles:
-            err_console.print(f"[red]Error:[/red] Role '{role}' not found in application")
+            err_console.print(
+                f"[red]Error:[/red] Role '{role}' not found in application"
+            )
             console.print("\n[cyan]Available roles:[/cyan]")
             for pk, pn in report.profiles.items():
                 console.print(f"  {pn} ({pk})")
             raise typer.Exit(1)
 
         if len(matching_profiles) > 1:
-            err_console.print(f"[yellow]Warning:[/yellow] Multiple profiles match '{role}':")
+            err_console.print(
+                f"[yellow]Warning:[/yellow] Multiple profiles match '{role}':"
+            )
             for pk, pn in matching_profiles:
                 console.print(f"  {pk}: {pn}")
             console.print("\nUsing first match. Use --profile-key to specify exactly.")
@@ -2984,7 +3255,9 @@ def role_access_summary(
         target_profile_key, target_profile_name = matching_profiles[0]
 
     # Filter scenes accessible by this profile
-    console.print(f"[dim]Filtering scenes accessible by '{target_profile_name}' ({target_profile_key})...[/dim]")
+    console.print(
+        f"[dim]Filtering scenes accessible by '{target_profile_name}' ({target_profile_key})...[/dim]"
+    )
 
     accessible_scenes: list[dict[str, Any]] = []
     scenes_by_key = {s.key: s for s in app_export.application.scenes}
@@ -2993,49 +3266,55 @@ def role_access_summary(
         # Record *why* the profile gets in, so a reader can tell a scene that
         # names this role from one any logged-in user can open (issue #27).
         if target_profile_name in scene_analysis.allowed_profiles:
-            access_basis = 'role'
+            access_basis = "role"
         elif not scene_analysis.requires_login:
-            access_basis = 'public'
+            access_basis = "public"
         elif scene_analysis.allowed_profile_count == 0:
-            access_basis = 'any_login'
+            access_basis = "any_login"
         else:
             access_basis = None
-        if access_basis and scene_analysis.scene_type == 'user':
+        if access_basis and scene_analysis.scene_type == "user":
             # Utility pages need a Knack system-level account on top of
             # whatever the app grants, so neither public nor any_login fits.
-            access_basis = 'utility'
+            access_basis = "utility"
 
         if access_basis:
             # Get the actual scene object to check views
             scene = scenes_by_key.get(scene_analysis.scene_key)
             if scene:
                 # Get views accessible by this profile
-                view_names, view_keys = get_views_for_profile(scene, target_profile_key, target_profile_name)
+                view_names, view_keys = get_views_for_profile(
+                    scene, target_profile_key, target_profile_name
+                )
 
-                accessible_scenes.append({
-                    'root_nav': scene_analysis.root_nav,
-                    'scene_name': scene_analysis.scene_name,
-                    'page_nav': scene_analysis.page_nav,
-                    'scene_key': scene_analysis.scene_key,
-                    'scene_slug': scene_analysis.scene_slug,
-                    'view_names': ', '.join(view_names),
-                    'view_keys': ', '.join(view_keys),
-                    'view_count': len(view_names),
-                    'access_basis': access_basis,
-                })
+                accessible_scenes.append(
+                    {
+                        "root_nav": scene_analysis.root_nav,
+                        "scene_name": scene_analysis.scene_name,
+                        "page_nav": scene_analysis.page_nav,
+                        "scene_key": scene_analysis.scene_key,
+                        "scene_slug": scene_analysis.scene_slug,
+                        "view_names": ", ".join(view_names),
+                        "view_keys": ", ".join(view_keys),
+                        "view_count": len(view_names),
+                        "access_basis": access_basis,
+                    }
+                )
 
     # Print summary to console
     console.print()
     console.print("=" * 80)
     console.print(f"[bold cyan]ROLE ACCESS SUMMARY: {report.app_name}[/bold cyan]")
     console.print("=" * 80)
-    console.print(f"\nProfile: [bold]{target_profile_name}[/bold] ({target_profile_key})")
+    console.print(
+        f"\nProfile: [bold]{target_profile_name}[/bold] ({target_profile_key})"
+    )
     console.print(f"Accessible Scenes: {len(accessible_scenes)}")
 
-    total_views = sum(s['view_count'] for s in accessible_scenes)
+    total_views = sum(s["view_count"] for s in accessible_scenes)
     console.print(f"Accessible Views: {total_views}")
 
-    scenes_with_views = sum(1 for s in accessible_scenes if s['view_count'] > 0)
+    scenes_with_views = sum(1 for s in accessible_scenes if s["view_count"] > 0)
     scenes_without_views = len(accessible_scenes) - scenes_with_views
     console.print(f"  Scenes with Views: {scenes_with_views}")
     console.print(f"  Scenes without Views: {scenes_without_views}")
@@ -3043,30 +3322,31 @@ def role_access_summary(
         "Access basis (role = profile named on the scene, any_login = any logged-in user, "
         "public = no login, utility = Knack system-level account):"
     )
-    for basis in ('role', 'any_login', 'public', 'utility'):
-        count = sum(1 for s in accessible_scenes if s['access_basis'] == basis)
+    for basis in ("role", "any_login", "public", "utility"):
+        count = sum(1 for s in accessible_scenes if s["access_basis"] == basis)
         console.print(f"  {basis}: {count}")
 
     # Determine output path with timestamp
     if not output:
         from datetime import datetime, timezone
+
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        safe_role_name = target_profile_name.replace(' ', '_').replace('/', '_')
+        safe_role_name = target_profile_name.replace(" ", "_").replace("/", "_")
         output = Path(f"role_access_summary_{safe_role_name}_{timestamp}.csv")
 
     # Export to CSV
     fieldnames = [
-        'root_nav',
-        'scene_name',
-        'page_nav',
-        'scene_key',
-        'scene_slug',
-        'view_names',
-        'view_keys',
-        'access_basis',
+        "root_nav",
+        "scene_name",
+        "page_nav",
+        "scene_key",
+        "scene_slug",
+        "view_names",
+        "view_keys",
+        "access_basis",
     ]
 
-    with output.open('w', newline='') as f:
+    with output.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
 
@@ -3082,7 +3362,10 @@ def role_access_summary(
 @cli.command(name="install-skill")
 def install_skill(
     target_dir: Optional[Path] = typer.Option(
-        None, "--target", "-t", help="Target directory (default: ~/.claude/skills/knack-explorer)"
+        None,
+        "--target",
+        "-t",
+        help="Target directory (default: ~/.claude/skills/knack-explorer)",
     ),
     force: bool = typer.Option(
         False, "--force", "-f", help="Overwrite existing skill file"
@@ -3114,9 +3397,13 @@ def install_skill(
 
     # Read SKILL.md from package data
     try:
-        skill_content = resources.files("knack_sleuth").joinpath("data/SKILL.md").read_text()
+        skill_content = (
+            resources.files("knack_sleuth").joinpath("data/SKILL.md").read_text()
+        )
     except Exception as e:
-        err_console.print(f"[red]Error:[/red] Could not read skill file from package: {e}")
+        err_console.print(
+            f"[red]Error:[/red] Could not read skill file from package: {e}"
+        )
         raise typer.Exit(1)
 
     # Check if already installed
@@ -3139,10 +3426,16 @@ def install_skill(
         raise typer.Exit(1)
 
     console.print()
-    console.print(f"[green]✓[/green] Installed knack-explorer skill to [bold]{target_file}[/bold]")
+    console.print(
+        f"[green]✓[/green] Installed knack-explorer skill to [bold]{target_file}[/bold]"
+    )
     console.print()
-    console.print("[dim]Claude Code will now offer the knack-explorer skill in any project.[/dim]")
-    console.print("[dim]The skill lets Claude run knack-sleuth commands when analyzing Knack apps.[/dim]")
+    console.print(
+        "[dim]Claude Code will now offer the knack-explorer skill in any project.[/dim]"
+    )
+    console.print(
+        "[dim]The skill lets Claude run knack-sleuth commands when analyzing Knack apps.[/dim]"
+    )
     console.print()
 
 

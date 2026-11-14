@@ -76,9 +76,7 @@ def suggest_object_names(
     return get_close_matches(identifier, candidates, n=limit, cutoff=0.6)
 
 
-def suggest_field_names(
-    app: Application, identifier: str, limit: int = 3
-) -> list[str]:
+def suggest_field_names(app: Application, identifier: str, limit: int = 3) -> list[str]:
     """Return up to ``limit`` field names/keys similar to a failed lookup."""
     candidates: set[str] = set()
     for obj in app.objects:

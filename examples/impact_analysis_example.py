@@ -48,9 +48,13 @@ def main():
     print(f"Description: {analysis['target']['description']}")
     print()
     print("Risk Assessment:")
-    print(f"  Breaking Change Likelihood: {analysis['risk_assessment']['breaking_change_likelihood']}")
+    print(
+        f"  Breaking Change Likelihood: {analysis['risk_assessment']['breaking_change_likelihood']}"
+    )
     print(f"  Impact Score: {analysis['risk_assessment']['impact_score']}")
-    print(f"  Affected Workflows: {', '.join(analysis['risk_assessment']['affected_user_workflows']) or 'None'}")
+    print(
+        f"  Affected Workflows: {', '.join(analysis['risk_assessment']['affected_user_workflows']) or 'None'}"
+    )
     print()
     print("Impact Counts:")
     print(f"  Direct Impacts: {analysis['metadata']['total_direct_impacts']}")
@@ -78,7 +82,9 @@ def main():
         field_analysis = sleuth.generate_impact_analysis(field_key)
 
         print(f"Target: {field_analysis['target']['name']}")
-        print(f"Risk Level: {field_analysis['risk_assessment']['breaking_change_likelihood']}")
+        print(
+            f"Risk Level: {field_analysis['risk_assessment']['breaking_change_likelihood']}"
+        )
         print(f"Impact Score: {field_analysis['risk_assessment']['impact_score']}")
         print(f"Direct Impacts: {field_analysis['metadata']['total_direct_impacts']}")
 
@@ -95,7 +101,9 @@ def main():
     print("   </impact_analysis>")
     print()
     print("3. Your question:")
-    print("   'What are the risks and what steps should I take to migrate this safely?'")
+    print(
+        "   'What are the risks and what steps should I take to migrate this safely?'"
+    )
     print()
     print("The AI can then:")
     print("  - Understand exactly what will break")

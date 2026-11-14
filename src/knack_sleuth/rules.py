@@ -23,7 +23,13 @@ from knack_sleuth.sleuth import FIELD_KEY_PATTERN, KnackSleuth
 
 FORM_RULE_LISTS = ("emails", "records", "submits", "fields")
 EMAIL_ACTIONS = {"email", "email_notification"}
-KNOWN_ACTION_RULE_KEYS = {"key", "criteria", "link_text", "record_rules", "submit_rules"}
+KNOWN_ACTION_RULE_KEYS = {
+    "key",
+    "criteria",
+    "link_text",
+    "record_rules",
+    "submit_rules",
+}
 
 # Record-rule actions, as Knack names them, in plain words.
 RECORD_ACTIONS = {
@@ -49,8 +55,10 @@ def _plain(text: str) -> str:
 
 def _literal(value: Any) -> Any:
     """Connection values are stored as ``[{id, identifier}]``; show identifiers."""
-    if isinstance(value, list) and value and all(
-        isinstance(item, dict) and "identifier" in item for item in value
+    if (
+        isinstance(value, list)
+        and value
+        and all(isinstance(item, dict) and "identifier" in item for item in value)
     ):
         return ", ".join(str(item["identifier"]) for item in value)
     return value
@@ -154,7 +162,9 @@ def _email(rule: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
     return {
         "key": rule.get("key"),
         "action": rule.get("action"),
-        "subject": email.get("subject") if isinstance(email.get("subject"), str) else None,
+        "subject": email.get("subject")
+        if isinstance(email.get("subject"), str)
+        else None,
         "recipients": recipients,
         "criteria": _criteria(rule.get("criteria"), names),
         "has_body": bool(email.get("message")),
@@ -251,7 +261,9 @@ def _blanking_warnings(
         for record in records
         if record["action"] == "record"
         for value in record["values"]
-        if value["field"] and value["source"] == "value" and value["set_to"] == "(blank)"
+        if value["field"]
+        and value["source"] == "value"
+        and value["set_to"] == "(blank)"
     }
     warnings = []
     for email in emails:
@@ -301,9 +313,7 @@ def _iter_action_links(value: Any) -> Iterator[dict[str, Any]]:
             yield from _iter_action_links(nested)
 
 
-def _view_header(
-    scene: Scene, view: View, orphaned: set[str]
-) -> dict[str, Any]:
+def _view_header(scene: Scene, view: View, orphaned: set[str]) -> dict[str, Any]:
     reachable = view.key not in orphaned
     header = {
         "scene_key": scene.key,
@@ -331,14 +341,20 @@ def _form_trigger(
     # Details and list views carry `rules.fields` too, but those are display
     # formatting, not anything a submit fires; only forms count on `fields` alone.
     has_submit_rules = any(k in rules for k in FORM_RULE_LISTS[:3])
-    if not has_submit_rules and not (view_data.get("type") == "form" and _list(rules.get("fields"))):
+    if not has_submit_rules and not (
+        view_data.get("type") == "form" and _list(rules.get("fields"))
+    ):
         return None
     raw_emails = _list(rules.get("emails"))
     emails, _ = _split_email_rules(raw_emails, names, all_email=True)
     more_emails, records = _split_email_rules(_list(rules.get("records")), names)
     emails += more_emails
-    submits = [_submit(r, names) for r in _list(rules.get("submits")) if isinstance(r, dict)]
-    display = [_display(r, names) for r in _list(rules.get("fields")) if isinstance(r, dict)]
+    submits = [
+        _submit(r, names) for r in _list(rules.get("submits")) if isinstance(r, dict)
+    ]
+    display = [
+        _display(r, names) for r in _list(rules.get("fields")) if isinstance(r, dict)
+    ]
     return {
         "trigger": "form_submit",
         **header,
@@ -463,12 +479,23 @@ def collect_rules(
             if len(triggers) == found:
                 # Listed so "no rules here" is visible, not inferred from silence.
                 quiet_views.append(
-                    {k: header[k] for k in ("scene_key", "view_key", "view_name", "view_type", "reachable")}
+                    {
+                        k: header[k]
+                        for k in (
+                            "scene_key",
+                            "view_key",
+                            "view_name",
+                            "view_type",
+                            "reachable",
+                        )
+                    }
                 )
 
     connected: list[dict[str, Any]] = []
     if object_key and not view_key:
-        connected = _connected_record_rules(triggers, app_export, object_key, names, orphaned)
+        connected = _connected_record_rules(
+            triggers, app_export, object_key, names, orphaned
+        )
 
     tasks = []
     field_rules: list[dict[str, Any]] = []
@@ -484,7 +511,9 @@ def collect_rules(
                     {
                         "key": rule.get("key"),
                         "values": [
-                            _value(v, names) for v in _list(rule.get("values")) if isinstance(v, dict)
+                            _value(v, names)
+                            for v in _list(rule.get("values"))
+                            if isinstance(v, dict)
                         ],
                         "criteria": _criteria(rule.get("criteria"), names),
                     }
@@ -540,7 +569,12 @@ def _connected_record_rules(
                 link = _action_link_trigger(header, column, names)
                 for action_rule in link["action_rules"]:
                     candidates.append(
-                        ("action_link", action_rule["link_text"], action_rule["criteria"], action_rule)
+                        (
+                            "action_link",
+                            action_rule["link_text"],
+                            action_rule["criteria"],
+                            action_rule,
+                        )
                     )
             for trigger, link_text, conditions, rules in candidates:
                 for record in rules["records"]:

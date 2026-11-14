@@ -291,7 +291,15 @@ class TestOrphanedViews:
         """48 of 49 login views in a real app sit outside the layout -- Knack
         renders them from scene chrome, so absence proves nothing."""
         sleuth = KnackSleuth(
-            _app([_scene("scene_1", [_view("view_1"), _view("view_2", "login")], ["view_1"])])
+            _app(
+                [
+                    _scene(
+                        "scene_1",
+                        [_view("view_1"), _view("view_2", "login")],
+                        ["view_1"],
+                    )
+                ]
+            )
         )
 
         assert sleuth.find_orphaned_views() == []
@@ -300,7 +308,9 @@ class TestOrphanedViews:
         """Knack leaves `groups` empty on auto-generated child pages (Edit X,
         X Details). An empty layout is not a layout that excluded the view."""
         sleuth = KnackSleuth(
-            _app([_scene("scene_1", [_view("view_1", "form")], layout=None, modal=True)])
+            _app(
+                [_scene("scene_1", [_view("view_1", "form")], layout=None, modal=True)]
+            )
         )
 
         assert sleuth.find_orphaned_views() == []
@@ -341,7 +351,15 @@ class TestDanglingLayoutKeys:
 
     def test_healthy_layout_reports_nothing(self):
         sleuth = KnackSleuth(
-            _app([_scene("scene_1", [_view("view_1"), _view("view_2")], ["view_1", "view_2"])])
+            _app(
+                [
+                    _scene(
+                        "scene_1",
+                        [_view("view_1"), _view("view_2")],
+                        ["view_1", "view_2"],
+                    )
+                ]
+            )
         )
 
         assert sleuth.find_dangling_layout_keys() == []
@@ -362,7 +380,9 @@ class TestStaleViewRuleReferences:
     def test_rule_targeting_orphaned_view_is_stale(self):
         """scene_455 hides view_1377 -- a rule can still name a view that the
         layout dropped, so 'not in layout' does not mean 'unreferenced'."""
-        scene = _scene("scene_1", [_view("view_1"), _view("view_2", "form")], ["view_1"])
+        scene = _scene(
+            "scene_1", [_view("view_1"), _view("view_2", "form")], ["view_1"]
+        )
         scene["rules"] = [{"action": "hide_views", "view_keys": ["view_2"]}]
         sleuth = KnackSleuth(_app([scene]))
 
@@ -385,7 +405,9 @@ class TestStaleViewRuleReferences:
         ]
         sleuth = KnackSleuth(_app([scene]))
 
-        assert sleuth.find_stale_view_rule_references()[0].rule_path == "rules.1.view_keys"
+        assert (
+            sleuth.find_stale_view_rule_references()[0].rule_path == "rules.1.view_keys"
+        )
 
 
 class TestOrphanedViewsDoNotKeepFieldsAlive:
@@ -397,8 +419,14 @@ class TestOrphanedViewsDoNotKeepFieldsAlive:
                 _scene(
                     "scene_1",
                     [
-                        _view("view_1", columns=[{"type": "field", "field": {"key": "field_1"}}]),
-                        _view("view_2", columns=[{"type": "field", "field": {"key": "field_2"}}]),
+                        _view(
+                            "view_1",
+                            columns=[{"type": "field", "field": {"key": "field_1"}}],
+                        ),
+                        _view(
+                            "view_2",
+                            columns=[{"type": "field", "field": {"key": "field_2"}}],
+                        ),
                     ],
                     ["view_1"],
                 )
@@ -482,7 +510,9 @@ class TestOrphanedViewsDoNotKeepFieldsAlive:
                     {
                         "key": "object_1",
                         "name": "Thing",
-                        "fields": [{"key": "field_1", "name": "Stale", "type": "short_text"}],
+                        "fields": [
+                            {"key": "field_1", "name": "Stale", "type": "short_text"}
+                        ],
                     }
                 ],
             )

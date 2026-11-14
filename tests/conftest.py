@@ -33,15 +33,16 @@ def sample_metadata_dict(sample_metadata_file):
 @pytest.fixture
 def mock_api_response(sample_metadata_dict):
     """Mock API response with sample metadata."""
+
     class MockResponse:
         status_code = 200
-        
+
         def json(self):
             return sample_metadata_dict
-        
+
         def raise_for_status(self):
             pass
-    
+
     return MockResponse()
 
 
@@ -49,11 +50,11 @@ def mock_api_response(sample_metadata_dict):
 def mock_api_error():
     """Mock API error response."""
     import httpx
-    
+
     def raise_error(*args, **kwargs):
         """Raise HTTPStatusError regardless of arguments."""
         request = httpx.Request("GET", "https://api.knack.com/v1/applications/invalid")
         response = httpx.Response(404, text="Application not found", request=request)
         raise httpx.HTTPStatusError("404 Not Found", request=request, response=response)
-    
+
     return raise_error

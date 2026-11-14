@@ -43,7 +43,7 @@ class KnackField(BaseModel):
 
     model_config = {"populate_by_name": True, "extra": "allow"}
 
-    @field_validator('format', mode='before')
+    @field_validator("format", mode="before")
     @classmethod
     def convert_empty_format_to_none(cls, v):
         """Convert Knack's empty-string format to None.
@@ -193,8 +193,8 @@ class ViewSource(BaseModel):
     authenticated_user: bool | None = None
 
     model_config = {"extra": "allow"}
-    
-    @field_validator('criteria', mode='before')
+
+    @field_validator("criteria", mode="before")
     @classmethod
     def convert_empty_list_to_none(cls, v):
         """Convert empty list to None for criteria field."""
@@ -232,7 +232,9 @@ class Scene(BaseModel):
     type: str | None = None  # Scene type (e.g., "menu", "page") - can be null
     views: list[View] = PydanticField(default_factory=list)
     parent: str | None = None  # Parent scene key
-    menu_pages: list[str] | None = None  # Child scene keys (for menu scenes), can be null
+    menu_pages: list[str] | None = (
+        None  # Child scene keys (for menu scenes), can be null
+    )
     authenticated: bool | None = None
     groups: list[Any] = PydanticField(default_factory=list)
 
@@ -259,10 +261,14 @@ class Application(BaseModel):
     description: str = ""
     id: str
     home_scene: HomeScene
-    account: dict[str, Any] = PydanticField(default_factory=dict)  # Account info including builder slug
+    account: dict[str, Any] = PydanticField(
+        default_factory=dict
+    )  # Account info including builder slug
     objects: list[KnackObject] = PydanticField(default_factory=list)
     scenes: list[Scene] = PydanticField(default_factory=list)
-    counts: dict[str, int] = PydanticField(default_factory=dict)  # Record counts per object
+    counts: dict[str, int] = PydanticField(
+        default_factory=dict
+    )  # Record counts per object
     settings: dict[str, Any] = PydanticField(default_factory=dict)
     design: dict[str, Any] = PydanticField(default_factory=dict)
 
@@ -296,8 +302,12 @@ class SceneSecurity(BaseModel):
     requires_login: bool  # Whether login is actually required (considering inheritance)
     inherits_security: bool  # Whether security is inherited from parent
     child_count: int | None = None  # Only populated in summary mode
-    view_names: list[str] = PydanticField(default_factory=list)  # All view names on this scene
-    view_keys: list[str] = PydanticField(default_factory=list)  # All view keys on this scene
+    view_names: list[str] = PydanticField(
+        default_factory=list
+    )  # All view names on this scene
+    view_keys: list[str] = PydanticField(
+        default_factory=list
+    )  # All view keys on this scene
 
 
 class SecurityReport(BaseModel):

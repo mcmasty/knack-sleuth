@@ -124,7 +124,9 @@ def _get_field_json_type(field: KnackField) -> str:
     return type_mapping.get(field.type, "string")
 
 
-def find_object_by_identifier(app: Application, identifier: str) -> Optional[KnackObject]:
+def find_object_by_identifier(
+    app: Application, identifier: str
+) -> Optional[KnackObject]:
     """Find an object by key or name.
 
     Kept for backward compatibility; delegates to knack_sleuth.lookup.
@@ -206,6 +208,7 @@ def filter_app_to_subgraph(app: Application, subgraph_keys: set[str]) -> Applica
 
     # Create a copy of the application with filtered objects
     from copy import deepcopy
+
     filtered_app = deepcopy(app)
     filtered_app.objects = filtered_objects
 
@@ -215,12 +218,14 @@ def filter_app_to_subgraph(app: Application, subgraph_keys: set[str]) -> Applica
         if obj.connections:
             if obj.connections.outbound:
                 obj.connections.outbound = [
-                    conn for conn in obj.connections.outbound
+                    conn
+                    for conn in obj.connections.outbound
                     if conn.object in subgraph_keys
                 ]
             if obj.connections.inbound:
                 obj.connections.inbound = [
-                    conn for conn in obj.connections.inbound
+                    conn
+                    for conn in obj.connections.inbound
                     if conn.object in subgraph_keys
                 ]
 
@@ -391,7 +396,7 @@ def export_to_dbml(app: Application, detail: str = "standard") -> str:
         # Table name and metadata
         table_name = obj.key
         lines.append(f"Table {table_name} {{")
-        lines.append(f'  // {obj.name}')
+        lines.append(f"  // {obj.name}")
 
         record_count = app.counts.get(obj.key, 0)
         if record_count > 0:
@@ -458,11 +463,15 @@ def export_to_dbml(app: Application, detail: str = "standard") -> str:
 
             # Get target object's identifier field
             target_obj = objects_by_key.get(conn.object)
-            target_field = target_obj.identifier if target_obj and target_obj.identifier else conn.key
+            target_field = (
+                target_obj.identifier
+                if target_obj and target_obj.identifier
+                else conn.key
+            )
 
             lines.append(
                 f"Ref: {obj.key}.{conn.key} {rel_type} {conn.object}.{target_field} "
-                f'// {conn.name}'
+                f"// {conn.name}"
             )
 
     return "\n".join(lines)
@@ -664,16 +673,16 @@ def _sanitize_entity_name(name: str) -> str:
     sanitized = name.upper()
 
     # Replace spaces, underscores, and other separators with dashes
-    sanitized = re.sub(r'[\s_/]+', '-', sanitized)
+    sanitized = re.sub(r"[\s_/]+", "-", sanitized)
 
     # Remove any characters that aren't alphanumeric, dash, or underscore
-    sanitized = re.sub(r'[^\w\-]', '', sanitized)
+    sanitized = re.sub(r"[^\w\-]", "", sanitized)
 
     # Replace multiple consecutive dashes with single dash
-    sanitized = re.sub(r'-+', '-', sanitized)
+    sanitized = re.sub(r"-+", "-", sanitized)
 
     # Remove leading/trailing dashes
-    sanitized = sanitized.strip('-')
+    sanitized = sanitized.strip("-")
 
     # Ensure it doesn't start with a number
     if sanitized and sanitized[0].isdigit():
@@ -701,10 +710,10 @@ def _sanitize_field_name(name: str) -> str:
     import re
 
     # Split on spaces, dashes, slashes, parentheses, and underscores
-    words = re.split(r'[\s\-/()_]+', name)
+    words = re.split(r"[\s\-/()_]+", name)
 
     # Filter out empty strings and remove non-alphanumeric characters
-    words = [re.sub(r'[^\w]', '', word) for word in words if word]
+    words = [re.sub(r"[^\w]", "", word) for word in words if word]
 
     if not words:
         return "field"
@@ -738,18 +747,18 @@ def _strip_html(text: str) -> str:
     import re
 
     # Remove HTML tags
-    text = re.sub(r'<[^>]+>', '', text)
+    text = re.sub(r"<[^>]+>", "", text)
 
     # Decode common HTML entities
-    text = text.replace('&nbsp;', ' ')
-    text = text.replace('&amp;', '&')
-    text = text.replace('&lt;', '<')
-    text = text.replace('&gt;', '>')
-    text = text.replace('&quot;', '"')
-    text = text.replace('&#39;', "'")
+    text = text.replace("&nbsp;", " ")
+    text = text.replace("&amp;", "&")
+    text = text.replace("&lt;", "<")
+    text = text.replace("&gt;", ">")
+    text = text.replace("&quot;", '"')
+    text = text.replace("&#39;", "'")
 
     # Clean up whitespace
-    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r"\s+", " ", text)
     text = text.strip()
 
     return text
@@ -815,7 +824,9 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
             target_name = entity_names.get(conn.object, conn.object)
 
             # Format: SOURCE_TABLE NOTATION TARGET_TABLE : "relationship_name"
-            lines.append(f'    {source_name} {rel_notation} {target_name} : "{conn.name}"')
+            lines.append(
+                f'    {source_name} {rel_notation} {target_name} : "{conn.name}"'
+            )
 
     if relationships_added:
         lines.append("")
@@ -847,10 +858,14 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
 
                 # Try to get description from field metadata
                 description = None
-                if hasattr(field, 'meta') and field.meta:
-                    meta = field.meta if isinstance(field.meta, dict) else field.meta.__dict__
-                    if 'description' in meta and meta['description']:
-                        description = _strip_html(meta['description'])
+                if hasattr(field, "meta") and field.meta:
+                    meta = (
+                        field.meta
+                        if isinstance(field.meta, dict)
+                        else field.meta.__dict__
+                    )
+                    if "description" in meta and meta["description"]:
+                        description = _strip_html(meta["description"])
 
                 if description:
                     # Use the field description as comment
@@ -888,7 +903,9 @@ def export_database_schema(
     """
     valid_details = ["structural", "minimal", "compact", "standard"]
     if detail not in valid_details:
-        raise ValueError(f"Unsupported detail level: {detail}. Use 'structural', 'minimal', 'compact', or 'standard'")
+        raise ValueError(
+            f"Unsupported detail level: {detail}. Use 'structural', 'minimal', 'compact', or 'standard'"
+        )
 
     if format == "json":
         return export_to_json_schema(app, detail=detail)
@@ -899,4 +916,6 @@ def export_database_schema(
     elif format == "mermaid":
         return export_to_mermaid(app, detail=detail)
     else:
-        raise ValueError(f"Unsupported format: {format}. Use 'json', 'dbml', 'yaml', or 'mermaid'")
+        raise ValueError(
+            f"Unsupported format: {format}. Use 'json', 'dbml', 'yaml', or 'mermaid'"
+        )

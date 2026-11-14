@@ -51,15 +51,17 @@ def main():
     # Domain Model Insights
     print_separator("DOMAIN MODEL CLASSIFICATION")
     domain = summary["domain_model"]
-    
+
     print(f"Core Entities: {len(domain['core_entities'])}")
     for entity in domain["core_entities"][:3]:
-        print(f"  - {entity['name']} (centrality: {entity['centrality_score']}, records: {entity['record_count']:,})")
-    
+        print(
+            f"  - {entity['name']} (centrality: {entity['centrality_score']}, records: {entity['record_count']:,})"
+        )
+
     print(f"\nTransactional Entities: {len(domain['transactional_entities'])}")
     for entity in domain["transactional_entities"][:3]:
         print(f"  - {entity['name']} ({entity['record_count']:,} records)")
-    
+
     print(f"\nReference Data: {len(domain['reference_data'])}")
     for entity in domain["reference_data"][:3]:
         used_by_count = len(entity.get("used_by", []))
@@ -68,13 +70,15 @@ def main():
     # Relationship Topology
     print_separator("RELATIONSHIP TOPOLOGY")
     relationships = summary["relationship_map"]
-    
-    print(f"Total Connections: {relationships['connection_graph']['total_connections']}")
+
+    print(
+        f"Total Connections: {relationships['connection_graph']['total_connections']}"
+    )
     print("\nHub Objects (high connectivity):")
     for hub in relationships["hub_objects"][:5]:
         print(f"  - {hub['object']}: {hub['total_connections']} connections")
         print(f"    {hub['interpretation']}")
-    
+
     print(f"\nDependency Clusters: {len(relationships['dependency_clusters'])}")
     for cluster in relationships["dependency_clusters"][:2]:
         print(f"  - Cluster: {', '.join(cluster['objects'])}")
@@ -83,7 +87,7 @@ def main():
     # Data Patterns
     print_separator("DATA PATTERNS")
     patterns = summary["data_patterns"]
-    
+
     calc = patterns["calculation_complexity"]
     print("\nCalculation Complexity:")
     print(f"  Formula fields: {calc['total_formula_fields']}")
@@ -93,18 +97,18 @@ def main():
     # UI Architecture
     print_separator("UI ARCHITECTURE")
     ui = summary["ui_architecture"]
-    
+
     scenes = ui["scene_patterns"]
     print(f"Scenes: {scenes['total_scenes']} total")
     print(f"  Authenticated: {scenes['authenticated_scenes']}")
     print(f"  Public: {scenes['public_scenes']}")
-    
+
     nav = ui["navigation_depth"]
     print("\nNavigation:")
     print(f"  Max depth: {nav['max_depth']}")
     print(f"  Avg depth: {nav['avg_depth']}")
     print(f"  Complexity: {nav['interpretation']}")
-    
+
     print("\nView Types:")
     for view_type, count in sorted(
         ui["view_patterns"].items(), key=lambda x: x[1], reverse=True
@@ -114,7 +118,7 @@ def main():
     # Technical Debt
     print_separator("TECHNICAL DEBT INDICATORS")
     debt = summary["technical_debt_indicators"]
-    
+
     print(f"Orphaned fields: {debt['orphaned_fields']}")
     print(f"Orphaned objects: {debt['orphaned_objects']}")
     print(f"Bottleneck objects: {len(debt['bottleneck_objects'])}")
@@ -124,7 +128,7 @@ def main():
     # Extensibility
     print_separator("EXTENSIBILITY ASSESSMENT")
     ext = summary["extensibility_assessment"]
-    
+
     print(f"Modularity Score: {ext['modularity_score']}")
     print(f"Architectural Style: {ext['architectural_style']}")
     print(f"Tight Coupling Pairs: {len(ext['tight_coupling_pairs'])}")

@@ -16,7 +16,9 @@ WIDE = {"COLUMNS": "200"}
 
 class TestListObjects:
     def test_shows_instability_values(self, sample_metadata_file):
-        result = runner.invoke(cli, ["list-objects", str(sample_metadata_file)], env=WIDE)
+        result = runner.invoke(
+            cli, ["list-objects", str(sample_metadata_file)], env=WIDE
+        )
         assert result.exit_code == 0
         # Instability renders as 0.00-1.00 for connected objects
         assert re.search(r"\b[01]\.\d{2}\b", result.output)
@@ -48,7 +50,9 @@ class TestSearchField:
 
 class TestFindOrphans:
     def test_runs_and_reports_totals(self, sample_metadata_file):
-        result = runner.invoke(cli, ["find-orphans", str(sample_metadata_file)], env=WIDE)
+        result = runner.invoke(
+            cli, ["find-orphans", str(sample_metadata_file)], env=WIDE
+        )
         assert result.exit_code == 0
         assert "orphaned fields" in result.output
         assert "orphaned objects" in result.output
@@ -57,7 +61,9 @@ class TestFindOrphans:
 class TestDidYouMean:
     def test_search_object_typo_suggests(self, sample_metadata_file):
         result = runner.invoke(
-            cli, ["search-object", "Ref Data Categry", str(sample_metadata_file)], env=WIDE
+            cli,
+            ["search-object", "Ref Data Categry", str(sample_metadata_file)],
+            env=WIDE,
         )
         assert result.exit_code == 1
         assert "Did you mean" in result.output
@@ -65,7 +71,9 @@ class TestDidYouMean:
 
     def test_show_coupling_typo_suggests(self, sample_metadata_file):
         result = runner.invoke(
-            cli, ["show-coupling", "Ref Data Categry", str(sample_metadata_file)], env=WIDE
+            cli,
+            ["show-coupling", "Ref Data Categry", str(sample_metadata_file)],
+            env=WIDE,
         )
         assert result.exit_code == 1
         assert "Did you mean" in result.output
@@ -83,7 +91,9 @@ class TestShowCoupling:
 class TestJsonOutput:
     def test_list_objects_json(self, sample_metadata_file):
         result = runner.invoke(
-            cli, ["list-objects", str(sample_metadata_file), "--format", "json"], env=WIDE
+            cli,
+            ["list-objects", str(sample_metadata_file), "--format", "json"],
+            env=WIDE,
         )
         assert result.exit_code == 0
         parsed = json.loads(result.stdout)
@@ -93,7 +103,13 @@ class TestJsonOutput:
     def test_search_object_json(self, sample_metadata_file):
         result = runner.invoke(
             cli,
-            ["search-object", "object_12", str(sample_metadata_file), "--format", "json"],
+            [
+                "search-object",
+                "object_12",
+                str(sample_metadata_file),
+                "--format",
+                "json",
+            ],
             env=WIDE,
         )
         assert result.exit_code == 0
@@ -108,7 +124,13 @@ class TestJsonOutput:
     def test_search_field_json(self, sample_metadata_file):
         result = runner.invoke(
             cli,
-            ["search-field", "field_105", str(sample_metadata_file), "--format", "json"],
+            [
+                "search-field",
+                "field_105",
+                str(sample_metadata_file),
+                "--format",
+                "json",
+            ],
             env=WIDE,
         )
         assert result.exit_code == 0
@@ -118,7 +140,13 @@ class TestJsonOutput:
     def test_show_coupling_json(self, sample_metadata_file):
         result = runner.invoke(
             cli,
-            ["show-coupling", "object_12", str(sample_metadata_file), "--format", "json"],
+            [
+                "show-coupling",
+                "object_12",
+                str(sample_metadata_file),
+                "--format",
+                "json",
+            ],
             env=WIDE,
         )
         assert result.exit_code == 0
@@ -131,7 +159,9 @@ class TestJsonOutput:
 
     def test_find_orphans_json(self, sample_metadata_file):
         result = runner.invoke(
-            cli, ["find-orphans", str(sample_metadata_file), "--format", "json"], env=WIDE
+            cli,
+            ["find-orphans", str(sample_metadata_file), "--format", "json"],
+            env=WIDE,
         )
         assert result.exit_code == 0
         parsed = json.loads(result.stdout)
@@ -146,7 +176,9 @@ class TestJsonOutput:
 
     def test_invalid_format_exits_1(self, sample_metadata_file):
         result = runner.invoke(
-            cli, ["find-orphans", str(sample_metadata_file), "--format", "xml"], env=WIDE
+            cli,
+            ["find-orphans", str(sample_metadata_file), "--format", "xml"],
+            env=WIDE,
         )
         assert result.exit_code == 1
         assert "Invalid format" in result.output
@@ -285,21 +317,27 @@ class TestFindOrphansViews:
 
     def test_json_reports_all_three_layout_defects(self, tmp_path):
         result = runner.invoke(
-            cli, ["find-orphans", str(self._app_json(tmp_path)), "--format", "json"], env=WIDE
+            cli,
+            ["find-orphans", str(self._app_json(tmp_path)), "--format", "json"],
+            env=WIDE,
         )
 
         assert result.exit_code == 0
         parsed = json.loads(result.output)
         assert [v["view_key"] for v in parsed["orphaned_views"]] == ["view_2"]
         assert [d["view_key"] for d in parsed["dangling_layout_keys"]] == ["view_8"]
-        assert [r["view_key"] for r in parsed["stale_view_rule_references"]] == ["view_2"]
+        assert [r["view_key"] for r in parsed["stale_view_rule_references"]] == [
+            "view_2"
+        ]
         assert parsed["totals"]["orphaned_views"] == 1
 
     def test_json_orphan_carries_a_builder_deep_link(self, tmp_path):
         """The view is not on the canvas, so a scene link has nothing to click
         -- the view-level URL is the only way to reach it."""
         result = runner.invoke(
-            cli, ["find-orphans", str(self._app_json(tmp_path)), "--format", "json"], env=WIDE
+            cli,
+            ["find-orphans", str(self._app_json(tmp_path)), "--format", "json"],
+            env=WIDE,
         )
 
         assert json.loads(result.output)["orphaned_views"][0]["builder_url"] == (
@@ -307,7 +345,9 @@ class TestFindOrphansViews:
         )
 
     def test_rich_output_names_the_orphaned_view(self, tmp_path):
-        result = runner.invoke(cli, ["find-orphans", str(self._app_json(tmp_path))], env=WIDE)
+        result = runner.invoke(
+            cli, ["find-orphans", str(self._app_json(tmp_path))], env=WIDE
+        )
 
         assert result.exit_code == 0
         assert "Orphaned Views" in result.output
@@ -319,19 +359,25 @@ def test_app_summary_markdown_reports_page_layout_debt(tmp_path):
     what people actually read, so it must not silently drop them."""
     app = {
         "application": {
-            "id": "app_1", "name": "Layout Debt", "slug": "layout-debt",
+            "id": "app_1",
+            "name": "Layout Debt",
+            "slug": "layout-debt",
             "account": {"slug": "acme"},
             "home_scene": {"key": "scene_1", "slug": "home"},
             "objects": [],
-            "scenes": [{
-                "key": "scene_1", "name": "Home", "slug": "home",
-                "groups": [{"columns": [{"keys": ["view_1", "view_8"]}]}],
-                "rules": [{"action": "hide_views", "view_keys": ["view_2"]}],
-                "views": [
-                    {"key": "view_1", "name": "Live", "type": "table"},
-                    {"key": "view_2", "name": "Leftover", "type": "form"},
-                ],
-            }],
+            "scenes": [
+                {
+                    "key": "scene_1",
+                    "name": "Home",
+                    "slug": "home",
+                    "groups": [{"columns": [{"keys": ["view_1", "view_8"]}]}],
+                    "rules": [{"action": "hide_views", "view_keys": ["view_2"]}],
+                    "views": [
+                        {"key": "view_1", "name": "Live", "type": "table"},
+                        {"key": "view_2", "name": "Leftover", "type": "form"},
+                    ],
+                }
+            ],
         }
     }
     path = tmp_path / "app.json"

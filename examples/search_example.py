@@ -56,16 +56,16 @@ def main():
 
     # Show field-level usages (cascading)
     print_separator("Field-level usages (cascading from object)")
-    field_count = sum(
-        1 for key in results.keys() if key.startswith("field_")
-    )
+    field_count = sum(1 for key in results.keys() if key.startswith("field_"))
     print(f"Found usages for {field_count} fields in this object:\n")
 
     for field_key, usages in list(results.items())[1:4]:  # Show first 3 fields
         if field_key.startswith("field_"):
             obj_info, field_info = sleuth.get_field_info(field_key)
             if field_info:
-                print(f"  Field: {field_info.name} ({field_key}) - {len(usages)} usages")
+                print(
+                    f"  Field: {field_info.name} ({field_key}) - {len(usages)} usages"
+                )
                 for usage in usages[:2]:  # Show first 2 usages per field
                     print(f"    • [{usage.location_type}] {usage.context}")
                 if len(usages) > 2:
@@ -87,7 +87,10 @@ def main():
         for usage in field_usages:
             print(f"  [{usage.location_type}]")
             print(f"    {usage.context}")
-            if usage.location_type == "view_column" and "column_header" in usage.details:
+            if (
+                usage.location_type == "view_column"
+                and "column_header" in usage.details
+            ):
                 print(f"    Column header: {usage.details['column_header']}")
             print()
 
