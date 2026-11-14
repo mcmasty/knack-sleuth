@@ -131,11 +131,11 @@ Most commands can work with metadata in two ways:
    ```bash
    # Via command-line option
    knack-sleuth <command> --app-id YOUR_APP_ID
-   
+
    # Via environment variable
    export KNACK_APP_ID=your_app_id
    knack-sleuth <command>
-   
+
    # Via .env file in your working directory
    # KNACK_APP_ID=your_app_id
    knack-sleuth <command>

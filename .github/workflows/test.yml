@@ -7,6 +7,9 @@ on:
     branches: [ main, master, develop ]
   # The publish workflow calls this one so a release cannot skip the gates.
   workflow_call:
+  # Weekly, so new advisories against locked dependencies surface without a push.
+  schedule:
+    - cron: '0 9 * * 1'
 
 jobs:
   lint:
@@ -24,11 +27,34 @@ jobs:
         # --locked fails the job if uv.lock is out of date with pyproject.toml.
         run: uv sync --locked --python 3.11
 
-      - name: Ruff
+      - name: Ruff lint
         run: uv run --locked ruff check --output-format=github .
+
+      - name: Ruff format
+        run: uv run --locked ruff format --check .
 
       - name: Pyrefly
         run: uv run --locked pyrefly check
+
+      - name: Dead code (vulture)
+        run: uv run --locked vulture
+
+      - name: Declared dependencies (deptry)
+        run: uv run --locked deptry src
+
+  audit:
+    name: Dependency vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+
+      - name: uv audit
+        # Checks uv.lock against the OSV advisory database. The command is still
+        # a uv preview feature; the flag acknowledges that and silences the warning.
+        run: uv audit --locked --preview-features audit-command
 
   test:
     runs-on: ${{ matrix.os }}
@@ -37,28 +63,23 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         python-version: ['3.11', '3.12', '3.13']
-    
+
     steps:
       - uses: actions/checkout@v7
-      
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-      
+
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
-      
+
       - name: Install dependencies
         run: uv sync --locked --all-extras --dev
-      
-      - name: Run tests
-        run: uv run pytest -v
-      
-      - name: Test coverage (optional)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          uv add --dev pytest-cov
-          uv run pytest --cov=knack_sleuth --cov-report=term-missing
+
+      - name: Run tests with coverage
+        # Fails under [tool.coverage.report] fail_under in pyproject.toml.
+        run: uv run --locked pytest -v --cov

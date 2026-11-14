@@ -62,19 +62,19 @@ from knack_sleuth import load_app_metadata, KnackSleuth
 
 def analyze_app(app_id: str):
     """Analyze a Knack app without creating cache files."""
-    
+
     # Load metadata without caching - clean for library usage
     metadata = load_app_metadata(app_id=app_id, no_cache=True)
-    
+
     # Create search engine
     sleuth = KnackSleuth(metadata)
-    
+
     # Analyze objects
     for obj in metadata.application.objects:
         print(f"Analyzing {obj.name}...")
         results = sleuth.search_object(obj.key)
         # Process results...
-    
+
     return metadata
 
 # Use it
@@ -100,7 +100,7 @@ print(f"ID: {app.id}")
 for obj in app.objects:
     print(f"  - {obj.name} ({obj.key})")
     print(f"    Fields: {len(obj.fields)}")
-    
+
     # Access connections
     if obj.connections:
         print(f"    Inbound connections: {len(obj.connections.inbound)}")

@@ -186,7 +186,7 @@ What's the best approach and what are the tradeoffs?"
 ### Example Question 3: Where to Add New Feature?
 
 ```
-"I need to add a new workflow for [feature]. 
+"I need to add a new workflow for [feature].
 
 <app_summary.json>
 
@@ -236,7 +236,7 @@ Give me a prioritized list with effort estimates."
 
 ### Complexity Metrics
 
-- **Connection Density (0-1)**: 
+- **Connection Density (0-1)**:
   - < 0.2: Loosely connected
   - 0.2-0.5: Moderately connected
   - \> 0.5: Highly interconnected
@@ -258,11 +258,11 @@ Give me a prioritized list with effort estimates."
 - **hub_and_spoke**: Centralized around key objects
   - Pro: Simple to understand
   - Con: Changes to hub affect everything
-  
+
 - **modular**: Clear separation into clusters
   - Pro: Easy to extend independently
   - Con: May need coordination between modules
-  
+
 - **mixed**: Combination of patterns
   - Pro: Flexible
   - Con: May indicate organic growth without planning

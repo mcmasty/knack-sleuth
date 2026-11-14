@@ -1,0 +1,33 @@
+# Install once: `uv run pre-commit install`. Run everything: `uv run pre-commit run --all-files`.
+# Python tools run through `uv run`, so versions come from uv.lock and match CI.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]  # two trailing spaces are a <br>
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files  # catches accidental Knack metadata dumps
+        args: [--maxkb=500]
+
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --locked ruff check --fix
+        language: system
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --locked ruff format
+        language: system
+        types_or: [python, pyi]
+      - id: pyrefly
+        name: pyrefly
+        entry: uv run --locked pyrefly check
+        language: system
+        types: [python]
+        pass_filenames: false

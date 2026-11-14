@@ -52,14 +52,14 @@ knack-sleuth app-summary --app-id YOUR_APP_ID --format json > app_architecture.j
 Start a conversation with an AI agent (Claude, ChatGPT, etc.) with this prompt:
 
 ```
-I'm planning to convert my single-tenant Knack application into a multi-tenant SaaS platform. 
+I'm planning to convert my single-tenant Knack application into a multi-tenant SaaS platform.
 I need your help scoping and estimating the work involved.
 
 Here's my complete application architecture:
 
 <paste entire contents of app_architecture.json>
 
-I'd like to walk through the conversion with you. Let me describe what I'm thinking, and you can help me 
+I'd like to walk through the conversion with you. Let me describe what I'm thinking, and you can help me
 understand the architectural implications, risks, and effort involved.
 ```
 

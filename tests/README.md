@@ -77,10 +77,10 @@ def test_new_feature(mocker, sample_metadata_file):
     """Test a new feature."""
     # Arrange
     mock_something = mocker.patch("knack_sleuth.core.something")
-    
+
     # Act
     result = load_app_metadata(file_path=sample_metadata_file)
-    
+
     # Assert
     assert result.application.name == "Sample Application"
     mock_something.assert_called_once()
