@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- `app-summary` classed an object with exactly 100 records as neither a small lookup table nor
+  a large transactional table, so it fell through to "supporting". 100 now counts as
+  transactional.
+
 ## 0.9.1
 
 ### Fixed

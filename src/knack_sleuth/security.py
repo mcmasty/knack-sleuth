@@ -11,6 +11,9 @@ from pydantic import BaseModel
 
 from knack_sleuth.models import Application, Scene, SceneSecurity, SecurityReport
 
+# Pages open to more roles than this get a MANY_ROLES concern.
+MANY_ROLES_THRESHOLD = 5
+
 
 def _extra(model: BaseModel) -> dict[str, Any]:
     """Fields Knack sends that the model does not declare (``extra="allow"``)."""
@@ -499,7 +502,7 @@ def analyze_scene_security(  # noqa: C901, PLR0915
             "UNRESTRICTED: Requires login but no specific profiles restricted"
         )
 
-    if len(allowed_profile_names) > 5:
+    if len(allowed_profile_names) > MANY_ROLES_THRESHOLD:
         concerns.append(
             f"MANY_ROLES: Accessible by {len(allowed_profile_names)} different roles"
         )

@@ -523,3 +523,20 @@ class TestOrphanedViewsDoNotKeepFieldsAlive:
         assert [u.location_type for u in usages] == ["view_field_reference"]
         assert usages[0].details["orphaned_view"] is True
         assert [f.key for _, f in sleuth.find_orphaned_fields()] == ["field_1"]
+
+
+class TestPrimaryRole:
+    @pytest.mark.parametrize(
+        ("records", "expected"),
+        [(99, "reference"), (100, "transactional"), (101, "transactional")],
+    )
+    def test_record_count_boundary(self, sleuth, records, expected):
+        # An object both connected and referenced more than it references.
+        obj = next(
+            o
+            for o in sleuth.app.objects
+            if o.connections
+            and len(o.connections.inbound) > len(o.connections.outbound)
+        )
+        sleuth.app.counts[obj.key] = records
+        assert sleuth._classify_object_roles(obj)["primary_role"] == expected

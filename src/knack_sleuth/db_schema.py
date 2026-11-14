@@ -4,7 +4,10 @@ This module provides functions to export the actual database structure described
 a Knack application into various schema formats (JSON Schema, DBML, YAML, Mermaid).
 """
 
+import re
+import unicodedata
 from collections import deque
+from copy import deepcopy
 from typing import Any
 
 import yaml
@@ -13,7 +16,7 @@ from knack_sleuth.lookup import resolve_object
 from knack_sleuth.models import Application, KnackField, KnackObject
 
 
-def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> bool:  # noqa: PLR0911
+def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> bool:
     """Determine if a field should be included based on detail level.
 
     Args:
@@ -41,9 +44,7 @@ def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> b
 
     if detail == "compact":
         # Include identifier fields, required fields, and connection fields
-        if field.key == obj.identifier:
-            return True
-        return field.required
+        return field.key == obj.identifier or field.required
 
     return True
 
@@ -203,7 +204,6 @@ def filter_app_to_subgraph(app: Application, subgraph_keys: set[str]) -> Applica
     filtered_objects = [obj for obj in app.objects if obj.key in subgraph_keys]
 
     # Create a copy of the application with filtered objects
-    from copy import deepcopy
 
     filtered_app = deepcopy(app)
     filtered_app.objects = filtered_objects
@@ -663,7 +663,6 @@ def _sanitize_entity_name(name: str) -> str:
     Returns:
         A sanitized entity name suitable for Mermaid
     """
-    import re
 
     # Convert to uppercase
     sanitized = name.upper()
@@ -703,8 +702,6 @@ def _sanitize_field_name(name: str) -> str:
     Returns:
         A camelCase identifier suitable for Mermaid
     """
-    import re
-    import unicodedata
 
     # Mermaid attribute names accept non-ASCII only from U+00C0 up, but Python's
     # \w keeps a few word characters below that (ª ² ³ µ º ¹ ¼ ½ ¾). NFKC folds
@@ -746,7 +743,6 @@ def _strip_html(text: str) -> str:
     Returns:
         Cleaned text without HTML tags
     """
-    import re
 
     # Remove HTML tags
     text = re.sub(r"<[^>]+>", "", text)

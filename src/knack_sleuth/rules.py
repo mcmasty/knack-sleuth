@@ -537,7 +537,34 @@ def _targets_object(record: dict[str, Any], object_key: str) -> bool:
     return record["action"] != "record" and connection.split(".", 1)[0] == object_key
 
 
-def _connected_record_rules(  # noqa: C901
+def _view_trigger_candidates(
+    header: dict[str, Any], view_data: dict[str, Any], names: _FieldNames
+) -> list[tuple[str, str | None, list, dict[str, Any]]]:
+    """A view's form submit and action-link rules, each with its own trigger.
+
+    Each candidate is ``(trigger, link_text, conditions, rules)``: the
+    conditions on the action link, and the emails the same click or submit
+    sends, stay attached to the record rules they belong to.
+    """
+    candidates: list[tuple[str, str | None, list, dict[str, Any]]] = []
+    form = _form_trigger(header, view_data, names)
+    if form:
+        candidates.append(("form_submit", None, [], form))
+    for column in _iter_action_links(view_data):
+        link = _action_link_trigger(header, column, names)
+        candidates.extend(
+            (
+                "action_link",
+                action_rule["link_text"],
+                action_rule["criteria"],
+                action_rule,
+            )
+            for action_rule in link["action_rules"]
+        )
+    return candidates
+
+
+def _connected_record_rules(
     own_triggers: list[dict[str, Any]],
     app_export: KnackAppMetadata,
     object_key: str,
@@ -559,23 +586,7 @@ def _connected_record_rules(  # noqa: C901
                 continue
             header = _view_header(scene, view, orphaned)
             view_data = view.model_dump(mode="python")
-            # Each candidate keeps the trigger it belongs to: the conditions on
-            # the action link, and the emails the same click or submit sends.
-            candidates = []
-            form = _form_trigger(header, view_data, names)
-            if form:
-                candidates.append(("form_submit", None, [], form))
-            for column in _iter_action_links(view_data):
-                link = _action_link_trigger(header, column, names)
-                for action_rule in link["action_rules"]:
-                    candidates.append(
-                        (
-                            "action_link",
-                            action_rule["link_text"],
-                            action_rule["criteria"],
-                            action_rule,
-                        )
-                    )
+            candidates = _view_trigger_candidates(header, view_data, names)
             for trigger, link_text, conditions, rules in candidates:
                 for record in rules["records"]:
                     if not _targets_object(record, object_key):

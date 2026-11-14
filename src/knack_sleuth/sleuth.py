@@ -7,6 +7,32 @@ from typing import Any
 
 from knack_sleuth.models import KnackAppMetadata, KnackObject, Scene, View
 
+# Heuristic thresholds for the technical analysis (impact, domain model,
+# graph and technical-debt sections). Changing them changes report wording,
+# not correctness.
+HUB_MIN_CONNECTIONS = 3  # README "Hub Object": 3+ connections in total
+CORE_HUB_MIN_CONNECTIONS = 5  # a hub with high bidirectional connectivity
+BOTTLENECK_MIN_INBOUND = 5
+HIGH_FANOUT_MIN_OUTBOUND = 5
+HIGH_RISK_BOTTLENECK_COUNT = 2  # more bottlenecks than this is high refactoring risk
+LARGE_TABLE_RECORDS = 100  # at or above: transactional; below: possible lookup table
+OBJECT_RISK_LOW_MAX = 5  # impact score bands for changing an object
+OBJECT_RISK_MEDIUM_MAX = 15
+FIELD_RISK_LOW_MAX = 3  # impact bands for changing a field
+FIELD_RISK_MEDIUM_MAX = 10
+CLUSTER_MIN_SHARED_NEIGHBORS = 2
+TIGHT_COUPLING_MIN_SHARED = 3
+COHESION_HIGH = 0.7  # share of a cluster's connections that stay inside it
+COHESION_MEDIUM = 0.4
+MODULARITY_HIGH = 0.7
+MODULARITY_MEDIUM = 0.4
+HUB_AND_SPOKE_MAX_MODULARITY = 0.5
+MODULAR_MIN_MODULARITY = 0.6
+FORMULA_FIELDS_HIGH = 30
+FORMULA_FIELDS_MODERATE = 10
+HIERARCHY_DEPTH_HIGH = 4
+HIERARCHY_DEPTH_MODERATE = 2
+
 
 @dataclass
 class Usage:
@@ -112,15 +138,16 @@ def _iter_field_references(
 
 def _is_typed_view_reference(path: tuple[str, ...]) -> bool:
     """Return whether an existing typed check already covers this path."""
-    if len(path) >= 4 and path[0] == "columns" and path[2:4] == ("field", "key"):
-        return True
-    if len(path) >= 4 and path[:2] == ("source", "sort") and path[3] == "field":
-        return True
-    if path == ("source", "parent_source", "connection"):
-        return True
-    if path == ("source", "connection_key"):
-        return True
-    return len(path) == 3 and path[0] == "inputs" and path[2] == "key"
+    match path:
+        case ("columns", _, "field", "key", *_) | ("source", "sort", _, "field", *_):
+            return True
+        case (
+            ("source", "parent_source", "connection")
+            | ("source", "connection_key")
+            | ("inputs", _, "key")
+        ):
+            return True
+    return False
 
 
 class KnackSleuth:
@@ -208,46 +235,10 @@ class KnackSleuth:
 
         return self._find_field_usages(field_key)
 
-    def _find_object_usages(self, object_key: str) -> list[Usage]:  # noqa: C901
+    def _find_object_usages(self, object_key: str) -> list[Usage]:
         """Find all places where an object is referenced."""
-        usages: list[Usage] = []
-
-        # 1. Check connections (inbound and outbound)
-        for obj in self.app.objects:
-            if obj.connections:
-                # Check outbound connections
-                for conn in obj.connections.outbound:
-                    if conn.object == object_key:
-                        usages.append(
-                            Usage(
-                                location_type="connection_outbound",
-                                context=f"{obj.name} ({obj.key}) connects to this object via {conn.name} ({conn.key})",
-                                details={
-                                    "source_object": obj.key,
-                                    "source_object_name": obj.name,
-                                    "connection_field": conn.key,
-                                    "connection_name": conn.name,
-                                    "relationship": f"{conn.has} to {conn.belongs_to}",
-                                },
-                            )
-                        )
-
-                # Check inbound connections
-                for conn in obj.connections.inbound:
-                    if conn.object == object_key:
-                        usages.append(
-                            Usage(
-                                location_type="connection_inbound",
-                                context=f"This object connects from {obj.name} ({obj.key}) via {conn.name} ({conn.key})",
-                                details={
-                                    "target_object": obj.key,
-                                    "target_object_name": obj.name,
-                                    "connection_field": conn.key,
-                                    "connection_name": conn.name,
-                                    "relationship": f"{conn.has} to {conn.belongs_to}",
-                                },
-                            )
-                        )
+        # 1. Connections (inbound and outbound)
+        usages = self._object_connection_usages(object_key)
 
         # 2. Check view sources
         for scene in self.app.scenes:
@@ -287,6 +278,46 @@ class KnackSleuth:
                     )
 
         return self._tag_orphaned_view_usages(usages)
+
+    def _object_connection_usages(self, object_key: str) -> list[Usage]:
+        """Connections on other objects that point at, or come from, this object."""
+        usages: list[Usage] = []
+        for obj in self.app.objects:
+            if obj.connections:
+                # Check outbound connections
+                for conn in obj.connections.outbound:
+                    if conn.object == object_key:
+                        usages.append(
+                            Usage(
+                                location_type="connection_outbound",
+                                context=f"{obj.name} ({obj.key}) connects to this object via {conn.name} ({conn.key})",
+                                details={
+                                    "source_object": obj.key,
+                                    "source_object_name": obj.name,
+                                    "connection_field": conn.key,
+                                    "connection_name": conn.name,
+                                    "relationship": f"{conn.has} to {conn.belongs_to}",
+                                },
+                            )
+                        )
+
+                # Check inbound connections
+                for conn in obj.connections.inbound:
+                    if conn.object == object_key:
+                        usages.append(
+                            Usage(
+                                location_type="connection_inbound",
+                                context=f"This object connects from {obj.name} ({obj.key}) via {conn.name} ({conn.key})",
+                                details={
+                                    "target_object": obj.key,
+                                    "target_object_name": obj.name,
+                                    "connection_field": conn.key,
+                                    "connection_name": conn.name,
+                                    "relationship": f"{conn.has} to {conn.belongs_to}",
+                                },
+                            )
+                        )
+        return usages
 
     def _tag_orphaned_view_usages(self, usages: list[Usage]) -> list[Usage]:
         """Mark usages that live in a view no page layout places.
@@ -829,9 +860,9 @@ class KnackSleuth:
         impact_score = analysis["risk_assessment"]["impact_score"]
         if impact_score == 0:
             analysis["risk_assessment"]["breaking_change_likelihood"] = "none"
-        elif impact_score <= 5:
+        elif impact_score <= OBJECT_RISK_LOW_MAX:
             analysis["risk_assessment"]["breaking_change_likelihood"] = "low"
-        elif impact_score <= 15:
+        elif impact_score <= OBJECT_RISK_MEDIUM_MAX:
             analysis["risk_assessment"]["breaking_change_likelihood"] = "medium"
         else:
             analysis["risk_assessment"]["breaking_change_likelihood"] = "high"
@@ -942,9 +973,9 @@ class KnackSleuth:
         # Determine risk level
         if total_impacts == 0:
             analysis["risk_assessment"]["breaking_change_likelihood"] = "none"
-        elif total_impacts <= 3:
+        elif total_impacts <= FIELD_RISK_LOW_MAX:
             analysis["risk_assessment"]["breaking_change_likelihood"] = "low"
-        elif total_impacts <= 10:
+        elif total_impacts <= FIELD_RISK_MEDIUM_MAX:
             analysis["risk_assessment"]["breaking_change_likelihood"] = "medium"
         else:
             analysis["risk_assessment"]["breaking_change_likelihood"] = "high"
@@ -1047,9 +1078,9 @@ class KnackSleuth:
 
         # Classify primary role (mutually exclusive)
         primary_role = ""
-        if record_count < 100 and inbound > outbound:
+        if record_count < LARGE_TABLE_RECORDS and inbound > outbound:
             primary_role = "reference"
-        elif record_count > 100 and total_connections > 0:
+        elif record_count >= LARGE_TABLE_RECORDS and total_connections > 0:
             primary_role = "transactional"
         else:
             primary_role = "supporting"
@@ -1262,7 +1293,7 @@ class KnackSleuth:
                 outbound = len(obj.connections.outbound)
                 total = inbound + outbound
 
-                if total >= 3:  # Threshold for "hub"
+                if total >= HUB_MIN_CONNECTIONS:
                     hub_objects.append(
                         {
                             "object": obj.name,
@@ -1300,7 +1331,7 @@ class KnackSleuth:
             return "Central dependency - many objects depend on this"
         if outbound > inbound * 2:
             return "Aggregator - depends on many objects"
-        if total >= 5:
+        if total >= CORE_HUB_MIN_CONNECTIONS:
             return "Core hub - high bidirectional connectivity"
         return "Moderately connected"
 
@@ -1328,7 +1359,7 @@ class KnackSleuth:
             cluster_members = {obj.key}
             obj_neighbors = adjacency[obj.key]
 
-            if len(obj_neighbors) >= 2:
+            if len(obj_neighbors) >= CLUSTER_MIN_SHARED_NEIGHBORS:
                 for other_obj in self.app.objects:
                     if other_obj.key == obj.key or other_obj.key in processed:
                         continue
@@ -1337,7 +1368,10 @@ class KnackSleuth:
                     shared = obj_neighbors & other_neighbors
 
                     # If they share 2+ neighbors or connect to each other, cluster them
-                    if len(shared) >= 2 or other_obj.key in obj_neighbors:
+                    if (
+                        len(shared) >= CLUSTER_MIN_SHARED_NEIGHBORS
+                        or other_obj.key in obj_neighbors
+                    ):
                         cluster_members.add(other_obj.key)
 
             if len(cluster_members) > 1:
@@ -1358,9 +1392,9 @@ class KnackSleuth:
                 cohesion = "low"
                 if total_conn > 0:
                     cohesion_ratio = internal / total_conn
-                    if cohesion_ratio > 0.7:
+                    if cohesion_ratio > COHESION_HIGH:
                         cohesion = "high"
-                    elif cohesion_ratio > 0.4:
+                    elif cohesion_ratio > COHESION_MEDIUM:
                         cohesion = "medium"
 
                 cluster_names = [
@@ -1438,9 +1472,9 @@ class KnackSleuth:
                 "max_formula_chain_depth": max_depth,
                 "interpretation": (
                     "High formula dependencies"
-                    if total_formula_fields > 30
+                    if total_formula_fields > FORMULA_FIELDS_HIGH
                     else "Moderate formula dependencies"
-                    if total_formula_fields > 10
+                    if total_formula_fields > FORMULA_FIELDS_MODERATE
                     else "Low formula dependencies"
                 ),
             },
@@ -1497,9 +1531,9 @@ class KnackSleuth:
                 "avg_depth": round(avg_depth, 1),
                 "interpretation": (
                     "High complexity"
-                    if max_depth > 4
+                    if max_depth > HIERARCHY_DEPTH_HIGH
                     else "Moderate complexity"
-                    if max_depth > 2
+                    if max_depth > HIERARCHY_DEPTH_MODERATE
                     else "Simple hierarchy"
                 ),
             },
@@ -1548,9 +1582,9 @@ class KnackSleuth:
                 inbound = len(obj.connections.inbound)
                 outbound = len(obj.connections.outbound)
 
-                if inbound >= 5:
+                if inbound >= BOTTLENECK_MIN_INBOUND:
                     bottlenecks.append({"object": obj.name, "object_key": obj.key})
-                if outbound >= 5:
+                if outbound >= HIGH_FANOUT_MIN_OUTBOUND:
                     high_fanout.append({"object": obj.name, "object_key": obj.key})
 
         return {
@@ -1566,7 +1600,7 @@ class KnackSleuth:
             "bottleneck_objects": bottlenecks,
             "interpretation": (
                 "High refactoring risk - multiple bottleneck objects"
-                if len(bottlenecks) > 2
+                if len(bottlenecks) > HIGH_RISK_BOTTLENECK_COUNT
                 else "Some complexity hotspots"
                 if len(bottlenecks) > 0 or len(high_fanout) > 0
                 else "Low technical debt"
@@ -1602,7 +1636,7 @@ class KnackSleuth:
                         )
                         shared = obj_connections & target_connections
 
-                        if len(shared) >= 3:
+                        if len(shared) >= TIGHT_COUPLING_MIN_SHARED:
                             tight_coupling.append(
                                 {
                                     "obj1": obj.name,
@@ -1620,12 +1654,13 @@ class KnackSleuth:
             1
             for obj in self.app.objects
             if obj.connections
-            and (len(obj.connections.inbound) + len(obj.connections.outbound)) >= 5
+            and (len(obj.connections.inbound) + len(obj.connections.outbound))
+            >= CORE_HUB_MIN_CONNECTIONS
         )
 
-        if hub_count > 0 and modularity_score < 0.5:
+        if hub_count > 0 and modularity_score < HUB_AND_SPOKE_MAX_MODULARITY:
             arch_style = "hub_and_spoke"
-        elif modularity_score > 0.6:
+        elif modularity_score > MODULAR_MIN_MODULARITY:
             arch_style = "modular"
         else:
             arch_style = "mixed"
@@ -1639,9 +1674,9 @@ class KnackSleuth:
             "architectural_style": arch_style,
             "interpretation": (
                 "Highly modular - easy to extend"
-                if modularity_score > 0.7
+                if modularity_score > MODULARITY_HIGH
                 else "Moderately modular - some refactoring may help"
-                if modularity_score > 0.4
+                if modularity_score > MODULARITY_MEDIUM
                 else "Low modularity - changes may have wide impact"
             ),
         }

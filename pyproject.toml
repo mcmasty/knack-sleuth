@@ -99,9 +99,7 @@ select = [
 ]
 ignore = [
     "E501",     # line length is the formatter's job; it leaves long strings alone
-    "PLC0415",  # imports inside functions keep CLI startup fast
     "TRY003",   # long messages in exception constructors are fine
-    "PLR2004",  # magic numbers: the heuristic thresholds read better inline
 ]
 
 [tool.ruff.lint.mccabe]
@@ -112,11 +110,14 @@ max-complexity = 10
 extend-immutable-calls = ["typer.Option", "typer.Argument"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]  # assert is how pytest tests
+"tests/**" = [
+    "S101",     # assert is how pytest tests
+    "PLR2004",  # magic numbers are expected values
+]
 # Typer commands take one parameter per CLI option.
 "src/knack_sleuth/cli.py" = ["PLR0913"]
 # Examples are linear demo scripts; size limits do not help them.
-"examples/**" = ["C901", "PLR0912", "PLR0915"]
+"examples/**" = ["C901", "PLR0912", "PLR0915", "PLR2004"]
 
 [tool.vulture]
 # Dead-code finder. Scans tests and examples too, so code only they use counts.

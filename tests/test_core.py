@@ -4,10 +4,11 @@ import json
 import os
 import time
 
+import httpx
 import pytest
 
-from knack_sleuth.core import get_cache_dir, load_app_metadata
-from knack_sleuth.models import KnackAppMetadata
+from knack_sleuth.core import builder_url, get_cache_dir, load_app_metadata
+from knack_sleuth.models import KnackAppMetadata, KnackField
 
 
 @pytest.fixture
@@ -185,7 +186,6 @@ class TestErrorHandling:
 
     def test_error_http_status_error(self, cache_dir, mocker, mock_api_error):
         """Verify HTTPStatusError is raised for API errors."""
-        import httpx
 
         mocker.patch("knack_sleuth.core.httpx.get", side_effect=mock_api_error)
 
@@ -194,7 +194,6 @@ class TestErrorHandling:
 
     def test_error_network_error(self, cache_dir, mocker):
         """Verify RequestError is raised for network errors."""
-        import httpx
 
         mocker.patch(
             "knack_sleuth.core.httpx.get",
@@ -227,7 +226,6 @@ class TestKnackFieldFormatCoercion:
 
     def test_empty_string_format_coerced_to_none(self):
         """An empty-string format must not fail validation."""
-        from knack_sleuth.models import KnackField
 
         field = KnackField(key="field_1", name="Name", type="short_text", format="")
 
@@ -235,7 +233,6 @@ class TestKnackFieldFormatCoercion:
 
     def test_dict_format_still_parsed(self):
         """A real format object is unaffected by the coercion."""
-        from knack_sleuth.models import KnackField
 
         field = KnackField(
             key="field_2", name="Amount", type="currency", format={"format": "£"}
@@ -246,7 +243,6 @@ class TestKnackFieldFormatCoercion:
 
     def test_omitted_format_still_none(self):
         """Omitting format entirely keeps the existing default."""
-        from knack_sleuth.models import KnackField
 
         field = KnackField(key="field_3", name="Plain", type="short_text")
 
@@ -258,8 +254,6 @@ class TestBuilderUrl:
 
     @staticmethod
     def _app(account_slug="acme", app_slug="portal"):
-        from knack_sleuth.models import KnackAppMetadata
-
         return KnackAppMetadata(
             application={
                 "id": "app_1",
@@ -273,15 +267,12 @@ class TestBuilderUrl:
     def test_page_url_uses_the_application_slug(self):
         """Regression: the app slug was hardcoded to 'portal', which was only
         ever right for the one app whose slug happened to be 'portal'."""
-        from knack_sleuth.core import builder_url
 
         url = builder_url(self._app(app_slug="sample-application"), "scene_5")
 
         assert url == "https://builder.knack.com/acme/sample-application/pages/scene_5"
 
     def test_view_url_appends_view_key_and_type(self):
-        from knack_sleuth.core import builder_url
-
         url = builder_url(self._app(), "scene_5", view_key="view_9", view_type="form")
 
         assert (
@@ -290,15 +281,11 @@ class TestBuilderUrl:
         )
 
     def test_next_gen_builder_uses_its_own_host(self):
-        from knack_sleuth.core import builder_url
-
         url = builder_url(self._app(), "scene_5", next_gen=True)
 
         assert url.startswith("https://builder-next.knack.com/acme/portal/")
 
     def test_account_slug_falls_back_to_application_slug(self):
-        from knack_sleuth.core import builder_url
-
         app = self._app()
         app.account = {}
 
