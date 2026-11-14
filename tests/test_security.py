@@ -19,6 +19,7 @@ concern -- never a stricter reading that would hide a reachable public route.
 
 import csv
 import json
+import time
 from pathlib import Path
 
 import pytest
@@ -551,7 +552,6 @@ class TestNavigationHierarchy:
         # memoization the walk doubles per level -- a depth-24 chain is ~17M
         # paths and the report never finishes. Ancestors of a slug don't depend
         # on the route taken to reach it, so the walk must reuse them.
-        import time
 
         depth = 24
         scenes = [Scene(key="scene_root", name="Root", slug="level_0")]
@@ -587,7 +587,6 @@ class TestNavigationHierarchy:
         # off for the whole chain, or the walk doubles per level again. Bare
         # authentication is no longer a stopping point (issue #27), so login-
         # only chains reach the cycle as readily as unauthenticated ones.
-        import time
 
         depth = 20
         scenes = [
@@ -637,7 +636,6 @@ class TestNavigationHierarchy:
         # the same restriction, and every scene in the chain below inherits
         # it. Re-deriving that per scene, or merging labels by list scans,
         # turns the full report quadratic or worse.
-        import time
 
         width = depth = 200
         scenes = [

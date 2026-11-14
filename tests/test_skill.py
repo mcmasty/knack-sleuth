@@ -97,7 +97,6 @@ def test_skill_documents_every_user_facing_command():
 
     install-skill is exempt — the skill has no reason to install itself.
     """
-    from knack_sleuth.cli import cli
 
     skill_text = resources.files("knack_sleuth").joinpath("data/SKILL.md").read_text()
 

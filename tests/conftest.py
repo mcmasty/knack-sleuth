@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 
+import httpx
 import pytest
 from hypothesis import settings
 
@@ -59,7 +60,6 @@ def mock_api_response(sample_metadata_dict):
 @pytest.fixture
 def mock_api_error():
     """Mock API error response."""
-    import httpx
 
     def raise_error(*_args, **_kwargs):
         """Raise HTTPStatusError regardless of arguments."""

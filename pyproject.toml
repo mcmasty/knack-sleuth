@@ -99,7 +99,6 @@ select = [
 ]
 ignore = [
     "E501",     # line length is the formatter's job; it leaves long strings alone
-    "PLC0415",  # imports inside functions keep CLI startup fast
     "TRY003",   # long messages in exception constructors are fine
     "PLR2004",  # magic numbers: the heuristic thresholds read better inline
 ]

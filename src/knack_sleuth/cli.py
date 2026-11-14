@@ -1,13 +1,15 @@
+import csv
 import json
 import re
 from dataclasses import asdict
-from datetime import UTC
+from datetime import UTC, datetime, timedelta
 from importlib import resources
 from pathlib import Path
 from typing import Any
 
 import httpx
 import typer
+import yaml
 from rich.console import Console
 from rich.markup import escape
 from rich.panel import Panel
@@ -25,6 +27,13 @@ from knack_sleuth.core import (
 from knack_sleuth.core import (
     load_app_metadata as core_load_metadata,
 )
+from knack_sleuth.db_schema import (
+    build_subgraph,
+    export_database_schema,
+    filter_app_to_subgraph,
+    find_object_by_identifier,
+)
+from knack_sleuth.diff import diff_applications, diff_to_markdown
 from knack_sleuth.lookup import (
     resolve_fields,
     resolve_object,
@@ -33,6 +42,11 @@ from knack_sleuth.lookup import (
 )
 from knack_sleuth.models import KnackAppMetadata, KnackObject
 from knack_sleuth.rules import collect_rules
+from knack_sleuth.security import (
+    count_children,
+    generate_security_report,
+    get_views_for_profile,
+)
 from knack_sleuth.sleuth import KnackSleuth
 
 # No locals in crash dumps: commands hold raw metadata, and show-rules in
@@ -64,7 +78,6 @@ def cache_list(
     ),
 ):
     """List cached metadata files with age, size, and freshness."""
-    from datetime import datetime, timedelta
 
     files = _cache_files(app_id)
     if not files:
@@ -1711,7 +1724,6 @@ def diff(
         # Markdown change report
         knack-sleuth diff old.json new.json --format markdown -o changes.md
     """
-    from knack_sleuth.diff import diff_applications, diff_to_markdown
 
     valid_formats = ["rich", "json", "markdown"]
     if output_format not in valid_formats:
@@ -2064,7 +2076,6 @@ def export_db_schema(
         # Load from Knack API and export (no API key needed for public metadata)
         knack-sleuth export-db-schema --app-id YOUR_APP_ID -f dbml
     """
-    from knack_sleuth.db_schema import export_database_schema
 
     # Validate format
     valid_formats = ["json", "dbml", "yaml", "mermaid"]
@@ -2247,12 +2258,6 @@ def export_schema_subgraph(  # noqa: C901, PLR0912, PLR0915
         # Export with minimal detail level
         knack-sleuth export-schema-subgraph app.json --object Events --detail minimal -f yaml
     """
-    from knack_sleuth.db_schema import (
-        build_subgraph,
-        export_database_schema,
-        filter_app_to_subgraph,
-        find_object_by_identifier,
-    )
 
     # Validate depth
     if depth > 2:
@@ -2297,7 +2302,6 @@ def export_schema_subgraph(  # noqa: C901, PLR0912, PLR0915
         # Sanitize object name for filename: replace spaces and special chars with dashes
         sanitized_name = object.lower().replace(" ", "-").replace("_", "-")
         # Remove any other problematic characters
-        import re
 
         sanitized_name = re.sub(r"[^\w\-]", "", sanitized_name)
         # Remove consecutive dashes
@@ -2545,8 +2549,6 @@ def impact_analysis(  # noqa: C901, PLR0912, PLR0915
     if output_format == "json":
         output_content = json.dumps(analysis, indent=2)
     elif output_format == "yaml":
-        import yaml
-
         output_content = yaml.dump(analysis, default_flow_style=False, sort_keys=False)
     elif output_format == "markdown":
         # Collect unique scenes for builder URLs
@@ -2786,8 +2788,6 @@ def app_summary(  # noqa: C901, PLR0912
     if output_format == "json":
         output_content = json.dumps(summary, indent=2)
     elif output_format == "yaml":
-        import yaml
-
         output_content = yaml.dump(summary, default_flow_style=False, sort_keys=False)
     elif output_format == "markdown":
         # Generate markdown summary
@@ -3012,10 +3012,6 @@ def role_access_review(  # noqa: C901, PLR0915
 
         knack-sleuth role-access-review app.json --summary-only  # Show only top-level pages
     """
-    import csv
-    from pathlib import Path
-
-    from knack_sleuth.security import count_children, generate_security_report
 
     # Load metadata
     app_export = load_app_metadata(file_path, app_id, refresh)
@@ -3084,8 +3080,6 @@ def role_access_review(  # noqa: C901, PLR0915
 
     # Determine output path with timestamp
     if not output:
-        from datetime import datetime
-
         timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         output = Path(f"role_access_review_{timestamp}.csv")
 
@@ -3190,10 +3184,6 @@ def role_access_summary(  # noqa: C901, PLR0912, PLR0915
         knack-sleuth role-access-summary --profile-key "profile_1" --app-id YOUR_APP_ID
         knack-sleuth role-access-summary --role "Admin" app.json -o admin_access.csv
     """
-    import csv
-    from pathlib import Path
-
-    from knack_sleuth.security import generate_security_report, get_views_for_profile
 
     # Validate that at least one of role or profile_key is provided
     if not role and not profile_key:
@@ -3329,8 +3319,6 @@ def role_access_summary(  # noqa: C901, PLR0912, PLR0915
 
     # Determine output path with timestamp
     if not output:
-        from datetime import datetime
-
         timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         safe_role_name = target_profile_name.replace(" ", "_").replace("/", "_")
         output = Path(f"role_access_summary_{safe_role_name}_{timestamp}.csv")
