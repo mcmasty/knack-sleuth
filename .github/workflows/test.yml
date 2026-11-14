@@ -12,17 +12,22 @@ jobs:
   lint:
     name: Lint and type check
     runs-on: ubuntu-latest
+    env:
+      # Overrides .python-version (3.14, for local dev) so CI checks the oldest
+      # supported Python. Without it, `uv run` silently picks 3.14.
+      UV_PYTHON: '3.11'
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.3
         with:
+          version: '0.13.8'
           enable-cache: true
 
       - name: Install dependencies
         # --locked fails the job if uv.lock is out of date with pyproject.toml.
-        run: uv sync --locked --python 3.11
+        run: uv sync --locked
 
       - name: Ruff lint
         run: uv run --locked ruff check --output-format=github .
@@ -46,6 +51,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         python-version: ['3.11', '3.12', '3.13']
+    env:
+      # Overrides .python-version, which would otherwise make every matrix
+      # entry run on 3.14.
+      UV_PYTHON: ${{ matrix.python-version }}
 
     steps:
       - uses: actions/checkout@v7
@@ -58,11 +67,45 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.3
         with:
+          version: '0.13.8'
           enable-cache: true
 
       - name: Install dependencies
         run: uv sync --locked --all-extras --dev
 
+      - name: Confirm interpreter matches the matrix
+        run: uv run --locked python -c "import sys; v = '%d.%d' % sys.version_info[:2]; assert v == '${{ matrix.python-version }}', v; print('Python', v)"
+
       - name: Run tests with coverage
         # Fails under [tool.coverage.report] fail_under in pyproject.toml.
         run: uv run --locked pytest -v --cov
+
+  package:
+    name: Built package smoke test
+    # Tests run against the checkout; this checks what PyPI would get: the
+    # wheel installs, the CLI starts, and package data (SKILL.md) is included.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: '0.13.8'
+
+      - name: Build
+        run: uv build --out-dir "$RUNNER_TEMP/dist"
+
+      - name: Install the wheel in isolation and exercise it
+        # Outside the checkout, so nothing can import from the source tree.
+        working-directory: ${{ runner.temp }}
+        env:
+          UV_PYTHON: '3.11'
+        run: |
+          set -euo pipefail
+          wheel=$(ls dist/*.whl)
+          run() { uv run --isolated --no-project --with "$wheel" "$@"; }
+          run knack-sleuth --version
+          run knack-sleuth --help > /dev/null
+          run knack-sleuth install-skill --target skill
+          grep -q "knack-sleuth-version: " skill/SKILL.md
