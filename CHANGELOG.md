@@ -16,9 +16,11 @@
 - `rich` is now a declared dependency. It was already installed through typer, but the CLI
   imports it directly.
 - Development: CI also checks formatting (`ruff format`), dead code (vulture), declared
-  dependencies (deptry) and a branch-coverage floor. Dependency vulnerabilities are audited
-  weekly by a separate workflow. A pre-commit config, an expanded ruff rule set and
-  hypothesis property tests were added.
+  dependencies (deptry), a minimum coverage (lines and branches combined) and the built wheel.
+  The 3.11–3.13 test jobs now actually run on those versions; previously `.python-version`
+  made every job run on 3.14. Dependency vulnerabilities are audited by a separate workflow
+  that doesn't gate releases. A pre-commit config, an expanded ruff rule set and hypothesis
+  property tests were added.
 
 ## 0.9.0
 
