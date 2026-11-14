@@ -16,7 +16,7 @@ from knack_sleuth.lookup import resolve_object
 from knack_sleuth.models import Application, KnackField, KnackObject
 
 
-def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> bool:  # noqa: PLR0911
+def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> bool:
     """Determine if a field should be included based on detail level.
 
     Args:
@@ -44,9 +44,7 @@ def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> b
 
     if detail == "compact":
         # Include identifier fields, required fields, and connection fields
-        if field.key == obj.identifier:
-            return True
-        return field.required
+        return field.key == obj.identifier or field.required
 
     return True
 

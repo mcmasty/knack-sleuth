@@ -174,7 +174,7 @@ def _without_skill_version_stamp(content: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", stripped).lstrip("\n")
 
 
-def _skill_drift_warning(  # noqa: PLR0911
+def _skill_drift_warning(
     target_file: Path,
     packaged_content: str,
     running_version: str = __version__,
@@ -202,9 +202,10 @@ def _skill_drift_warning(  # noqa: PLR0911
     installed_version = match.group(1)
     installed_release = _release_tuple(installed_version)
     running_release = _release_tuple(running_version)
-    if installed_version == running_version:
-        return None
-    if installed_release and running_release and installed_release >= running_release:
+    # Same version, or the installed skill is newer than this package.
+    if installed_version == running_version or (
+        installed_release and running_release and installed_release >= running_release
+    ):
         return None
     return (
         f"Installed knack-explorer skill is from {installed_version}; running "

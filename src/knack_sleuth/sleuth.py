@@ -235,46 +235,10 @@ class KnackSleuth:
 
         return self._find_field_usages(field_key)
 
-    def _find_object_usages(self, object_key: str) -> list[Usage]:  # noqa: C901
+    def _find_object_usages(self, object_key: str) -> list[Usage]:
         """Find all places where an object is referenced."""
-        usages: list[Usage] = []
-
-        # 1. Check connections (inbound and outbound)
-        for obj in self.app.objects:
-            if obj.connections:
-                # Check outbound connections
-                for conn in obj.connections.outbound:
-                    if conn.object == object_key:
-                        usages.append(
-                            Usage(
-                                location_type="connection_outbound",
-                                context=f"{obj.name} ({obj.key}) connects to this object via {conn.name} ({conn.key})",
-                                details={
-                                    "source_object": obj.key,
-                                    "source_object_name": obj.name,
-                                    "connection_field": conn.key,
-                                    "connection_name": conn.name,
-                                    "relationship": f"{conn.has} to {conn.belongs_to}",
-                                },
-                            )
-                        )
-
-                # Check inbound connections
-                for conn in obj.connections.inbound:
-                    if conn.object == object_key:
-                        usages.append(
-                            Usage(
-                                location_type="connection_inbound",
-                                context=f"This object connects from {obj.name} ({obj.key}) via {conn.name} ({conn.key})",
-                                details={
-                                    "target_object": obj.key,
-                                    "target_object_name": obj.name,
-                                    "connection_field": conn.key,
-                                    "connection_name": conn.name,
-                                    "relationship": f"{conn.has} to {conn.belongs_to}",
-                                },
-                            )
-                        )
+        # 1. Connections (inbound and outbound)
+        usages = self._object_connection_usages(object_key)
 
         # 2. Check view sources
         for scene in self.app.scenes:
@@ -314,6 +278,46 @@ class KnackSleuth:
                     )
 
         return self._tag_orphaned_view_usages(usages)
+
+    def _object_connection_usages(self, object_key: str) -> list[Usage]:
+        """Connections on other objects that point at, or come from, this object."""
+        usages: list[Usage] = []
+        for obj in self.app.objects:
+            if obj.connections:
+                # Check outbound connections
+                for conn in obj.connections.outbound:
+                    if conn.object == object_key:
+                        usages.append(
+                            Usage(
+                                location_type="connection_outbound",
+                                context=f"{obj.name} ({obj.key}) connects to this object via {conn.name} ({conn.key})",
+                                details={
+                                    "source_object": obj.key,
+                                    "source_object_name": obj.name,
+                                    "connection_field": conn.key,
+                                    "connection_name": conn.name,
+                                    "relationship": f"{conn.has} to {conn.belongs_to}",
+                                },
+                            )
+                        )
+
+                # Check inbound connections
+                for conn in obj.connections.inbound:
+                    if conn.object == object_key:
+                        usages.append(
+                            Usage(
+                                location_type="connection_inbound",
+                                context=f"This object connects from {obj.name} ({obj.key}) via {conn.name} ({conn.key})",
+                                details={
+                                    "target_object": obj.key,
+                                    "target_object_name": obj.name,
+                                    "connection_field": conn.key,
+                                    "connection_name": conn.name,
+                                    "relationship": f"{conn.has} to {conn.belongs_to}",
+                                },
+                            )
+                        )
+        return usages
 
     def _tag_orphaned_view_usages(self, usages: list[Usage]) -> list[Usage]:
         """Mark usages that live in a view no page layout places.
