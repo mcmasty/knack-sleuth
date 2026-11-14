@@ -55,6 +55,9 @@ cli = typer.Typer(pretty_exceptions_show_locals=False)
 console = Console()
 err_console = Console(stderr=True)  # status + error output; keeps stdout clean for data
 
+# export-schema-subgraph warns past this; deeper usually means most of the app.
+RECOMMENDED_MAX_SUBGRAPH_DEPTH = 2
+
 cache_app = typer.Typer(help="Inspect and manage the local metadata cache.")
 cli.add_typer(cache_app, name="cache")
 
@@ -2260,10 +2263,10 @@ def export_schema_subgraph(  # noqa: C901, PLR0912, PLR0915
     """
 
     # Validate depth
-    if depth > 2:
+    if depth > RECOMMENDED_MAX_SUBGRAPH_DEPTH:
         err_console.print(
             f"[yellow]Warning:[/yellow] Depth {depth} is not recommended. "
-            "For depth > 2, consider using [cyan]export-db-schema[/cyan] to export the full schema instead."
+            "For larger depths, consider using [cyan]export-db-schema[/cyan] to export the full schema instead."
         )
         console.print()
         console.print("Proceeding with depth=2 (maximum recommended)...")
