@@ -12,21 +12,18 @@ behavior stays consistent across every code path.
 
 import json
 import os
-from pathlib import Path
-from typing import Optional
 from datetime import datetime, timedelta
-import glob
+from pathlib import Path
 
 import httpx
 
-from knack_sleuth.models import KnackAppMetadata
 from knack_sleuth.config import (
-    Settings,
     KNACK_API_BASE_URL,
     KNACK_BUILDER_BASE_URL,
     KNACK_NG_BUILDER_BASE_URL,
+    Settings,
 )
-from knack_sleuth.models import Application
+from knack_sleuth.models import Application, KnackAppMetadata
 
 
 def builder_url(
@@ -81,8 +78,8 @@ def _cache_glob(app_id: str) -> str:
 
 
 def find_valid_cache(
-    app_id: str, max_age: Optional[timedelta] = None
-) -> Optional[tuple[Path, float]]:
+    app_id: str, max_age: timedelta | None = None
+) -> tuple[Path, float] | None:
     """Find the most recent non-stale cache file for an application.
 
     Looks in the cache directory (see :func:`get_cache_dir`) for cache files
@@ -101,12 +98,11 @@ def find_valid_cache(
     if max_age is None:
         max_age = timedelta(hours=Settings().knack_cache_ttl_hours)
 
-    pattern = str(get_cache_dir() / _cache_glob(app_id))
-    cache_files = sorted(glob.glob(pattern), reverse=True)
+    cache_files = sorted(get_cache_dir().glob(_cache_glob(app_id)), reverse=True)
     if not cache_files:
         return None
 
-    latest = Path(cache_files[0])
+    latest = cache_files[0]
     age = datetime.now() - datetime.fromtimestamp(latest.stat().st_mtime)
     if age < max_age:
         return latest, age.total_seconds() / 3600
@@ -149,8 +145,8 @@ def write_cache(app_id: str, data: dict) -> Path:
 
 
 def load_app_metadata(
-    file_path: Optional[Path] = None,
-    app_id: Optional[str] = None,
+    file_path: Path | None = None,
+    app_id: str | None = None,
     refresh: bool = False,
     no_cache: bool = False,
 ) -> KnackAppMetadata:
@@ -219,7 +215,7 @@ def load_app_metadata(
                 with cache_path.open() as f:
                     data = json.load(f)
                 return KnackAppMetadata(**data)
-            except Exception:
+            except Exception:  # noqa: S110
                 # Corrupt/unreadable cache: fall through to a fresh API fetch.
                 pass
 

@@ -6,7 +6,8 @@ loading metadata directly from the API without filesystem side effects.
 """
 
 import os
-from knack_sleuth import load_app_metadata, KnackSleuth
+
+from knack_sleuth import KnackSleuth, load_app_metadata
 
 
 def main():
@@ -56,7 +57,7 @@ def main():
         object_usages = results.get("object_usages", [])
         print(f"  Found {len(object_usages)} object-level usages")
 
-        field_count = sum(1 for key in results.keys() if key.startswith("field_"))
+        field_count = sum(1 for key in results if key.startswith("field_"))
         print(f"  Found {field_count} fields with usages\n")
 
 

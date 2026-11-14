@@ -4,8 +4,8 @@ This module provides functions to export the actual database structure described
 a Knack application into various schema formats (JSON Schema, DBML, YAML, Mermaid).
 """
 
-from typing import Any, Optional
 from collections import deque
+from typing import Any
 
 import yaml
 
@@ -13,7 +13,7 @@ from knack_sleuth.lookup import resolve_object
 from knack_sleuth.models import Application, KnackField, KnackObject
 
 
-def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> bool:
+def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> bool:  # noqa: PLR0911
     """Determine if a field should be included based on detail level.
 
     Args:
@@ -43,9 +43,7 @@ def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> b
         # Include identifier fields, required fields, and connection fields
         if field.key == obj.identifier:
             return True
-        if field.required:
-            return True
-        return False
+        return field.required
 
     return True
 
@@ -124,9 +122,7 @@ def _get_field_json_type(field: KnackField) -> str:
     return type_mapping.get(field.type, "string")
 
 
-def find_object_by_identifier(
-    app: Application, identifier: str
-) -> Optional[KnackObject]:
+def find_object_by_identifier(app: Application, identifier: str) -> KnackObject | None:
     """Find an object by key or name.
 
     Kept for backward compatibility; delegates to knack_sleuth.lookup.
@@ -273,7 +269,7 @@ def _build_field_json_schema(field: KnackField) -> dict[str, Any]:
     return schema
 
 
-def export_to_json_schema(app: Application, detail: str = "standard") -> dict[str, Any]:
+def export_to_json_schema(app: Application, detail: str = "standard") -> dict[str, Any]:  # noqa: C901
     """Generate JSON Schema representing the actual database structure.
 
     Args:
@@ -361,7 +357,7 @@ def export_to_json_schema(app: Application, detail: str = "standard") -> dict[st
     return schema
 
 
-def export_to_dbml(app: Application, detail: str = "standard") -> str:
+def export_to_dbml(app: Application, detail: str = "standard") -> str:  # noqa: C901, PLR0912, PLR0915
     """Generate DBML (Database Markup Language) schema.
 
     DBML is a simple, readable DSL language designed to define database schemas.
@@ -477,7 +473,7 @@ def export_to_dbml(app: Application, detail: str = "standard") -> str:
     return "\n".join(lines)
 
 
-def export_to_yaml(app: Application, detail: str = "standard") -> str:
+def export_to_yaml(app: Application, detail: str = "standard") -> str:  # noqa: C901
     """Generate YAML representation of the database structure.
 
     Args:
@@ -591,12 +587,12 @@ def _get_relationship_type(has: str, belongs_to: str) -> str:
     """Determine the relationship type from has/belongs_to values."""
     if has == "one" and belongs_to == "one":
         return "one-to-one"
-    elif has == "one" and belongs_to == "many":
+    if has == "one" and belongs_to == "many":
         return "one-to-many"
-    elif has == "many" and belongs_to == "one":
+    if has == "many" and belongs_to == "one":
         return "many-to-one"
-    else:  # many-to-many
-        return "many-to-many"
+    # many-to-many
+    return "many-to-many"
 
 
 def _get_mermaid_type(field: KnackField) -> str:
@@ -647,12 +643,12 @@ def _get_mermaid_relationship(has: str, belongs_to: str) -> str:
     """
     if has == "one" and belongs_to == "one":
         return "||--||"
-    elif has == "one" and belongs_to == "many":
+    if has == "one" and belongs_to == "many":
         return "||--o{"
-    elif has == "many" and belongs_to == "one":
+    if has == "many" and belongs_to == "one":
         return "}o--||"
-    else:  # many-to-many
-        return "}o--o{"
+    # many-to-many
+    return "}o--o{"
 
 
 def _sanitize_entity_name(name: str) -> str:
@@ -759,12 +755,10 @@ def _strip_html(text: str) -> str:
 
     # Clean up whitespace
     text = re.sub(r"\s+", " ", text)
-    text = text.strip()
-
-    return text
+    return text.strip()
 
 
-def export_to_mermaid(app: Application, detail: str = "standard") -> str:
+def export_to_mermaid(app: Application, detail: str = "standard") -> str:  # noqa: C901, PLR0912, PLR0915
     """Generate Mermaid ER diagram syntax.
 
     Mermaid is a JavaScript-based diagramming tool that renders markdown-inspired
@@ -844,7 +838,7 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
                 field_name = _sanitize_field_name(field.name)
 
                 # Determine primary constraint (Mermaid supports one key constraint)
-                # Priority: PK > FK > UK (unique)
+                # Priority: PK, then FK, then UK (unique)
                 constraint = ""
                 if field.key == obj.identifier:
                     constraint = " PK"
@@ -864,7 +858,7 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:
                         if isinstance(field.meta, dict)
                         else field.meta.__dict__
                     )
-                    if "description" in meta and meta["description"]:
+                    if meta.get("description"):
                         description = _strip_html(meta["description"])
 
                 if description:
@@ -909,13 +903,12 @@ def export_database_schema(
 
     if format == "json":
         return export_to_json_schema(app, detail=detail)
-    elif format == "dbml":
+    if format == "dbml":
         return export_to_dbml(app, detail=detail)
-    elif format == "yaml":
+    if format == "yaml":
         return export_to_yaml(app, detail=detail)
-    elif format == "mermaid":
+    if format == "mermaid":
         return export_to_mermaid(app, detail=detail)
-    else:
-        raise ValueError(
-            f"Unsupported format: {format}. Use 'json', 'dbml', 'yaml', or 'mermaid'"
-        )
+    raise ValueError(
+        f"Unsupported format: {format}. Use 'json', 'dbml', 'yaml', or 'mermaid'"
+    )

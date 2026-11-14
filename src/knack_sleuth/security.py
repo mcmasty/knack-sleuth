@@ -139,7 +139,7 @@ _Found = dict[tuple[tuple[str, ...], bool], dict[str, None]]
 _TOP_OF_CHAIN: _Found = {((), False): {}}
 
 
-def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:
+def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:  # noqa: C901, PLR0915
     """Restrictions for every slug, solved once per hierarchy and cached.
 
     Resolving parents by slug alone can close a cycle (a duplicate slug that
@@ -387,7 +387,7 @@ def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, 
     }
 
 
-def analyze_scene_security(
+def analyze_scene_security(  # noqa: C901, PLR0915
     scene: Scene, profiles: dict[str, str], hierarchy: dict[str, Any]
 ) -> SceneSecurity:
     """Analyze security settings for a single scene with navigation context.
@@ -620,7 +620,7 @@ def generate_security_report(app: Application) -> SecurityReport:
         # Put "Direct" at the end by prepending "zzz_" for sorting
         if root_nav == "Direct":
             return ("zzz_Direct", scene.page_nav)
-        elif root_nav == "Utility Page":
+        if root_nav == "Utility Page":
             return ("zzzz_Utility Page", scene.page_nav)
         return (root_nav, scene.page_nav)
 

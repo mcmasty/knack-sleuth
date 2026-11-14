@@ -1,8 +1,8 @@
 """Core search functionality for finding object and field usages in Knack metadata."""
 
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass
-import re
 from typing import Any
 
 from knack_sleuth.models import KnackAppMetadata, KnackObject, Scene, View
@@ -208,7 +208,7 @@ class KnackSleuth:
 
         return self._find_field_usages(field_key)
 
-    def _find_object_usages(self, object_key: str) -> list[Usage]:
+    def _find_object_usages(self, object_key: str) -> list[Usage]:  # noqa: C901
         """Find all places where an object is referenced."""
         usages: list[Usage] = []
 
@@ -300,7 +300,7 @@ class KnackSleuth:
                 usage.details["orphaned_view"] = view_key in self.orphaned_view_keys
         return usages
 
-    def _find_field_usages(self, field_key: str) -> list[Usage]:
+    def _find_field_usages(self, field_key: str) -> list[Usage]:  # noqa: C901, PLR0912
         """Find all places where a field is referenced."""
         usages: list[Usage] = []
 
@@ -701,7 +701,7 @@ class KnackSleuth:
 
         return analysis
 
-    def _analyze_object_impact(
+    def _analyze_object_impact(  # noqa: C901, PLR0912, PLR0915
         self, object_key: str, analysis: dict[str, Any]
     ) -> dict[str, Any]:
         """Analyze impact of changes to an object."""
@@ -852,7 +852,7 @@ class KnackSleuth:
 
         return analysis
 
-    def _analyze_field_impact(
+    def _analyze_field_impact(  # noqa: C901, PLR0912
         self, field_key: str, analysis: dict[str, Any]
     ) -> dict[str, Any]:
         """Analyze impact of changes to a field."""
@@ -975,7 +975,7 @@ class KnackSleuth:
         Returns:
             A structured dictionary with complete app architecture summary
         """
-        summary = {
+        return {
             "application": self._analyze_application_metadata(),
             "domain_model": self._analyze_domain_model(),
             "relationship_map": self._analyze_relationship_topology(),
@@ -985,8 +985,6 @@ class KnackSleuth:
             "technical_debt_indicators": self._analyze_technical_debt(),
             "extensibility_assessment": self._analyze_extensibility(),
         }
-
-        return summary
 
     def _analyze_application_metadata(self) -> dict[str, Any]:
         """Extract basic application metadata and complexity metrics."""
@@ -1090,7 +1088,7 @@ class KnackSleuth:
 
         return round(centrality, 3)
 
-    def _analyze_domain_model(self) -> dict[str, Any]:
+    def _analyze_domain_model(self) -> dict[str, Any]:  # noqa: C901, PLR0912, PLR0915
         """Analyze domain model and classify objects into orthogonal categories.
 
         Core entity selection: Top N objects by record count OR connectivity.
@@ -1298,16 +1296,15 @@ class KnackSleuth:
         total = inbound + outbound
         if total == 0:
             return "Isolated"
-        elif inbound > outbound * 2:
+        if inbound > outbound * 2:
             return "Central dependency - many objects depend on this"
-        elif outbound > inbound * 2:
+        if outbound > inbound * 2:
             return "Aggregator - depends on many objects"
-        elif total >= 5:
+        if total >= 5:
             return "Core hub - high bidirectional connectivity"
-        else:
-            return "Moderately connected"
+        return "Moderately connected"
 
-    def _identify_clusters(self) -> list[dict[str, Any]]:
+    def _identify_clusters(self) -> list[dict[str, Any]]:  # noqa: C901, PLR0912
         """Identify groups of highly interconnected objects (simplified clustering)."""
         # Build adjacency map
         adjacency = {obj.key: set() for obj in self.app.objects}
@@ -1595,9 +1592,7 @@ class KnackSleuth:
                     target = self.objects_by_key.get(conn.object)
                     if target:
                         # Check if they have many shared connections
-                        obj_connections = set(
-                            c.object for c in obj.connections.outbound
-                        )
+                        obj_connections = {c.object for c in obj.connections.outbound}
                         # The old inline filter ran after the iterable was
                         # built, so a target without connections crashed.
                         target_connections = (

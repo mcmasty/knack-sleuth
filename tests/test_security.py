@@ -825,7 +825,7 @@ class TestGetViewsForProfile:
 
 class TestProfileAccessCountsSanity:
     def test_every_count_within_total_scenes(self, report):
-        for profile_name, count in report.profile_access_counts.items():
+        for _profile_name, count in report.profile_access_counts.items():
             assert 0 < count <= report.total_scenes
 
     def test_profile_referenced_in_raw_json_has_nonzero_count(self, report, raw_scenes):

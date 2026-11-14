@@ -204,7 +204,7 @@ class TestYAMLExport:
         # Verify all objects are present
         assert len(data["objects"]) == len(sample_app.objects)
 
-        for obj_data, obj in zip(data["objects"], sample_app.objects):
+        for obj_data, obj in zip(data["objects"], sample_app.objects, strict=False):
             assert obj_data["key"] == obj.key
             assert obj_data["name"] == obj.name
             assert "fields" in obj_data
@@ -215,11 +215,11 @@ class TestYAMLExport:
         yaml_str = export_to_yaml(sample_app)
         data = yaml.safe_load(yaml_str)
 
-        for obj_data, obj in zip(data["objects"], sample_app.objects):
+        for obj_data, obj in zip(data["objects"], sample_app.objects, strict=False):
             # Verify fields
             assert len(obj_data["fields"]) == len(obj.fields)
 
-            for field_data, field in zip(obj_data["fields"], obj.fields):
+            for field_data, field in zip(obj_data["fields"], obj.fields, strict=False):
                 assert field_data["key"] == field.key
                 assert field_data["name"] == field.name
                 assert field_data["type"] == field.type
@@ -232,7 +232,7 @@ class TestYAMLExport:
         yaml_str = export_to_yaml(sample_app)
         data = yaml.safe_load(yaml_str)
 
-        for obj_data, obj in zip(data["objects"], sample_app.objects):
+        for obj_data, obj in zip(data["objects"], sample_app.objects, strict=False):
             if obj.connections and (
                 obj.connections.outbound or obj.connections.inbound
             ):
@@ -241,7 +241,9 @@ class TestYAMLExport:
                 if obj.connections.outbound:
                     assert "outbound" in obj_data["connections"]
                     for conn_data, conn in zip(
-                        obj_data["connections"]["outbound"], obj.connections.outbound
+                        obj_data["connections"]["outbound"],
+                        obj.connections.outbound,
+                        strict=False,
                     ):
                         assert conn_data["key"] == conn.key
                         assert conn_data["name"] == conn.name

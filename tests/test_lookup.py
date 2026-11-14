@@ -3,10 +3,10 @@
 import pytest
 
 from knack_sleuth.lookup import (
-    resolve_object,
     resolve_fields,
-    suggest_object_names,
+    resolve_object,
     suggest_field_names,
+    suggest_object_names,
 )
 from knack_sleuth.models import KnackAppMetadata
 

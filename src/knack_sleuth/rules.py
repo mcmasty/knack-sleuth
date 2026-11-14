@@ -14,8 +14,8 @@ body, a sender address, or a custom recipient address in clear. A recipient
 taken from a record field is reported by field key and name only.
 """
 
-from collections.abc import Iterator
 import re
+from collections.abc import Iterator
 from typing import Any
 
 from knack_sleuth.models import KnackAppMetadata, Scene, View
@@ -75,7 +75,7 @@ def _list(value: Any) -> list[Any]:
 
 
 def _is_blank(value: Any) -> bool:
-    return value is None or value == "" or value == [] or value == {}
+    return value is None or value in ("", [], {})
 
 
 def mask_address(address: Any) -> str:
@@ -446,7 +446,7 @@ def _task(task: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
     return entry
 
 
-def collect_rules(
+def collect_rules(  # noqa: C901, PLR0912
     app_export: KnackAppMetadata,
     object_key: str | None = None,
     view_key: str | None = None,
@@ -537,7 +537,7 @@ def _targets_object(record: dict[str, Any], object_key: str) -> bool:
     return record["action"] != "record" and connection.split(".", 1)[0] == object_key
 
 
-def _connected_record_rules(
+def _connected_record_rules(  # noqa: C901
     own_triggers: list[dict[str, Any]],
     app_export: KnackAppMetadata,
     object_key: str,

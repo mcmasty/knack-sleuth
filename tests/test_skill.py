@@ -1,7 +1,7 @@
 """Guard tests for the knack-explorer Claude Code skill."""
 
-from importlib import resources
 import json
+from importlib import resources
 from pathlib import Path
 
 from typer.testing import CliRunner

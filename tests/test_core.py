@@ -3,7 +3,6 @@
 import json
 import os
 import time
-from pathlib import Path
 
 import pytest
 
@@ -32,9 +31,9 @@ class TestLoadFromFile:
         assert len(metadata.application.objects) == 19
         assert len(metadata.application.scenes) == 65
 
-    def test_load_from_file_not_found(self):
+    def test_load_from_file_not_found(self, tmp_path):
         """Test FileNotFoundError when file doesn't exist."""
-        non_existent = Path("/tmp/does_not_exist.json")
+        non_existent = tmp_path / "does_not_exist.json"
 
         with pytest.raises(FileNotFoundError):
             load_app_metadata(file_path=non_existent)

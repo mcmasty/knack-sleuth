@@ -221,7 +221,8 @@ class TestInflectionLookup:
         inflections.singular = "Applicant"
         assert resolve_object(app, "Applicant") is None
         resolved = resolve_object(app, "Applicants")
-        assert resolved is not None and resolved.key == "object_1"
+        assert resolved is not None
+        assert resolved.key == "object_1"
 
 
 def _mutated(mutate):

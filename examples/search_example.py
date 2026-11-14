@@ -56,7 +56,7 @@ def main():
 
     # Show field-level usages (cascading)
     print_separator("Field-level usages (cascading from object)")
-    field_count = sum(1 for key in results.keys() if key.startswith("field_"))
+    field_count = sum(1 for key in results if key.startswith("field_"))
     print(f"Found usages for {field_count} fields in this object:\n")
 
     for field_key, usages in list(results.items())[1:4]:  # Show first 3 fields

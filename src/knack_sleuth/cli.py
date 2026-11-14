@@ -158,7 +158,7 @@ def _without_skill_version_stamp(content: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", stripped).lstrip("\n")
 
 
-def _skill_drift_warning(
+def _skill_drift_warning(  # noqa: PLR0911
     target_file: Path,
     packaged_content: str,
     running_version: str = __version__,
@@ -212,7 +212,7 @@ def _warn_if_installed_skill_is_stale() -> None:
         err_console.print(f"[yellow]Warning:[/yellow] {warning}")
 
 
-def load_app_metadata(
+def load_app_metadata(  # noqa: C901
     file_path: Path | None,
     app_id: str | None,
     refresh: bool = False,
@@ -234,7 +234,7 @@ def load_app_metadata(
 
         final_app_id = app_id or settings.knack_app_id
         if not final_app_id:
-            raise ValueError(
+            raise ValueError(  # noqa: TRY301 - reported by the ValueError handler below
                 "App ID is required. Provide via --app-id or KNACK_APP_ID environment variable."
             )
 
@@ -270,10 +270,10 @@ def load_app_metadata(
 
     except FileNotFoundError as e:
         err_console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     except ValueError as e:
         err_console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
     except Exception as e:
         # Handle httpx errors and other exceptions
         if isinstance(e, httpx.HTTPStatusError):
@@ -284,7 +284,7 @@ def load_app_metadata(
             err_console.print(f"[red]Error:[/red] Failed to connect to Knack API: {e}")
         else:
             err_console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 def _validate_output_format(output_format: str) -> None:
@@ -535,7 +535,7 @@ def list_objects(
 
 
 @cli.command(name="search-object")
-def search_object(
+def search_object(  # noqa: C901, PLR0912
     object_identifier: str = typer.Argument(
         ..., help="Object key (e.g., 'object_12') or name to search for"
     ),
@@ -657,7 +657,7 @@ def search_object(
             )
 
             for field_key, usages in field_results.items():
-                obj_info, field_info = sleuth.get_field_info(field_key)
+                _obj_info, field_info = sleuth.get_field_info(field_key)
                 if field_info:
                     console.print(
                         f"\n  [bold cyan]{field_info.name}[/bold cyan] ({field_key}) - {field_info.type} - {len(usages)} usages"
@@ -942,7 +942,7 @@ def show_coupling(
 
 
 @cli.command(name="find-orphans")
-def find_orphans(
+def find_orphans(  # noqa: C901, PLR0912, PLR0915
     file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
@@ -1325,7 +1325,7 @@ def _print_rule_lists(item: dict, indent: str, note_no_email: bool = True) -> No
 
 def _print_view_heading(trigger: dict, label: str) -> None:
     where = escape(
-        f"{trigger['scene_name']} ({trigger['scene_key']}) › "
+        f"{trigger['scene_name']} ({trigger['scene_key']}) › "  # noqa: RUF001
         f"{trigger['view_name']} ({trigger['view_key']}, {trigger['view_type']})"
     )
     flag = (
@@ -1337,7 +1337,7 @@ def _print_view_heading(trigger: dict, label: str) -> None:
 
 
 @cli.command(name="show-rules")
-def show_rules(
+def show_rules(  # noqa: C901, PLR0912, PLR0915
     file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
@@ -1417,7 +1417,7 @@ def show_rules(
             f"[red]Error:[/red] could not interpret this app's rules ({type(exc).__name__}). "
             "Please report it at https://github.com/mcmasty/knack-sleuth/issues"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     if output_format == "json":
         payload = {
@@ -1521,7 +1521,7 @@ def show_rules(
 
 
 @cli.command(name="download-metadata")
-def download_metadata(
+def download_metadata(  # noqa: C901, PLR0915
     output_file: Path | None = typer.Argument(
         None, help="Output file path (default: {APP_ID}_metadata.json)"
     ),
@@ -1608,13 +1608,13 @@ def download_metadata(
             err_console.print(
                 f"[red]Error:[/red] HTTP {e.response.status_code}: {e.response.text}"
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
         except httpx.RequestError as e:
             err_console.print(f"[red]Error:[/red] Failed to connect to Knack API: {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
         except Exception as e:
             err_console.print(f"[red]Error:[/red] Failed to fetch metadata: {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
     # Save to output file
     try:
@@ -1639,7 +1639,7 @@ def download_metadata(
 
     except Exception as e:
         err_console.print(f"[red]Error:[/red] Failed to save file: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @cli.command(name="diff")
@@ -1754,7 +1754,7 @@ def diff(
                 )
             except Exception as e:
                 err_console.print(f"[red]Error:[/red] Failed to save file: {e}")
-                raise typer.Exit(1)
+                raise typer.Exit(1) from None
         else:
             typer.echo(content)
 
@@ -1762,9 +1762,7 @@ def diff(
         raise typer.Exit(1)
 
 
-def _print_diff_rich(
-    diff_result: dict, old_file: Path, new_file: Path | None
-) -> None:
+def _print_diff_rich(diff_result: dict, old_file: Path, new_file: Path | None) -> None:
     """Render a diff result to the console with Rich formatting."""
     summary = diff_result["summary"]
     old_label = old_file.name
@@ -1987,7 +1985,7 @@ def export_schema(
 
     except Exception as e:
         err_console.print(f"[red]Error:[/red] Failed to generate or save schema: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @cli.command(name="export-db-schema")
@@ -2157,11 +2155,11 @@ def export_db_schema(
 
     except Exception as e:
         err_console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @cli.command(name="export-schema-subgraph")
-def export_schema_subgraph(
+def export_schema_subgraph(  # noqa: C901, PLR0912, PLR0915
     file_path: Path | None = typer.Argument(
         None, help="Path to Knack app export JSON file"
     ),
@@ -2323,7 +2321,7 @@ def export_schema_subgraph(
                 f"[red]Error:[/red] Object '{object}' not found. "
                 "Please specify a valid object key or name."
             )
-            raise typer.Exit(1)
+            raise typer.Exit(1)  # noqa: TRY301 - handler re-raises typer.Exit
 
         console.print(
             f"[green]✓[/green] Starting object: [bold]{start_object.name}[/bold] ({start_object.key})"
@@ -2406,11 +2404,11 @@ def export_schema_subgraph(
         raise
     except Exception as e:
         err_console.print(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
 
 @cli.command(name="impact-analysis")
-def impact_analysis(
+def impact_analysis(  # noqa: C901, PLR0912, PLR0915
     target_identifier: str = typer.Argument(
         ...,
         help="Object or field key/name to analyze (e.g., 'object_12' or 'field_116')",
@@ -2695,13 +2693,13 @@ def impact_analysis(
             )
         except Exception as e:
             err_console.print(f"[red]Error:[/red] Failed to save file: {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
     else:
         typer.echo(output_content)
 
 
 @cli.command(name="app-summary")
-def app_summary(
+def app_summary(  # noqa: C901, PLR0912
     file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
@@ -2950,13 +2948,13 @@ def app_summary(
             )
         except Exception as e:
             err_console.print(f"[red]Error:[/red] Failed to save file: {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
     else:
         typer.echo(output_content)
 
 
 @cli.command(name="role-access-review")
-def role_access_review(
+def role_access_review(  # noqa: C901, PLR0915
     file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
@@ -3144,7 +3142,7 @@ def role_access_review(
 
 
 @cli.command(name="role-access-summary")
-def role_access_summary(
+def role_access_summary(  # noqa: C901, PLR0912, PLR0915
     file_path: Path | None = typer.Argument(
         None,
         help="Path to Knack application metadata JSON file (optional if using --app-id)",
@@ -3407,7 +3405,7 @@ def install_skill(
         err_console.print(
             f"[red]Error:[/red] Could not read skill file from package: {e}"
         )
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     # Check if already installed
     if target_file.exists() and not force:
@@ -3426,7 +3424,7 @@ def install_skill(
         target_file.write_text(skill_content)
     except Exception as e:
         err_console.print(f"[red]Error:[/red] Could not write skill file: {e}")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     console.print()
     console.print(
