@@ -107,8 +107,9 @@ def test_with_fixtures(sample_metadata_file, mock_api_response):
 `.github/workflows/test.yml` runs on every push and PR, and `publish.yml` runs it
 before a release:
 
-- **Lint job (Python 3.11):** `ruff check`, `ruff format --check`, `pyrefly check`,
-  `vulture` (dead code) and `deptry src` (imports match declared dependencies).
+- **Lint job (Python 3.11):** `ruff check`, `ruff format --check`, the lint
+  ratchet (below), `pyrefly check`, `vulture` (dead code) and `deptry src`
+  (imports match declared dependencies).
 - **Test job (3.11–3.13, Ubuntu and macOS):** `pytest --cov`. `UV_PYTHON` is set
   per job because `.python-version` (3.14, for local development) would otherwise
   win, and a step fails if the interpreter doesn't match the matrix entry.
@@ -123,7 +124,7 @@ with a reason.
 Whether PRs must pass these checks before merging is set by branch protection on
 GitHub, not by anything in this repo.
 
-Pre-commit runs the fast subset (ruff lint and format, pyrefly, and whitespace,
+Pre-commit runs the fast subset (ruff lint and format, the lint ratchet, pyrefly, and whitespace,
 YAML/TOML and large-file checks) before each commit. Tests, coverage, vulture and
 deptry run only in CI.
 
@@ -131,6 +132,27 @@ deptry run only in CI.
 uv run pre-commit install
 uv run pre-commit run --all-files   # all hooks, on demand
 ```
+
+## Lint Ratchet
+
+Functions over the complexity or size limits carry a `# noqa` so the debt stays
+visible where it lives instead of loosening the limit for everyone.
+`scripts/lint_ratchet.py` keeps that debt from growing: it re-runs ruff with
+`--ignore-noqa`, counts the hidden findings per file and rule, and compares them
+with `lint-baseline.json`. It also compares the config-level escape hatches
+(`ignore`, `per-file-ignores`, `max-complexity`), so debt can't move from a
+comment into `pyproject.toml` unnoticed.
+
+It fails when a count goes up, and also when one goes down until the baseline is
+lowered, so the commit that pays off debt also locks it in:
+
+```bash
+uv run python scripts/lint_ratchet.py            # check
+uv run python scripts/lint_ratchet.py --update   # rewrite lint-baseline.json
+```
+
+Only run `--update` for an increase if review agreed the suppression is needed;
+the baseline diff shows exactly what changed.
 
 ## Coverage
 

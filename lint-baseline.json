@@ -1,0 +1,55 @@
+{
+  "config": {
+    "ignore": [
+      "E501",
+      "TRY003"
+    ],
+    "max-complexity": 10,
+    "per-file-ignores": {
+      "examples/**": [
+        "C901",
+        "PLR0912",
+        "PLR0915",
+        "PLR2004"
+      ],
+      "src/knack_sleuth/cli/*.py": [
+        "PLR0913"
+      ],
+      "tests/**": [
+        "PLR2004",
+        "S101"
+      ],
+      "vulture_whitelist.py": [
+        "B018",
+        "F821"
+      ]
+    }
+  },
+  "suppressed": {
+    "scripts/lint_ratchet.py": {
+      "S603": 1
+    },
+    "src/knack_sleuth/core.py": {
+      "S110": 1
+    },
+    "src/knack_sleuth/db_schema.py": {
+      "C901": 4,
+      "PLR0912": 2,
+      "PLR0915": 2
+    },
+    "src/knack_sleuth/rules.py": {
+      "C901": 1,
+      "PLR0912": 1
+    },
+    "src/knack_sleuth/security.py": {
+      "C901": 2,
+      "PLR0915": 2
+    },
+    "src/knack_sleuth/sleuth.py": {
+      "C901": 5,
+      "PLR0912": 5,
+      "PLR0915": 2
+    }
+  },
+  "total": 28
+}

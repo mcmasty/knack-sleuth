@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- `download-metadata` now goes through the same cache-then-API loader as every other
+  command, so a download also refreshes the local cache, and an unreadable cache file reports
+  the same warning everywhere.
+- `impact-analysis` and `app-summary` reject an unknown `--format` before loading metadata.
+- Development: `cli.py` (3,400 lines, 27 lint suppressions) is now the `knack_sleuth.cli`
+  package, one module per command group, with no suppressions. `knack-sleuth` and
+  `from knack_sleuth.cli import cli` work as before; `python -m knack_sleuth.cli` also works.
+- Development: a lint ratchet (`scripts/lint_ratchet.py`, run in CI and pre-commit) fails
+  when `# noqa`-suppressed findings or config-level ignores increase. Coverage floor raised
+  from 72% to 90%.
+
 ## 0.9.2
 
 ### Fixed

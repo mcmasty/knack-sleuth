@@ -25,6 +25,12 @@ repos:
         entry: uv run --locked ruff format
         language: system
         types_or: [python, pyi]
+      - id: lint-ratchet
+        name: lint ratchet
+        entry: uv run --locked python scripts/lint_ratchet.py
+        language: system
+        files: \.(py|pyi)$|^pyproject\.toml$|^lint-baseline\.json$
+        pass_filenames: false
       - id: pyrefly
         name: pyrefly
         entry: uv run --locked pyrefly check
