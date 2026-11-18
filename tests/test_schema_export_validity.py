@@ -9,8 +9,14 @@ import re
 from pathlib import Path
 
 import pytest
+import yaml
 
-from knack_sleuth.db_schema import _relationship, export_to_dbml, export_to_mermaid
+from knack_sleuth.db_schema import (
+    _relationship,
+    export_to_dbml,
+    export_to_mermaid,
+    export_to_yaml,
+)
 from knack_sleuth.models import Application, KnackAppMetadata
 
 DATA = Path(__file__).parent / "data"
@@ -106,3 +112,21 @@ def test_cardinality_reads_from_the_connecting_object(
     has, belongs_to, label, dbml, mermaid
 ):
     assert _relationship(has, belongs_to) == (label, dbml, mermaid)
+
+
+def test_yaml_relationship_type_reads_from_the_listing_object():
+    """Owner is object_1 -> object_2 with has=one, belongs_to=many: many
+    Accounts to one object_2 record, so object_2 lists it as one-to-many."""
+    exported = yaml.safe_load(export_to_yaml(load("schema_cases_meta.json")))
+    objects = {obj["key"]: obj for obj in exported["objects"]}
+
+    def label(object_key, direction):
+        [entry] = [
+            c
+            for c in objects[object_key]["connections"][direction]
+            if c["key"] == "field_3"
+        ]
+        return entry["relationship_type"]
+
+    assert label("object_1", "outbound") == "many-to-one"
+    assert label("object_2", "inbound") == "one-to-many"

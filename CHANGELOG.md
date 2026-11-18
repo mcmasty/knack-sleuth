@@ -42,6 +42,8 @@
   These were drawn as one Event to many Clients (`||--o{`, `<`, `one-to-many`,
   `one_to_many`); now they are `}o--||`, `>`, `many-to-one` and `many_to_one`, and the
   reverse for `has: many, belongs_to: one`. One-to-one and many-to-many are unchanged.
+  In YAML, an inbound connection's `relationship_type` reads from the object listing it,
+  so Clients lists the Events connection as `one-to-many`.
 - One null in the metadata, such as a view with `name: null`, made every command exit with
   a multi-line pydantic dump. A null now means "absent": fields with a default take it, and a
   null name, slug or inflection falls back to the key. Of 879 places in the sample metadata,
