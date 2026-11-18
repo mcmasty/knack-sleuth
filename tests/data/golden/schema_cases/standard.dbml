@@ -4,7 +4,7 @@
 
 Project knack_app {
   database_type: "Knack"
-  Note: "Acme "Ops" App"
+  Note: "Acme \"Ops\" App"
 }
 
 Table object_1 {
@@ -12,7 +12,8 @@ Table object_1 {
   // Records: 3
   // User Profile Object
 
-  field_1 VARCHAR(255) [not null, unique, pk]  // Account Name (short_text)
+  id VARCHAR(50) [pk]  // Knack record ID
+  field_1 VARCHAR(255) [not null, unique]  // Account Name (short_text, identifier)
   field_2 VARCHAR(255)  // E-mail (work) (email)
   field_3 VARCHAR(50)  // Owner (connection)
   field_4 TIMESTAMP  // Created At (date_time)
@@ -30,6 +31,7 @@ Table object_2 {
   // Accounts
   // Records: 1
 
+  id VARCHAR(50) [pk]  // Knack record ID
   field_20 VARCHAR(50)  // Primary Vendor (connection)
   field_21 VARCHAR(50)  // Account Link (connection)
   field_22 DECIMAL(19,4) [not null]  // Budget (currency)
@@ -40,16 +42,17 @@ Table object_3 {
   // 3rd Party/Vendor
   // Records: 12
 
+  id VARCHAR(50) [pk]  // Knack record ID
   field_30 VARCHAR(50)  // Partners (connection)
-  field_31 VARCHAR(255) [not null, pk]  // Vendor Name (name)
+  field_31 VARCHAR(255) [not null]  // Vendor Name (name, identifier)
   field_32 INTEGER  // µ-rating m² (rating)
 
   Note: "Plural: Vendors, Singular: Vendor"
 }
 
 // Relationships
-Ref: object_1.field_3 < object_2.field_3 // Owner
-Ref: object_1.field_10 > object_3.field_31 // Vendor
-Ref: object_2.field_20 - object_3.field_31 // Primary Vendor
-Ref: object_2.field_21 > object_1.field_1 // Account Link
-Ref: object_3.field_30 <> object_1.field_1 // Partners
+Ref: object_1.field_3 < object_2.id // Owner
+Ref: object_1.field_10 > object_3.id // Vendor
+Ref: object_2.field_20 - object_3.id // Primary Vendor
+Ref: object_2.field_21 > object_1.id // Account Link
+Ref: object_3.field_30 <> object_1.id // Partners

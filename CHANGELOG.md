@@ -14,6 +14,17 @@
   and listed core entities there as well, so the markdown counts were inflated (41
   transactional entries for 25 objects on a real app). Each object is now in exactly one
   category.
+- DBML exports failed to load in dbdiagram and other DBML tools: every `Ref` pointed at the
+  target's identifier field, which `structural` and `minimal` detail leave out, or at a column
+  that doesn't exist when the target has no identifier, and quotes in the app name broke the
+  project `Note`. Each table now declares the Knack record `id` as its primary key, Refs point
+  at it, outbound connection columns appear at every detail level, and strings are escaped.
+  The identifier field is no longer marked `pk`; its comment says `identifier` instead.
+  Checked with `@dbml/core`: master's export of a real app gave 228 errors, now none.
+- Mermaid exports drew one relationship per pair of objects, so a second connection between
+  the same two objects disappeared (163 of 316 connections shown on a real app). Every
+  connection now has its own line. Double quotes in a field description or connection name no
+  longer break the diagram.
 - `impact-analysis` and `app-summary` list scenes and clusters in the same order on every run;
   they used to depend on Python's per-process string hashing.
 

@@ -499,7 +499,7 @@ knack-sleuth export-db-schema --app-id YOUR_APP_ID -f dbml -d minimal
 - Record counts for each table - all detail levels
 - User profile object indicators - all detail levels
 - Connection fields - all detail levels
-- Identifier/primary key fields - compact and standard
+- Identifier fields - compact and standard (DBML marks them `identifier`; each table's primary key is the Knack record `id`, which the relationships point at)
 - Required fields - compact and standard
 - All fields with types, constraints, and SQL mappings - standard only
 - Computed fields and their relationships - standard only
