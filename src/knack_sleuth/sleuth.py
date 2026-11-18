@@ -176,6 +176,7 @@ _WORKFLOW_HINTS = {
     "views": "Data display views",
     "connections": "Related data relationships",
     "formulas": "Calculated fields and formulas",
+    "rules": "Rules, validations and scheduled tasks",
 }
 
 
@@ -191,8 +192,12 @@ def _risk_level(score: int, low_max: int, medium_max: int) -> str:
 
 
 def _count_direct_impacts(direct: dict[str, list]) -> int:
+    """Impacts that score: a view or form on no page is listed but not counted."""
     return sum(
-        len(direct[kind]) for kind in ("connections", "views", "formulas", "forms")
+        1
+        for kind in ("connections", "views", "formulas", "forms", "rules")
+        for impact in direct[kind]
+        if not impact.get("orphaned_view")
     )
 
 
@@ -201,6 +206,8 @@ def _workflow_hints(direct: dict[str, list], kinds: tuple[str, ...]) -> list[str
 
 
 def _formula_impact(usage: Usage) -> dict[str, Any]:
+    """A computed field that depends on the target: an equation, or a sum,
+    count or similar field whose settings name it (equation is None then)."""
     return {
         "field_key": usage.details.get("field_key"),
         "field_name": usage.details.get("field_name"),
@@ -214,7 +221,49 @@ def _form_impact(usage: Usage) -> dict[str, Any]:
         "view_key": usage.details.get("view_key"),
         "view_name": usage.details.get("view_name"),
         "scene_key": usage.details.get("scene_key"),
+        "orphaned_view": bool(usage.details.get("orphaned_view")),
     }
+
+
+def _rule_impact(usage: Usage) -> dict[str, Any]:
+    """A rule, validation or task on an object, or a page rule, naming the target."""
+    return {
+        "type": usage.location_type,
+        "description": usage.context,
+        "object_key": usage.details.get("object_key"),
+        "scene_key": usage.details.get("scene_key"),
+        "reference_path": usage.details.get("reference_path"),
+    }
+
+
+def _record_dependent(direct: dict[str, list], usage: Usage) -> None:
+    """File a formula, form or rule usage under its direct impact; other
+    usage types are left to the caller."""
+    if usage.location_type in ("field_equation", "field_reference"):
+        direct["formulas"].append(_formula_impact(usage))
+    elif usage.location_type == "form_input":
+        direct["forms"].append(_form_impact(usage))
+    elif usage.location_type in ("object_reference", "scene_reference"):
+        direct["rules"].append(_rule_impact(usage))
+
+
+def _note_scene(scenes_seen: dict[str, None], usage: Usage) -> None:
+    """A page the usage is on, unless it is a view no page shows."""
+    scene_key = usage.details.get("scene_key")
+    if scene_key and not usage.details.get("orphaned_view"):
+        scenes_seen[scene_key] = None
+
+
+def _affected_objects(direct: dict[str, list], own_object: str) -> list[str]:
+    """Other objects that connect to, compute from, or have rules on the target."""
+    keys: dict[str, None] = {}
+    for kind in ("connections", "formulas", "rules"):
+        for impact in direct[kind]:
+            for attr in ("source_object", "target_object", "object_key"):
+                key = impact.get(attr)
+                if key and key != own_object:
+                    keys[key] = None
+    return list(keys)
 
 
 def _score_importance(summaries: list[dict[str, Any]]) -> None:
@@ -837,6 +886,10 @@ class KnackSleuth:
                 target_type = "field"
             else:
                 return {"error": "Could not detect target type from key"}
+        if target_type not in ("object", "field"):
+            return {
+                "error": f"Unknown target type '{target_type}': use object or field"
+            }
 
         # Initialize analysis structure
         analysis = {
@@ -852,12 +905,12 @@ class KnackSleuth:
                 "scenes": [],
                 "formulas": [],
                 "forms": [],
+                "rules": [],
             },
             "cascade_impacts": {
                 "affected_fields": [],
                 "affected_objects": [],
                 "affected_scenes": [],
-                "dependency_chains": [],
             },
             "risk_assessment": {
                 "breaking_change_likelihood": "unknown",
@@ -867,17 +920,12 @@ class KnackSleuth:
             "metadata": {
                 "total_direct_impacts": 0,
                 "total_cascade_impacts": 0,
-                "analysis_timestamp": None,
             },
         }
 
-        # Perform analysis based on target type
         if target_type == "object":
-            analysis = self._analyze_object_impact(target_key, analysis)
-        elif target_type == "field":
-            analysis = self._analyze_field_impact(target_key, analysis)
-
-        return analysis
+            return self._analyze_object_impact(target_key, analysis)
+        return self._analyze_field_impact(target_key, analysis)
 
     def _analyze_object_impact(
         self, object_key: str, analysis: dict[str, Any]
@@ -919,6 +967,9 @@ class KnackSleuth:
                     analysis["cascade_impacts"]["affected_fields"].append(field_impact)
 
         self._record_scenes(analysis, scenes_seen)
+        analysis["cascade_impacts"]["affected_objects"] = _affected_objects(
+            direct, object_key
+        )
 
         affected_fields = len(analysis["cascade_impacts"]["affected_fields"])
         total_impacts = _count_direct_impacts(direct)
@@ -930,7 +981,7 @@ class KnackSleuth:
             impact_score, OBJECT_RISK_LOW_MAX, OBJECT_RISK_MEDIUM_MAX
         )
         analysis["risk_assessment"]["affected_user_workflows"] += _workflow_hints(
-            direct, ("forms", "views", "connections")
+            direct, ("forms", "views", "connections", "rules")
         )
         return analysis
 
@@ -941,18 +992,14 @@ class KnackSleuth:
         analysis: dict[str, Any],
         scenes_seen: dict[str, None],
     ) -> dict[str, Any] | None:
-        """One of an object's fields: its usages, plus the formulas and forms
-        they put in the object's direct impacts."""
+        """One of an object's fields: its usages, plus the formulas, forms and
+        rules they put in the object's direct impacts."""
         _, field_info = self.get_field_info(field_key)
         if not field_info:
             return None
         for usage in usages:
-            if usage.location_type == "field_equation":
-                analysis["direct_impacts"]["formulas"].append(_formula_impact(usage))
-            elif usage.location_type == "form_input":
-                analysis["direct_impacts"]["forms"].append(_form_impact(usage))
-            if "scene_key" in usage.details:
-                scenes_seen[usage.details["scene_key"]] = None
+            _record_dependent(analysis["direct_impacts"], usage)
+            _note_scene(scenes_seen, usage)
         return {
             "field_key": field_key,
             "field_name": field_info.name,
@@ -990,14 +1037,16 @@ class KnackSleuth:
                         "target_object": usage.details.get("target_object"),
                     }
                 )
-            elif usage.location_type == "field_equation":
-                direct["formulas"].append(_formula_impact(usage))
             elif "view" in usage.location_type:
                 self._record_view_impact(analysis, usage, scenes_seen)
-            elif usage.location_type == "form_input":
-                direct["forms"].append(_form_impact(usage))
+            else:
+                _record_dependent(direct, usage)
+                _note_scene(scenes_seen, usage)
 
         self._record_scenes(analysis, scenes_seen)
+        analysis["cascade_impacts"]["affected_objects"] = _affected_objects(
+            direct, obj_info.key
+        )
 
         total_impacts = _count_direct_impacts(direct)
         analysis["metadata"]["total_direct_impacts"] = total_impacts
@@ -1006,7 +1055,7 @@ class KnackSleuth:
             total_impacts, FIELD_RISK_LOW_MAX, FIELD_RISK_MEDIUM_MAX
         )
         analysis["risk_assessment"]["affected_user_workflows"] += _workflow_hints(
-            direct, ("forms", "views", "formulas")
+            direct, ("forms", "views", "formulas", "rules")
         )
         return analysis
 
@@ -1014,16 +1063,15 @@ class KnackSleuth:
     def _record_view_impact(
         analysis: dict[str, Any], usage: Usage, scenes_seen: dict[str, None]
     ) -> None:
-        scene_key = usage.details.get("scene_key")
-        if scene_key:
-            scenes_seen[scene_key] = None
+        _note_scene(scenes_seen, usage)
         analysis["direct_impacts"]["views"].append(
             {
                 "view_key": usage.details.get("view_key"),
                 "view_name": usage.details.get("view_name"),
                 "view_type": usage.details.get("view_type"),
-                "scene_key": scene_key,
+                "scene_key": usage.details.get("scene_key"),
                 "scene_name": usage.details.get("scene_name"),
+                "orphaned_view": bool(usage.details.get("orphaned_view")),
             }
         )
 

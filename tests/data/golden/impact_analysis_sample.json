@@ -3,18 +3,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -38,13 +37,13 @@
     "scene_14",
     "scene_15",
     "scene_16"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_14",
@@ -64,6 +63,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_14",
      "scene_name": "Object Name 3",
      "view_key": "view_15",
@@ -71,6 +71,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_15",
      "scene_name": "Edit users",
      "view_key": "view_16",
@@ -78,6 +79,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_16",
      "scene_name": "users Details",
      "view_key": "view_17",
@@ -87,7 +89,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -109,18 +110,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -144,13 +144,13 @@
     "scene_14",
     "scene_15",
     "scene_16"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_14",
@@ -170,6 +170,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_14",
      "scene_name": "Object Name 3",
      "view_key": "view_15",
@@ -177,6 +178,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_15",
      "scene_name": "Edit users",
      "view_key": "view_16",
@@ -184,6 +186,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_16",
      "scene_name": "users Details",
      "view_key": "view_17",
@@ -193,7 +196,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -215,18 +217,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -246,18 +247,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -281,13 +281,13 @@
     "scene_7",
     "scene_22",
     "scene_23"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_7",
@@ -307,6 +307,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_7",
      "scene_name": "Object Name 12",
      "view_key": "view_23",
@@ -314,6 +315,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_22",
      "scene_name": "Edit Group",
      "view_key": "view_24",
@@ -321,6 +323,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_23",
      "scene_name": "Group Details",
      "view_key": "view_25",
@@ -330,7 +333,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -351,11 +353,12 @@
  "field_105": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_11"
+   ],
    "affected_scenes": [
     "scene_7"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -367,6 +370,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_7",
@@ -376,6 +380,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_7",
      "scene_name": "Object Name 12",
      "view_key": "view_23",
@@ -385,7 +390,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 2
   },
@@ -414,13 +418,13 @@
     "scene_25",
     "scene_26",
     "scene_27"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_8",
@@ -455,6 +459,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_8",
      "scene_name": "Unit/Category",
      "view_key": "view_26",
@@ -462,6 +467,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_23",
      "scene_name": "Group Details",
      "view_key": "view_29",
@@ -469,6 +475,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_24",
      "scene_name": "Edit Department",
      "view_key": "view_27",
@@ -476,6 +483,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_25",
      "scene_name": "Department Details",
      "view_key": "view_28",
@@ -483,6 +491,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_26",
      "scene_name": "Edit Department",
      "view_key": "view_30",
@@ -490,6 +499,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_27",
      "scene_name": "Department Details",
      "view_key": "view_31",
@@ -499,7 +509,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 6
   },
@@ -520,7 +529,9 @@
  "field_107": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_12"
+   ],
    "affected_scenes": [
     "scene_8",
     "scene_23",
@@ -528,8 +539,7 @@
     "scene_25",
     "scene_26",
     "scene_27"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -540,7 +550,21 @@
     }
    ],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_125",
+     "field_name": "Num. Units",
+     "object_key": "object_12"
+    },
+    {
+     "equation": null,
+     "field_key": "field_130",
+     "field_name": "List Name",
+     "object_key": "object_13"
+    }
+   ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_8",
@@ -575,6 +599,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_8",
      "scene_name": "Unit/Category",
      "view_key": "view_26",
@@ -582,6 +607,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_23",
      "scene_name": "Group Details",
      "view_key": "view_29",
@@ -589,6 +615,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_24",
      "scene_name": "Edit Department",
      "view_key": "view_27",
@@ -596,6 +623,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_25",
      "scene_name": "Department Details",
      "view_key": "view_28",
@@ -603,6 +631,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_26",
      "scene_name": "Edit Department",
      "view_key": "view_30",
@@ -610,6 +639,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_27",
      "scene_name": "Department Details",
      "view_key": "view_31",
@@ -619,16 +649,16 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
-   "total_direct_impacts": 7
+   "total_direct_impacts": 9
   },
   "risk_assessment": {
    "affected_user_workflows": [
-    "Data display views"
+    "Data display views",
+    "Calculated fields and formulas"
    ],
    "breaking_change_likelihood": "medium",
-   "impact_score": 7
+   "impact_score": 9
   },
   "target": {
    "description": "connection field",
@@ -640,7 +670,9 @@
  "field_108": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_13"
+   ],
    "affected_scenes": [
     "scene_9",
     "scene_25",
@@ -648,8 +680,7 @@
     "scene_29",
     "scene_30",
     "scene_31"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -660,7 +691,15 @@
     }
    ],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_127",
+     "field_name": "Item Count",
+     "object_key": "object_13"
+    }
+   ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_9",
@@ -695,6 +734,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_9",
      "scene_name": "Primary/Secondary",
      "view_key": "view_35",
@@ -702,6 +742,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_25",
      "scene_name": "Department Details",
      "view_key": "view_32",
@@ -709,6 +750,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_28",
      "scene_name": "Edit Major/Program",
      "view_key": "view_33",
@@ -716,6 +758,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_29",
      "scene_name": "Major/Program Details",
      "view_key": "view_34",
@@ -723,6 +766,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_30",
      "scene_name": "Edit Major/Program",
      "view_key": "view_36",
@@ -730,6 +774,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_31",
      "scene_name": "Major/Program Details",
      "view_key": "view_37",
@@ -739,16 +784,16 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
-   "total_direct_impacts": 7
+   "total_direct_impacts": 8
   },
   "risk_assessment": {
    "affected_user_workflows": [
-    "Data display views"
+    "Data display views",
+    "Calculated fields and formulas"
    ],
    "breaking_change_likelihood": "medium",
-   "impact_score": 7
+   "impact_score": 8
   },
   "target": {
    "description": "connection field",
@@ -768,13 +813,13 @@
     "scene_29",
     "scene_30",
     "scene_31"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_9",
@@ -809,6 +854,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_9",
      "scene_name": "Primary/Secondary",
      "view_key": "view_35",
@@ -816,6 +862,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_25",
      "scene_name": "Department Details",
      "view_key": "view_32",
@@ -823,6 +870,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_28",
      "scene_name": "Edit Major/Program",
      "view_key": "view_33",
@@ -830,6 +878,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_29",
      "scene_name": "Major/Program Details",
      "view_key": "view_34",
@@ -837,6 +886,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_30",
      "scene_name": "Edit Major/Program",
      "view_key": "view_36",
@@ -844,6 +894,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_31",
      "scene_name": "Major/Program Details",
      "view_key": "view_37",
@@ -853,7 +904,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 6
   },
@@ -875,18 +925,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -905,7 +954,9 @@
  "field_110": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_4"
+   ],
    "affected_scenes": [
     "scene_5",
     "scene_19",
@@ -913,8 +964,7 @@
     "scene_36",
     "scene_81",
     "scene_82"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -925,7 +975,15 @@
     }
    ],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_131",
+     "field_name": "Assigned Tasks",
+     "object_key": "object_4"
+    }
+   ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_5",
@@ -960,6 +1018,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_107",
@@ -967,6 +1026,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_106",
@@ -974,6 +1034,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_107",
@@ -981,6 +1042,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_19",
      "scene_name": "Reviewer Details",
      "view_key": "view_44",
@@ -988,6 +1050,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_106",
@@ -995,6 +1058,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_35",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_45",
@@ -1002,6 +1066,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_36",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_46",
@@ -1009,6 +1074,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_81",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_108",
@@ -1016,6 +1082,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_82",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_109",
@@ -1025,16 +1092,16 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
-   "total_direct_impacts": 10
+   "total_direct_impacts": 11
   },
   "risk_assessment": {
    "affected_user_workflows": [
-    "Data display views"
+    "Data display views",
+    "Calculated fields and formulas"
    ],
-   "breaking_change_likelihood": "medium",
-   "impact_score": 10
+   "breaking_change_likelihood": "high",
+   "impact_score": 11
   },
   "target": {
    "description": "connection field",
@@ -1046,7 +1113,9 @@
  "field_111": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_11"
+   ],
    "affected_scenes": [
     "scene_5",
     "scene_19",
@@ -1054,8 +1123,7 @@
     "scene_36",
     "scene_81",
     "scene_82"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -1067,6 +1135,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_5",
@@ -1101,6 +1170,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_107",
@@ -1108,6 +1178,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_19",
      "scene_name": "Reviewer Details",
      "view_key": "view_44",
@@ -1115,6 +1186,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_106",
@@ -1122,6 +1194,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_35",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_45",
@@ -1129,6 +1202,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_36",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_46",
@@ -1136,6 +1210,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_81",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_108",
@@ -1143,6 +1218,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_82",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_109",
@@ -1152,7 +1228,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 8
   },
@@ -1173,7 +1248,9 @@
  "field_112": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_12"
+   ],
    "affected_scenes": [
     "scene_5",
     "scene_19",
@@ -1181,8 +1258,7 @@
     "scene_36",
     "scene_81",
     "scene_82"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -1194,6 +1270,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_5",
@@ -1228,6 +1305,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_107",
@@ -1235,6 +1313,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_19",
      "scene_name": "Reviewer Details",
      "view_key": "view_44",
@@ -1242,6 +1321,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_106",
@@ -1249,6 +1329,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_35",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_45",
@@ -1256,6 +1337,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_36",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_46",
@@ -1263,6 +1345,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_81",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_108",
@@ -1270,6 +1353,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_82",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_109",
@@ -1279,7 +1363,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 8
   },
@@ -1300,7 +1383,9 @@
  "field_113": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_13"
+   ],
    "affected_scenes": [
     "scene_5",
     "scene_19",
@@ -1308,8 +1393,7 @@
     "scene_36",
     "scene_81",
     "scene_82"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -1321,6 +1405,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_5",
@@ -1355,6 +1440,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_107",
@@ -1362,6 +1448,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_19",
      "scene_name": "Reviewer Details",
      "view_key": "view_44",
@@ -1369,6 +1456,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_106",
@@ -1376,6 +1464,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_35",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_45",
@@ -1383,6 +1472,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_36",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_46",
@@ -1390,6 +1480,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_81",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_108",
@@ -1397,6 +1488,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_82",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_109",
@@ -1406,7 +1498,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 8
   },
@@ -1427,7 +1518,9 @@
  "field_114": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_14"
+   ],
    "affected_scenes": [
     "scene_5",
     "scene_19",
@@ -1435,8 +1528,7 @@
     "scene_36",
     "scene_81",
     "scene_82"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -1448,6 +1540,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_5",
@@ -1482,6 +1575,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_107",
@@ -1489,6 +1583,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_19",
      "scene_name": "Reviewer Details",
      "view_key": "view_44",
@@ -1496,6 +1591,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_106",
@@ -1503,6 +1599,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_35",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_45",
@@ -1510,6 +1607,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_36",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_46",
@@ -1517,6 +1615,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_81",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_108",
@@ -1524,6 +1623,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_82",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_109",
@@ -1533,7 +1633,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 8
   },
@@ -1554,7 +1653,9 @@
  "field_115": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_20"
+   ],
    "affected_scenes": [
     "scene_5",
     "scene_19",
@@ -1562,13 +1663,20 @@
     "scene_36",
     "scene_81",
     "scene_82"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_167",
+     "field_name": "Review Dimension",
+     "object_key": "object_20"
+    }
+   ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_5",
@@ -1603,6 +1711,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_107",
@@ -1610,6 +1719,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_19",
      "scene_name": "Reviewer Details",
      "view_key": "view_44",
@@ -1617,6 +1727,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_106",
@@ -1624,6 +1735,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_35",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_45",
@@ -1631,6 +1743,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_36",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_46",
@@ -1638,6 +1751,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_81",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_108",
@@ -1645,6 +1759,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_82",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_109",
@@ -1654,16 +1769,16 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
-   "total_direct_impacts": 7
+   "total_direct_impacts": 8
   },
   "risk_assessment": {
    "affected_user_workflows": [
-    "Data display views"
+    "Data display views",
+    "Calculated fields and formulas"
    ],
    "breaking_change_likelihood": "medium",
-   "impact_score": 7
+   "impact_score": 8
   },
   "target": {
    "description": "rich_text field",
@@ -1675,15 +1790,16 @@
  "field_116": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_11"
+   ],
    "affected_scenes": [
     "scene_5",
     "scene_6",
     "scene_14",
     "scene_17",
     "scene_13"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -1695,6 +1811,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_5",
@@ -1724,6 +1841,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_106",
@@ -1731,6 +1849,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_107",
@@ -1738,6 +1857,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_11",
@@ -1745,6 +1865,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_11",
@@ -1752,6 +1873,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_14",
      "scene_name": "Object Name 3",
      "view_key": "view_15",
@@ -1759,6 +1881,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_17",
      "scene_name": "Object Name 4",
      "view_key": "view_19",
@@ -1766,6 +1889,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_13",
      "scene_name": "Account Details",
      "view_key": "view_13",
@@ -1775,7 +1899,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 8
   },
@@ -1796,11 +1919,12 @@
  "field_117": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_11"
+   ],
    "affected_scenes": [
     "scene_14"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -1812,6 +1936,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_14",
@@ -1821,6 +1946,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_14",
      "scene_name": "Object Name 3",
      "view_key": "view_15",
@@ -1830,7 +1956,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 2
   },
@@ -1851,13 +1976,14 @@
  "field_118": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_14"
+   ],
    "affected_scenes": [
     "scene_14",
     "scene_15",
     "scene_16"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -1869,6 +1995,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_14",
@@ -1888,6 +2015,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_14",
      "scene_name": "Object Name 3",
      "view_key": "view_15",
@@ -1895,6 +2023,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_14",
      "scene_name": "Object Name 3",
      "view_key": "view_15",
@@ -1902,6 +2031,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_15",
      "scene_name": "Edit users",
      "view_key": "view_16",
@@ -1909,6 +2039,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_15",
      "scene_name": "Edit users",
      "view_key": "view_16",
@@ -1916,6 +2047,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_16",
      "scene_name": "users Details",
      "view_key": "view_17",
@@ -1925,7 +2057,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 6
   },
@@ -1946,11 +2077,12 @@
  "field_119": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_11"
+   ],
    "affected_scenes": [
     "scene_17"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -1962,6 +2094,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_17",
@@ -1971,6 +2104,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_17",
      "scene_name": "Object Name 4",
      "view_key": "view_19",
@@ -1980,7 +2114,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 2
   },
@@ -2004,13 +2137,13 @@
    "affected_objects": [],
    "affected_scenes": [
     "scene_15"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_15",
@@ -2020,6 +2153,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_15",
      "scene_name": "Edit users",
      "view_key": "view_16",
@@ -2029,7 +2163,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 1
   },
@@ -2050,7 +2183,9 @@
  "field_123": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_11"
+   ],
    "affected_scenes": [
     "scene_7",
     "scene_8",
@@ -2059,8 +2194,7 @@
     "scene_49",
     "scene_50",
     "scene_66"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -2072,6 +2206,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_7",
@@ -2111,6 +2246,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_7",
      "scene_name": "Object Name 12",
      "view_key": "view_23",
@@ -2118,6 +2254,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_8",
      "scene_name": "Unit/Category",
      "view_key": "view_26",
@@ -2125,6 +2262,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_9",
      "scene_name": "Primary/Secondary",
      "view_key": "view_35",
@@ -2132,6 +2270,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -2139,6 +2278,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_80",
@@ -2146,6 +2286,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_81",
@@ -2153,6 +2294,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_50",
      "scene_name": "Object Name 18",
      "view_key": "view_88",
@@ -2160,6 +2302,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_66",
      "scene_name": "Object Name 24",
      "view_key": "view_76",
@@ -2167,6 +2310,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_66",
      "scene_name": "Object Name 24",
      "view_key": "view_77",
@@ -2176,7 +2320,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 10
   },
@@ -2197,14 +2340,15 @@
  "field_124": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_11"
+   ],
    "affected_scenes": [
     "scene_20",
     "scene_75",
     "scene_77",
     "scene_78"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -2216,6 +2360,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_20",
@@ -2240,6 +2385,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -2247,6 +2393,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -2254,6 +2401,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_75",
      "scene_name": "Test Data, Dummy Page",
      "view_key": "view_96",
@@ -2261,6 +2409,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_77",
      "scene_name": "Edit items Relationy",
      "view_key": "view_99",
@@ -2268,6 +2417,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_78",
      "scene_name": "items Relationy Details",
      "view_key": "view_101",
@@ -2275,6 +2425,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_78",
      "scene_name": "items Relationy Details",
      "view_key": "view_100",
@@ -2284,7 +2435,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 7
   },
@@ -2308,13 +2458,13 @@
    "affected_objects": [],
    "affected_scenes": [
     "scene_7"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_7",
@@ -2324,6 +2474,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_7",
      "scene_name": "Object Name 12",
      "view_key": "view_23",
@@ -2331,6 +2482,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_7",
      "scene_name": "Object Name 12",
      "view_key": "view_23",
@@ -2340,7 +2492,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 2
   },
@@ -2361,13 +2512,14 @@
  "field_126": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_11"
+   ],
    "affected_scenes": [
     "scene_8",
     "scene_26",
     "scene_27"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -2379,6 +2531,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_8",
@@ -2398,6 +2551,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_8",
      "scene_name": "Unit/Category",
      "view_key": "view_26",
@@ -2405,6 +2559,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_26",
      "scene_name": "Edit Department",
      "view_key": "view_30",
@@ -2412,6 +2567,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_27",
      "scene_name": "Department Details",
      "view_key": "view_31",
@@ -2421,7 +2577,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 4
   },
@@ -2445,13 +2600,13 @@
    "affected_objects": [],
    "affected_scenes": [
     "scene_8"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_8",
@@ -2461,6 +2616,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_8",
      "scene_name": "Unit/Category",
      "view_key": "view_26",
@@ -2468,6 +2624,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_8",
      "scene_name": "Unit/Category",
      "view_key": "view_26",
@@ -2477,7 +2634,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 2
   },
@@ -2498,13 +2654,14 @@
  "field_128": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_11"
+   ],
    "affected_scenes": [
     "scene_9",
     "scene_30",
     "scene_31"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -2516,6 +2673,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_9",
@@ -2535,6 +2693,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_9",
      "scene_name": "Primary/Secondary",
      "view_key": "view_35",
@@ -2542,6 +2701,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_30",
      "scene_name": "Edit Major/Program",
      "view_key": "view_36",
@@ -2549,6 +2709,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_31",
      "scene_name": "Major/Program Details",
      "view_key": "view_37",
@@ -2558,7 +2719,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 4
   },
@@ -2582,13 +2742,13 @@
    "affected_objects": [],
    "affected_scenes": [
     "scene_6"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_6",
@@ -2598,6 +2758,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_11",
@@ -2607,7 +2768,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 1
   },
@@ -2631,13 +2791,13 @@
    "affected_objects": [],
    "affected_scenes": [
     "scene_15"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_15",
@@ -2647,6 +2807,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_15",
      "scene_name": "Edit users",
      "view_key": "view_16",
@@ -2656,7 +2817,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 1
   },
@@ -2678,18 +2838,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -2711,13 +2870,13 @@
    "affected_objects": [],
    "affected_scenes": [
     "scene_17"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_17",
@@ -2727,6 +2886,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_17",
      "scene_name": "Object Name 4",
      "view_key": "view_19",
@@ -2734,6 +2894,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_17",
      "scene_name": "Object Name 4",
      "view_key": "view_19",
@@ -2743,7 +2904,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 2
   },
@@ -2771,13 +2931,13 @@
     "scene_61",
     "scene_62",
     "scene_72"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_50",
@@ -2807,6 +2967,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_50",
      "scene_name": "Object Name 18",
      "view_key": "view_88",
@@ -2814,6 +2975,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_69",
@@ -2821,6 +2983,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_68",
@@ -2828,6 +2991,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_61",
      "scene_name": "Edit External Project",
      "view_key": "view_70",
@@ -2835,6 +2999,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_62",
      "scene_name": "External Project Details",
      "view_key": "view_71",
@@ -2842,6 +3007,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_89",
@@ -2851,7 +3017,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 6
   },
@@ -2872,15 +3037,16 @@
  "field_133": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_22"
+   ],
    "affected_scenes": [
     "scene_50",
     "scene_60",
     "scene_61",
     "scene_62",
     "scene_72"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -2892,6 +3058,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_50",
@@ -2921,6 +3088,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_50",
      "scene_name": "Object Name 18",
      "view_key": "view_88",
@@ -2928,6 +3096,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_69",
@@ -2935,6 +3104,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_69",
@@ -2942,6 +3112,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_68",
@@ -2949,6 +3120,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_69",
@@ -2956,6 +3128,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_61",
      "scene_name": "Edit External Project",
      "view_key": "view_70",
@@ -2963,6 +3136,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_62",
      "scene_name": "External Project Details",
      "view_key": "view_71",
@@ -2970,6 +3144,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_89",
@@ -2979,7 +3154,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 9
   },
@@ -3000,7 +3174,9 @@
  "field_134": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_21"
+   ],
    "affected_scenes": [
     "scene_44",
     "scene_63",
@@ -3008,8 +3184,7 @@
     "scene_61",
     "scene_64",
     "scene_65"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -3021,6 +3196,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_44",
@@ -3055,6 +3231,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_44",
      "scene_name": "Object Name 22",
      "view_key": "view_56",
@@ -3062,6 +3239,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_63",
      "scene_name": "Object Name 22",
      "view_key": "view_73",
@@ -3069,6 +3247,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_44",
      "scene_name": "Object Name 22",
      "view_key": "view_56",
@@ -3076,6 +3255,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_44",
      "scene_name": "Object Name 22",
      "view_key": "view_56",
@@ -3083,6 +3263,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_44",
      "scene_name": "Object Name 22",
      "view_key": "view_56",
@@ -3090,6 +3271,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_44",
      "scene_name": "Object Name 22",
      "view_key": "view_57",
@@ -3097,6 +3279,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_68",
@@ -3104,6 +3287,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_69",
@@ -3111,6 +3295,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_61",
      "scene_name": "Edit External Project",
      "view_key": "view_70",
@@ -3118,6 +3303,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_61",
      "scene_name": "Edit External Project",
      "view_key": "view_70",
@@ -3125,6 +3311,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_63",
      "scene_name": "Object Name 22",
      "view_key": "view_72",
@@ -3132,6 +3319,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_63",
      "scene_name": "Object Name 22",
      "view_key": "view_73",
@@ -3139,6 +3327,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_64",
      "scene_name": "Edit Ref Data Category Value",
      "view_key": "view_74",
@@ -3146,6 +3335,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_65",
      "scene_name": "Ref Data Category Value Details",
      "view_key": "view_75",
@@ -3155,7 +3345,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 15
   },
@@ -3176,12 +3365,13 @@
  "field_135": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_11"
+   ],
    "affected_scenes": [
     "scene_50",
     "scene_72"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -3193,6 +3383,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_50",
@@ -3207,6 +3398,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_50",
      "scene_name": "Object Name 18",
      "view_key": "view_88",
@@ -3214,6 +3406,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_89",
@@ -3223,7 +3416,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -3244,14 +3436,15 @@
  "field_136": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_22"
+   ],
    "affected_scenes": [
     "scene_50",
     "scene_60",
     "scene_61",
     "scene_72"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -3263,6 +3456,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_50",
@@ -3287,6 +3481,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_50",
      "scene_name": "Object Name 18",
      "view_key": "view_88",
@@ -3294,6 +3489,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_69",
@@ -3301,6 +3497,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_68",
@@ -3308,6 +3505,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_68",
@@ -3315,6 +3513,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_69",
@@ -3322,6 +3521,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_61",
      "scene_name": "Edit External Project",
      "view_key": "view_70",
@@ -3329,6 +3529,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_61",
      "scene_name": "Edit External Project",
      "view_key": "view_70",
@@ -3336,6 +3537,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_89",
@@ -3345,7 +3547,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 9
   },
@@ -3366,13 +3567,14 @@
  "field_137": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_11"
+   ],
    "affected_scenes": [
     "scene_49",
     "scene_68",
     "scene_69"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -3384,6 +3586,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_49",
@@ -3403,6 +3606,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_80",
@@ -3410,6 +3614,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_81",
@@ -3417,6 +3622,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_68",
      "scene_name": "Edit items",
      "view_key": "view_82",
@@ -3424,6 +3630,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_69",
      "scene_name": "items Details",
      "view_key": "view_83",
@@ -3433,7 +3640,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 5
   },
@@ -3459,13 +3665,13 @@
     "scene_49",
     "scene_68",
     "scene_69"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_49",
@@ -3485,6 +3691,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_81",
@@ -3492,6 +3699,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_80",
@@ -3499,6 +3707,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_68",
      "scene_name": "Edit items",
      "view_key": "view_82",
@@ -3506,6 +3715,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_69",
      "scene_name": "items Details",
      "view_key": "view_83",
@@ -3515,7 +3725,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 4
   },
@@ -3541,13 +3750,13 @@
     "scene_49",
     "scene_68",
     "scene_69"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_49",
@@ -3567,6 +3776,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_81",
@@ -3574,6 +3784,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_80",
@@ -3581,6 +3792,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_68",
      "scene_name": "Edit items",
      "view_key": "view_82",
@@ -3588,6 +3800,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_69",
      "scene_name": "items Details",
      "view_key": "view_83",
@@ -3597,7 +3810,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 4
   },
@@ -3623,13 +3835,13 @@
     "scene_17",
     "scene_18",
     "scene_19"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_17",
@@ -3649,6 +3861,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_17",
      "scene_name": "Object Name 4",
      "view_key": "view_19",
@@ -3656,6 +3869,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_17",
      "scene_name": "Object Name 4",
      "view_key": "view_19",
@@ -3663,6 +3877,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_18",
      "scene_name": "Edit Reviewer",
      "view_key": "view_20",
@@ -3670,6 +3885,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_19",
      "scene_name": "Reviewer Details",
      "view_key": "view_21",
@@ -3677,6 +3893,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_18",
      "scene_name": "Edit Reviewer",
      "view_key": "view_20",
@@ -3684,6 +3901,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_19",
      "scene_name": "Reviewer Details",
      "view_key": "view_21",
@@ -3693,7 +3911,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 6
   },
@@ -3718,13 +3935,13 @@
    "affected_scenes": [
     "scene_66",
     "scene_67"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_66",
@@ -3739,6 +3956,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_66",
      "scene_name": "Object Name 24",
      "view_key": "view_77",
@@ -3746,6 +3964,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_66",
      "scene_name": "Object Name 24",
      "view_key": "view_76",
@@ -3753,6 +3972,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_66",
      "scene_name": "Object Name 24",
      "view_key": "view_77",
@@ -3760,6 +3980,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_67",
      "scene_name": "Edit Subject",
      "view_key": "view_78",
@@ -3767,6 +3988,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_66",
      "scene_name": "Object Name 24",
      "view_key": "view_76",
@@ -3774,6 +3996,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_67",
      "scene_name": "Edit Subject",
      "view_key": "view_78",
@@ -3783,7 +4006,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 6
   },
@@ -3808,13 +4030,13 @@
    "affected_scenes": [
     "scene_66",
     "scene_67"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_66",
@@ -3829,6 +4051,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_66",
      "scene_name": "Object Name 24",
      "view_key": "view_77",
@@ -3836,6 +4059,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_66",
      "scene_name": "Object Name 24",
      "view_key": "view_76",
@@ -3843,6 +4067,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_67",
      "scene_name": "Edit Subject",
      "view_key": "view_78",
@@ -3852,7 +4077,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -3873,11 +4097,12 @@
  "field_142": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_11"
+   ],
    "affected_scenes": [
     "scene_66"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -3889,6 +4114,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_66",
@@ -3898,6 +4124,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_66",
      "scene_name": "Object Name 24",
      "view_key": "view_76",
@@ -3905,6 +4132,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_66",
      "scene_name": "Object Name 24",
      "view_key": "view_77",
@@ -3914,7 +4142,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -3935,13 +4162,14 @@
  "field_143": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_24"
+   ],
    "affected_scenes": [
     "scene_49",
     "scene_68",
     "scene_69"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -3953,6 +4181,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_49",
@@ -3972,6 +4201,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_81",
@@ -3979,6 +4209,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_80",
@@ -3986,6 +4217,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_68",
      "scene_name": "Edit items",
      "view_key": "view_82",
@@ -3993,6 +4225,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_69",
      "scene_name": "items Details",
      "view_key": "view_83",
@@ -4002,7 +4235,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 5
   },
@@ -4028,13 +4260,13 @@
     "scene_49",
     "scene_68",
     "scene_69"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_49",
@@ -4054,6 +4286,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_81",
@@ -4061,6 +4294,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_80",
@@ -4068,6 +4302,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_68",
      "scene_name": "Edit items",
      "view_key": "view_82",
@@ -4075,6 +4310,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_69",
      "scene_name": "items Details",
      "view_key": "view_83",
@@ -4084,7 +4320,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 4
   },
@@ -4110,13 +4345,13 @@
     "scene_72",
     "scene_73",
     "scene_74"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_72",
@@ -4136,6 +4371,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_91",
@@ -4143,6 +4379,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_90",
@@ -4150,6 +4387,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_73",
      "scene_name": "Edit External Items",
      "view_key": "view_92",
@@ -4157,6 +4395,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_74",
      "scene_name": "External Items Details",
      "view_key": "view_93",
@@ -4166,7 +4405,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 4
   },
@@ -4192,13 +4430,13 @@
     "scene_72",
     "scene_73",
     "scene_74"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_72",
@@ -4218,6 +4456,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_91",
@@ -4225,6 +4464,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_90",
@@ -4232,6 +4472,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_73",
      "scene_name": "Edit External Items",
      "view_key": "view_92",
@@ -4239,6 +4480,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_74",
      "scene_name": "External Items Details",
      "view_key": "view_93",
@@ -4248,7 +4490,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 4
   },
@@ -4274,13 +4515,13 @@
     "scene_72",
     "scene_73",
     "scene_74"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_72",
@@ -4300,6 +4541,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_91",
@@ -4307,6 +4549,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_90",
@@ -4314,6 +4557,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_73",
      "scene_name": "Edit External Items",
      "view_key": "view_92",
@@ -4321,6 +4565,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_74",
      "scene_name": "External Items Details",
      "view_key": "view_93",
@@ -4330,7 +4575,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 4
   },
@@ -4356,13 +4600,13 @@
     "scene_72",
     "scene_73",
     "scene_74"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_72",
@@ -4382,6 +4626,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_91",
@@ -4389,6 +4634,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_90",
@@ -4396,6 +4642,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_73",
      "scene_name": "Edit External Items",
      "view_key": "view_92",
@@ -4403,6 +4650,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_74",
      "scene_name": "External Items Details",
      "view_key": "view_93",
@@ -4412,7 +4660,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 4
   },
@@ -4438,13 +4685,13 @@
     "scene_72",
     "scene_73",
     "scene_74"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_72",
@@ -4464,6 +4711,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_91",
@@ -4471,6 +4719,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_90",
@@ -4478,6 +4727,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_73",
      "scene_name": "Edit External Items",
      "view_key": "view_92",
@@ -4485,6 +4735,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_74",
      "scene_name": "External Items Details",
      "view_key": "view_93",
@@ -4494,7 +4745,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 4
   },
@@ -4520,13 +4770,13 @@
     "scene_17",
     "scene_18",
     "scene_19"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_17",
@@ -4546,6 +4796,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_17",
      "scene_name": "Object Name 4",
      "view_key": "view_19",
@@ -4553,6 +4804,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_18",
      "scene_name": "Edit Reviewer",
      "view_key": "view_20",
@@ -4560,6 +4812,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_19",
      "scene_name": "Reviewer Details",
      "view_key": "view_21",
@@ -4569,7 +4822,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -4595,13 +4847,13 @@
     "scene_72",
     "scene_73",
     "scene_74"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_72",
@@ -4621,6 +4873,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_90",
@@ -4628,6 +4881,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_73",
      "scene_name": "Edit External Items",
      "view_key": "view_92",
@@ -4635,6 +4889,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_74",
      "scene_name": "External Items Details",
      "view_key": "view_93",
@@ -4644,7 +4899,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -4665,11 +4919,12 @@
  "field_151": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_15"
+   ],
    "affected_scenes": [
     "scene_72"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -4680,7 +4935,15 @@
     }
    ],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_152",
+     "field_name": "items Offered",
+     "object_key": "object_15"
+    }
+   ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_72",
@@ -4690,6 +4953,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_90",
@@ -4697,6 +4961,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_91",
@@ -4706,16 +4971,16 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
-   "total_direct_impacts": 3
+   "total_direct_impacts": 4
   },
   "risk_assessment": {
    "affected_user_workflows": [
-    "Data display views"
+    "Data display views",
+    "Calculated fields and formulas"
    ],
-   "breaking_change_likelihood": "low",
-   "impact_score": 3
+   "breaking_change_likelihood": "medium",
+   "impact_score": 4
   },
   "target": {
    "description": "connection field",
@@ -4730,13 +4995,13 @@
    "affected_objects": [],
    "affected_scenes": [
     "scene_50"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_50",
@@ -4746,6 +5011,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_50",
      "scene_name": "Object Name 18",
      "view_key": "view_88",
@@ -4753,6 +5019,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_50",
      "scene_name": "Object Name 18",
      "view_key": "view_88",
@@ -4762,7 +5029,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 2
   },
@@ -4784,18 +5050,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -4814,26 +5079,36 @@
  "field_154": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_objects": [
+    "object_15"
+   ],
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_152",
+     "field_name": "items Offered",
+     "object_key": "object_15"
+    }
+   ],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
-   "total_direct_impacts": 0
+   "total_direct_impacts": 1
   },
   "risk_assessment": {
-   "affected_user_workflows": [],
-   "breaking_change_likelihood": "none",
-   "impact_score": 0
+   "affected_user_workflows": [
+    "Calculated fields and formulas"
+   ],
+   "breaking_change_likelihood": "low",
+   "impact_score": 1
   },
   "target": {
    "description": "boolean field",
@@ -4849,13 +5124,13 @@
    "affected_scenes": [
     "scene_20",
     "scene_78"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_20",
@@ -4870,6 +5145,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -4877,6 +5153,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_78",
      "scene_name": "items Relationy Details",
      "view_key": "view_100",
@@ -4886,7 +5163,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 2
   },
@@ -4907,14 +5183,15 @@
  "field_156": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_17"
+   ],
    "affected_scenes": [
     "scene_20",
     "scene_75",
     "scene_77",
     "scene_78"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -4926,6 +5203,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_20",
@@ -4950,6 +5228,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -4957,6 +5236,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_75",
      "scene_name": "Test Data, Dummy Page",
      "view_key": "view_96",
@@ -4964,6 +5244,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_77",
      "scene_name": "Edit items Relationy",
      "view_key": "view_99",
@@ -4971,6 +5252,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_78",
      "scene_name": "items Relationy Details",
      "view_key": "view_100",
@@ -4980,7 +5262,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 5
   },
@@ -5001,14 +5282,15 @@
  "field_157": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_18"
+   ],
    "affected_scenes": [
     "scene_20",
     "scene_75",
     "scene_77",
     "scene_78"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -5020,6 +5302,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_20",
@@ -5044,6 +5327,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -5051,6 +5335,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_75",
      "scene_name": "Test Data, Dummy Page",
      "view_key": "view_96",
@@ -5058,6 +5343,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_77",
      "scene_name": "Edit items Relationy",
      "view_key": "view_99",
@@ -5065,6 +5351,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_78",
      "scene_name": "items Relationy Details",
      "view_key": "view_100",
@@ -5074,7 +5361,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 5
   },
@@ -5101,13 +5387,13 @@
     "scene_75",
     "scene_77",
     "scene_78"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_20",
@@ -5132,6 +5418,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -5139,6 +5426,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_75",
      "scene_name": "Test Data, Dummy Page",
      "view_key": "view_96",
@@ -5146,6 +5434,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_77",
      "scene_name": "Edit items Relationy",
      "view_key": "view_99",
@@ -5153,6 +5442,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_78",
      "scene_name": "items Relationy Details",
      "view_key": "view_100",
@@ -5162,7 +5452,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 4
   },
@@ -5183,12 +5472,13 @@
  "field_159": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_20"
+   ],
    "affected_scenes": [
     "scene_77",
     "scene_78"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -5200,6 +5490,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_77",
@@ -5214,6 +5505,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_77",
      "scene_name": "Edit items Relationy",
      "view_key": "view_99",
@@ -5221,6 +5513,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_78",
      "scene_name": "items Relationy Details",
      "view_key": "view_100",
@@ -5230,7 +5523,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -5252,18 +5544,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -5282,11 +5573,12 @@
  "field_161": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_16"
+   ],
    "affected_scenes": [
     "scene_78"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -5297,7 +5589,21 @@
     }
    ],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_168",
+     "field_name": "Reviews Needed",
+     "object_key": "object_16"
+    },
+    {
+     "equation": null,
+     "field_key": "field_169",
+     "field_name": "Reviews Completed",
+     "object_key": "object_16"
+    }
+   ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_78",
@@ -5307,6 +5613,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_78",
      "scene_name": "items Relationy Details",
      "view_key": "view_101",
@@ -5316,16 +5623,16 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
-   "total_direct_impacts": 2
+   "total_direct_impacts": 4
   },
   "risk_assessment": {
    "affected_user_workflows": [
-    "Data display views"
+    "Data display views",
+    "Calculated fields and formulas"
    ],
-   "breaking_change_likelihood": "low",
-   "impact_score": 2
+   "breaking_change_likelihood": "medium",
+   "impact_score": 4
   },
   "target": {
    "description": "connection field",
@@ -5337,11 +5644,12 @@
  "field_162": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_11"
+   ],
    "affected_scenes": [
     "scene_78"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -5353,6 +5661,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_78",
@@ -5362,6 +5671,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_78",
      "scene_name": "items Relationy Details",
      "view_key": "view_101",
@@ -5371,7 +5681,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 2
   },
@@ -5392,11 +5701,12 @@
  "field_163": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_19"
+   ],
    "affected_scenes": [
     "scene_78"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -5407,7 +5717,15 @@
     }
    ],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_167",
+     "field_name": "Review Dimension",
+     "object_key": "object_20"
+    }
+   ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_78",
@@ -5417,6 +5735,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_78",
      "scene_name": "items Relationy Details",
      "view_key": "view_101",
@@ -5426,16 +5745,16 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
-   "total_direct_impacts": 2
+   "total_direct_impacts": 3
   },
   "risk_assessment": {
    "affected_user_workflows": [
-    "Data display views"
+    "Data display views",
+    "Calculated fields and formulas"
    ],
    "breaking_change_likelihood": "low",
-   "impact_score": 2
+   "impact_score": 3
   },
   "target": {
    "description": "connection field",
@@ -5447,26 +5766,36 @@
  "field_164": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_objects": [
+    "object_16"
+   ],
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_169",
+     "field_name": "Reviews Completed",
+     "object_key": "object_16"
+    }
+   ],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
-   "total_direct_impacts": 0
+   "total_direct_impacts": 1
   },
   "risk_assessment": {
-   "affected_user_workflows": [],
-   "breaking_change_likelihood": "none",
-   "impact_score": 0
+   "affected_user_workflows": [
+    "Calculated fields and formulas"
+   ],
+   "breaking_change_likelihood": "low",
+   "impact_score": 1
   },
   "target": {
    "description": "multiple_choice field",
@@ -5479,18 +5808,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -5510,18 +5838,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -5541,18 +5868,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -5575,13 +5901,13 @@
    "affected_scenes": [
     "scene_20",
     "scene_78"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_20",
@@ -5596,6 +5922,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -5603,6 +5930,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -5610,6 +5938,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_78",
      "scene_name": "items Relationy Details",
      "view_key": "view_100",
@@ -5619,7 +5948,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -5643,13 +5971,13 @@
    "affected_objects": [],
    "affected_scenes": [
     "scene_20"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_20",
@@ -5659,6 +5987,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -5666,6 +5995,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -5675,7 +6005,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 2
   },
@@ -5700,13 +6029,13 @@
    "affected_scenes": [
     "scene_18",
     "scene_19"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_18",
@@ -5721,6 +6050,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_18",
      "scene_name": "Edit Reviewer",
      "view_key": "view_20",
@@ -5728,6 +6058,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_19",
      "scene_name": "Reviewer Details",
      "view_key": "view_21",
@@ -5737,7 +6068,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 2
   },
@@ -5762,13 +6092,13 @@
    "affected_scenes": [
     "scene_75",
     "scene_77"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_75",
@@ -5783,6 +6113,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_75",
      "scene_name": "Test Data, Dummy Page",
      "view_key": "view_96",
@@ -5790,6 +6121,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_75",
      "scene_name": "Test Data, Dummy Page",
      "view_key": "view_96",
@@ -5797,6 +6129,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_77",
      "scene_name": "Edit items Relationy",
      "view_key": "view_99",
@@ -5806,7 +6139,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -5831,13 +6163,13 @@
    "affected_scenes": [
     "scene_20",
     "scene_77"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_20",
@@ -5852,6 +6184,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -5859,6 +6192,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -5866,6 +6200,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_77",
      "scene_name": "Edit items Relationy",
      "view_key": "view_99",
@@ -5875,7 +6210,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -5901,13 +6235,13 @@
     "scene_5",
     "scene_81",
     "scene_82"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_5",
@@ -5927,6 +6261,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_106",
@@ -5934,6 +6269,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_81",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_108",
@@ -5941,6 +6277,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_82",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_109",
@@ -5950,7 +6287,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -5971,11 +6307,12 @@
  "field_173": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_11"
+   ],
    "affected_scenes": [
     "scene_5"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -5987,6 +6324,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_5",
@@ -5996,6 +6334,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_106",
@@ -6003,6 +6342,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_107",
@@ -6012,7 +6352,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -6036,13 +6375,13 @@
    "affected_objects": [],
    "affected_scenes": [
     "scene_18"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_18",
@@ -6052,6 +6391,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_18",
      "scene_name": "Edit Reviewer",
      "view_key": "view_20",
@@ -6061,7 +6401,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 1
   },
@@ -6083,18 +6422,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -6114,18 +6452,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -6149,8 +6486,7 @@
     "scene_6",
     "scene_34",
     "scene_13"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
@@ -6163,6 +6499,7 @@
      "object_key": "object_2"
     }
    ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_6",
@@ -6182,6 +6519,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_11",
@@ -6189,6 +6527,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_6",
@@ -6196,6 +6535,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_34",
      "scene_name": "Edit Account",
      "view_key": "view_41",
@@ -6203,6 +6543,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_34",
      "scene_name": "Edit Account",
      "view_key": "view_43",
@@ -6210,6 +6551,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_6",
@@ -6217,6 +6559,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_11",
@@ -6224,6 +6567,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_13",
      "scene_name": "Account Details",
      "view_key": "view_13",
@@ -6231,6 +6575,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_34",
      "scene_name": "Edit Account",
      "view_key": "view_41",
@@ -6240,7 +6585,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 9
   },
@@ -6266,13 +6610,13 @@
    "affected_scenes": [
     "scene_6",
     "scene_13"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_6",
@@ -6287,6 +6631,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_11",
@@ -6294,6 +6639,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_6",
@@ -6301,6 +6647,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_13",
      "scene_name": "Account Details",
      "view_key": "view_13",
@@ -6310,7 +6657,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 3
   },
@@ -6335,13 +6681,13 @@
    "affected_scenes": [
     "scene_6",
     "scene_34"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_6",
@@ -6356,6 +6702,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_6",
@@ -6363,6 +6710,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_34",
      "scene_name": "Edit Account",
      "view_key": "view_43",
@@ -6372,7 +6720,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 2
   },
@@ -6397,13 +6744,13 @@
    "affected_scenes": [
     "scene_6",
     "scene_34"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_6",
@@ -6418,6 +6765,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_6",
@@ -6425,6 +6773,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_34",
      "scene_name": "Edit Account",
      "view_key": "view_41",
@@ -6434,7 +6783,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 2
   },
@@ -6458,14 +6806,23 @@
    "affected_objects": [],
    "affected_scenes": [
     "scene_6",
-    "scene_34"
-   ],
-   "dependency_chains": []
+    "scene_34",
+    "scene_55"
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [
+    {
+     "description": "Referenced at rules.0.criteria.0.field in page 'users Home' (scene_55)",
+     "object_key": null,
+     "reference_path": "rules.0.criteria.0.field",
+     "scene_key": "scene_55",
+     "type": "scene_reference"
+    }
+   ],
    "scenes": [
     {
      "scene_key": "scene_6",
@@ -6476,10 +6833,16 @@
      "scene_key": "scene_34",
      "scene_name": "Edit Account",
      "scene_slug": "edit-account"
+    },
+    {
+     "scene_key": "scene_55",
+     "scene_name": "users Home",
+     "scene_slug": "users-home"
     }
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_11",
@@ -6487,6 +6850,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_6",
@@ -6494,6 +6858,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_11",
@@ -6501,6 +6866,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_34",
      "scene_name": "Edit Account",
      "view_key": "view_41",
@@ -6510,16 +6876,16 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
-   "total_direct_impacts": 4
+   "total_direct_impacts": 5
   },
   "risk_assessment": {
    "affected_user_workflows": [
-    "Data display views"
+    "Data display views",
+    "Rules, validations and scheduled tasks"
    ],
    "breaking_change_likelihood": "medium",
-   "impact_score": 4
+   "impact_score": 5
   },
   "target": {
    "description": "user_roles field",
@@ -6532,18 +6898,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -6563,18 +6928,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -6594,18 +6958,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -6625,18 +6988,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -6656,18 +7018,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -6687,18 +7048,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -6717,18 +7077,27 @@
  "field_89": {
   "cascade_impacts": {
    "affected_fields": [],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_13"
+   ],
    "affected_scenes": [
     "scene_7",
     "scene_22",
     "scene_23"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_130",
+     "field_name": "List Name",
+     "object_key": "object_13"
+    }
+   ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_7",
@@ -6748,6 +7117,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_7",
      "scene_name": "Object Name 12",
      "view_key": "view_23",
@@ -6755,6 +7125,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_7",
      "scene_name": "Object Name 12",
      "view_key": "view_23",
@@ -6762,6 +7133,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_22",
      "scene_name": "Edit Group",
      "view_key": "view_24",
@@ -6769,6 +7141,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_23",
      "scene_name": "Group Details",
      "view_key": "view_25",
@@ -6776,6 +7149,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_22",
      "scene_name": "Edit Group",
      "view_key": "view_24",
@@ -6783,6 +7157,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_23",
      "scene_name": "Group Details",
      "view_key": "view_25",
@@ -6792,16 +7167,16 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
-   "total_direct_impacts": 6
+   "total_direct_impacts": 7
   },
   "risk_assessment": {
    "affected_user_workflows": [
-    "Data display views"
+    "Data display views",
+    "Calculated fields and formulas"
    ],
    "breaking_change_likelihood": "medium",
-   "impact_score": 6
+   "impact_score": 7
   },
   "target": {
    "description": "short_text field",
@@ -6818,13 +7193,13 @@
     "scene_14",
     "scene_15",
     "scene_16"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_14",
@@ -6844,6 +7219,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_14",
      "scene_name": "Object Name 3",
      "view_key": "view_15",
@@ -6851,6 +7227,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_14",
      "scene_name": "Object Name 3",
      "view_key": "view_15",
@@ -6858,6 +7235,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_15",
      "scene_name": "Edit users",
      "view_key": "view_16",
@@ -6865,6 +7243,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_16",
      "scene_name": "users Details",
      "view_key": "view_17",
@@ -6872,6 +7251,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_15",
      "scene_name": "Edit users",
      "view_key": "view_16",
@@ -6879,6 +7259,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_16",
      "scene_name": "users Details",
      "view_key": "view_17",
@@ -6888,7 +7269,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 6
   },
@@ -6917,8 +7297,7 @@
     "scene_25",
     "scene_26",
     "scene_27"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
@@ -6931,6 +7310,7 @@
      "object_key": "object_13"
     }
    ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_8",
@@ -6965,6 +7345,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_8",
      "scene_name": "Unit/Category",
      "view_key": "view_26",
@@ -6972,6 +7353,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_23",
      "scene_name": "Group Details",
      "view_key": "view_29",
@@ -6979,6 +7361,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_8",
      "scene_name": "Unit/Category",
      "view_key": "view_26",
@@ -6986,6 +7369,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_23",
      "scene_name": "Group Details",
      "view_key": "view_29",
@@ -6993,6 +7377,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_24",
      "scene_name": "Edit Department",
      "view_key": "view_27",
@@ -7000,6 +7385,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_25",
      "scene_name": "Department Details",
      "view_key": "view_28",
@@ -7007,6 +7393,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_24",
      "scene_name": "Edit Department",
      "view_key": "view_27",
@@ -7014,6 +7401,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_25",
      "scene_name": "Department Details",
      "view_key": "view_28",
@@ -7021,6 +7409,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_26",
      "scene_name": "Edit Department",
      "view_key": "view_30",
@@ -7028,6 +7417,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_27",
      "scene_name": "Department Details",
      "view_key": "view_31",
@@ -7037,7 +7427,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 11
   },
@@ -7067,13 +7456,13 @@
     "scene_29",
     "scene_30",
     "scene_31"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_9",
@@ -7108,6 +7497,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_9",
      "scene_name": "Primary/Secondary",
      "view_key": "view_35",
@@ -7115,6 +7505,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_25",
      "scene_name": "Department Details",
      "view_key": "view_32",
@@ -7122,6 +7513,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_9",
      "scene_name": "Primary/Secondary",
      "view_key": "view_35",
@@ -7129,6 +7521,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_25",
      "scene_name": "Department Details",
      "view_key": "view_32",
@@ -7136,6 +7529,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_28",
      "scene_name": "Edit Major/Program",
      "view_key": "view_33",
@@ -7143,6 +7537,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_29",
      "scene_name": "Major/Program Details",
      "view_key": "view_34",
@@ -7150,6 +7545,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_30",
      "scene_name": "Edit Major/Program",
      "view_key": "view_36",
@@ -7157,6 +7553,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_31",
      "scene_name": "Major/Program Details",
      "view_key": "view_37",
@@ -7166,7 +7563,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 8
   },
@@ -7194,13 +7590,13 @@
     "scene_61",
     "scene_62",
     "scene_72"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_50",
@@ -7230,6 +7626,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_50",
      "scene_name": "Object Name 18",
      "view_key": "view_88",
@@ -7237,6 +7634,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_69",
@@ -7244,6 +7642,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_50",
      "scene_name": "Object Name 18",
      "view_key": "view_88",
@@ -7251,6 +7650,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_68",
@@ -7258,6 +7658,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_61",
      "scene_name": "Edit External Project",
      "view_key": "view_70",
@@ -7265,6 +7666,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_68",
@@ -7272,6 +7674,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_69",
@@ -7279,6 +7682,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_61",
      "scene_name": "Edit External Project",
      "view_key": "view_70",
@@ -7286,6 +7690,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_62",
      "scene_name": "External Project Details",
      "view_key": "view_71",
@@ -7293,6 +7698,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_89",
@@ -7302,7 +7708,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 10
   },
@@ -7328,13 +7733,13 @@
     "scene_49",
     "scene_68",
     "scene_69"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_49",
@@ -7354,6 +7759,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_81",
@@ -7361,6 +7767,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_80",
@@ -7368,6 +7775,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_81",
@@ -7375,6 +7783,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_80",
@@ -7382,6 +7791,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_68",
      "scene_name": "Edit items",
      "view_key": "view_82",
@@ -7389,6 +7799,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_69",
      "scene_name": "items Details",
      "view_key": "view_83",
@@ -7398,7 +7809,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 6
   },
@@ -7424,13 +7834,13 @@
     "scene_72",
     "scene_73",
     "scene_74"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_72",
@@ -7450,6 +7860,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_91",
@@ -7457,6 +7868,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_90",
@@ -7464,6 +7876,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_91",
@@ -7471,6 +7884,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_90",
@@ -7478,6 +7892,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_73",
      "scene_name": "Edit External Items",
      "view_key": "view_92",
@@ -7485,6 +7900,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_74",
      "scene_name": "External Items Details",
      "view_key": "view_93",
@@ -7494,7 +7910,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 6
   },
@@ -7516,18 +7931,17 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -7552,13 +7966,13 @@
     "scene_63",
     "scene_64",
     "scene_65"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_44",
@@ -7583,6 +7997,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_44",
      "scene_name": "Object Name 22",
      "view_key": "view_57",
@@ -7590,6 +8005,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_63",
      "scene_name": "Object Name 22",
      "view_key": "view_73",
@@ -7597,6 +8013,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_44",
      "scene_name": "Object Name 22",
      "view_key": "view_57",
@@ -7604,6 +8021,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_63",
      "scene_name": "Object Name 22",
      "view_key": "view_72",
@@ -7611,6 +8029,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_44",
      "scene_name": "Object Name 22",
      "view_key": "view_56",
@@ -7618,6 +8037,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_63",
      "scene_name": "Object Name 22",
      "view_key": "view_72",
@@ -7625,6 +8045,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_64",
      "scene_name": "Edit Ref Data Category Value",
      "view_key": "view_74",
@@ -7632,6 +8053,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_65",
      "scene_name": "Ref Data Category Value Details",
      "view_key": "view_75",
@@ -7641,7 +8063,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 8
   },
@@ -7663,19 +8084,18 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "error": "Field field_999999 not found",
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
@@ -7711,18 +8131,17 @@
     }
    ],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 1,
    "total_direct_impacts": 0
   },
@@ -7811,8 +8230,7 @@
     "scene_49",
     "scene_50",
     "scene_66"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -7825,6 +8243,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_7",
@@ -7864,6 +8283,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_7",
      "scene_name": "Object Name 12",
      "view_key": "view_23",
@@ -7871,6 +8291,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_8",
      "scene_name": "Unit/Category",
      "view_key": "view_26",
@@ -7878,6 +8299,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_9",
      "scene_name": "Primary/Secondary",
      "view_key": "view_35",
@@ -7885,6 +8307,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -7892,6 +8315,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_80",
@@ -7899,6 +8323,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_81",
@@ -7906,6 +8331,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_50",
      "scene_name": "Object Name 18",
      "view_key": "view_88",
@@ -7913,6 +8339,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_66",
      "scene_name": "Object Name 24",
      "view_key": "view_76",
@@ -7920,6 +8347,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_66",
      "scene_name": "Object Name 24",
      "view_key": "view_77",
@@ -7929,7 +8357,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 2,
    "total_direct_impacts": 10
   },
@@ -7964,9 +8391,22 @@
      ]
     }
    ],
-   "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_objects": [
+    "object_2",
+    "object_3",
+    "object_4",
+    "object_10",
+    "object_12",
+    "object_13",
+    "object_14",
+    "object_15",
+    "object_17",
+    "object_16",
+    "object_19",
+    "object_20",
+    "object_24"
+   ],
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [
@@ -8057,11 +8497,11 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 1,
    "total_direct_impacts": 14
   },
@@ -8175,13 +8615,15 @@
      ]
     }
    ],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_13",
+    "object_19"
+   ],
    "affected_scenes": [
     "scene_7",
     "scene_22",
     "scene_23"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -8205,7 +8647,15 @@
     }
    ],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_130",
+     "field_name": "List Name",
+     "object_key": "object_13"
+    }
+   ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_7",
@@ -8225,6 +8675,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_7",
      "scene_name": "Object Name 12",
      "view_key": "view_23",
@@ -8232,6 +8683,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_22",
      "scene_name": "Edit Group",
      "view_key": "view_24",
@@ -8239,6 +8691,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_23",
      "scene_name": "Group Details",
      "view_key": "view_25",
@@ -8248,9 +8701,8 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 4,
-   "total_direct_impacts": 6
+   "total_direct_impacts": 7
   },
   "risk_assessment": {
    "affected_user_workflows": [
@@ -8258,7 +8710,7 @@
     "Related data relationships"
    ],
    "breaking_change_likelihood": "medium",
-   "impact_score": 10
+   "impact_score": 11
   },
   "target": {
    "description": "4 fields",
@@ -8455,7 +8907,11 @@
      ]
     }
    ],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_14",
+    "object_19",
+    "object_12"
+   ],
    "affected_scenes": [
     "scene_8",
     "scene_23",
@@ -8463,8 +8919,7 @@
     "scene_25",
     "scene_26",
     "scene_27"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -8500,8 +8955,21 @@
      "field_key": "field_130",
      "field_name": "List Name",
      "object_key": "object_13"
+    },
+    {
+     "equation": null,
+     "field_key": "field_125",
+     "field_name": "Num. Units",
+     "object_key": "object_12"
+    },
+    {
+     "equation": null,
+     "field_key": "field_130",
+     "field_name": "List Name",
+     "object_key": "object_13"
     }
    ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_8",
@@ -8536,6 +9004,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_8",
      "scene_name": "Unit/Category",
      "view_key": "view_26",
@@ -8543,6 +9012,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_23",
      "scene_name": "Group Details",
      "view_key": "view_29",
@@ -8550,6 +9020,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_24",
      "scene_name": "Edit Department",
      "view_key": "view_27",
@@ -8557,6 +9028,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_25",
      "scene_name": "Department Details",
      "view_key": "view_28",
@@ -8564,6 +9036,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_26",
      "scene_name": "Edit Department",
      "view_key": "view_30",
@@ -8571,6 +9044,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_27",
      "scene_name": "Department Details",
      "view_key": "view_31",
@@ -8580,9 +9054,8 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 6,
-   "total_direct_impacts": 11
+   "total_direct_impacts": 13
   },
   "risk_assessment": {
    "affected_user_workflows": [
@@ -8590,7 +9063,7 @@
     "Related data relationships"
    ],
    "breaking_change_likelihood": "high",
-   "impact_score": 17
+   "impact_score": 19
   },
   "target": {
    "description": "6 fields",
@@ -8743,7 +9216,11 @@
      ]
     }
    ],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_3",
+    "object_19",
+    "object_13"
+   ],
    "affected_scenes": [
     "scene_9",
     "scene_25",
@@ -8751,8 +9228,7 @@
     "scene_29",
     "scene_30",
     "scene_31"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -8782,7 +9258,15 @@
     }
    ],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_127",
+     "field_name": "Item Count",
+     "object_key": "object_13"
+    }
+   ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_9",
@@ -8817,6 +9301,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_9",
      "scene_name": "Primary/Secondary",
      "view_key": "view_35",
@@ -8824,6 +9309,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_25",
      "scene_name": "Department Details",
      "view_key": "view_32",
@@ -8831,6 +9317,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_28",
      "scene_name": "Edit Major/Program",
      "view_key": "view_33",
@@ -8838,6 +9325,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_29",
      "scene_name": "Major/Program Details",
      "view_key": "view_34",
@@ -8845,6 +9333,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_30",
      "scene_name": "Edit Major/Program",
      "view_key": "view_36",
@@ -8852,6 +9341,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_31",
      "scene_name": "Major/Program Details",
      "view_key": "view_37",
@@ -8861,9 +9351,8 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 4,
-   "total_direct_impacts": 10
+   "total_direct_impacts": 11
   },
   "risk_assessment": {
    "affected_user_workflows": [
@@ -8871,7 +9360,7 @@
     "Related data relationships"
    ],
    "breaking_change_likelihood": "medium",
-   "impact_score": 14
+   "impact_score": 15
   },
   "target": {
    "description": "4 fields",
@@ -9096,15 +9585,16 @@
      ]
     }
    ],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_18"
+   ],
    "affected_scenes": [
     "scene_50",
     "scene_60",
     "scene_61",
     "scene_62",
     "scene_72"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -9135,6 +9625,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_50",
@@ -9164,6 +9655,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_50",
      "scene_name": "Object Name 18",
      "view_key": "view_88",
@@ -9171,6 +9663,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_68",
@@ -9178,6 +9671,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_60",
      "scene_name": "External-Projects",
      "view_key": "view_69",
@@ -9185,6 +9679,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_61",
      "scene_name": "Edit External Project",
      "view_key": "view_70",
@@ -9192,6 +9687,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_62",
      "scene_name": "External Project Details",
      "view_key": "view_71",
@@ -9199,6 +9695,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_89",
@@ -9208,7 +9705,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 6,
    "total_direct_impacts": 10
   },
@@ -9463,14 +9959,15 @@
      ]
     }
    ],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_20"
+   ],
    "affected_scenes": [
     "scene_20",
     "scene_75",
     "scene_77",
     "scene_78"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -9507,6 +10004,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_20",
@@ -9531,6 +10029,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_20",
      "scene_name": "items Relationy (ATC) Home",
      "view_key": "view_98",
@@ -9538,6 +10037,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_75",
      "scene_name": "Test Data, Dummy Page",
      "view_key": "view_96",
@@ -9545,6 +10045,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_77",
      "scene_name": "Edit items Relationy",
      "view_key": "view_99",
@@ -9552,6 +10053,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_78",
      "scene_name": "items Relationy Details",
      "view_key": "view_100",
@@ -9559,6 +10061,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_78",
      "scene_name": "items Relationy Details",
      "view_key": "view_101",
@@ -9568,7 +10071,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 10,
    "total_direct_impacts": 10
   },
@@ -9755,13 +10257,14 @@
      ]
     }
    ],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_16"
+   ],
    "affected_scenes": [
     "scene_49",
     "scene_68",
     "scene_69"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -9786,6 +10289,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_49",
@@ -9805,6 +10309,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_80",
@@ -9812,6 +10317,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_49",
      "scene_name": "Home items",
      "view_key": "view_81",
@@ -9819,6 +10325,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_68",
      "scene_name": "Edit items",
      "view_key": "view_82",
@@ -9826,6 +10333,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_69",
      "scene_name": "items Details",
      "view_key": "view_83",
@@ -9835,7 +10343,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 6,
    "total_direct_impacts": 7
   },
@@ -10070,13 +10577,15 @@
      ]
     }
    ],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_16",
+    "object_15"
+   ],
    "affected_scenes": [
     "scene_72",
     "scene_73",
     "scene_74"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -10094,7 +10603,21 @@
     }
    ],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_152",
+     "field_name": "items Offered",
+     "object_key": "object_15"
+    },
+    {
+     "equation": null,
+     "field_key": "field_152",
+     "field_name": "items Offered",
+     "object_key": "object_15"
+    }
+   ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_72",
@@ -10114,6 +10637,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_90",
@@ -10121,6 +10645,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_72",
      "scene_name": "External Project Details",
      "view_key": "view_91",
@@ -10128,6 +10653,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_73",
      "scene_name": "Edit External Items",
      "view_key": "view_92",
@@ -10135,6 +10661,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_74",
      "scene_name": "External Items Details",
      "view_key": "view_93",
@@ -10144,17 +10671,16 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 9,
-   "total_direct_impacts": 6
+   "total_direct_impacts": 8
   },
   "risk_assessment": {
    "affected_user_workflows": [
     "Data display views",
     "Related data relationships"
    ],
-   "breaking_change_likelihood": "medium",
-   "impact_score": 15
+   "breaking_change_likelihood": "high",
+   "impact_score": 17
   },
   "target": {
    "description": "9 fields",
@@ -10463,7 +10989,10 @@
      ]
     }
    ],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_20",
+    "object_4"
+   ],
    "affected_scenes": [
     "scene_5",
     "scene_19",
@@ -10471,8 +11000,7 @@
     "scene_36",
     "scene_81",
     "scene_82"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -10520,7 +11048,21 @@
     }
    ],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_131",
+     "field_name": "Assigned Tasks",
+     "object_key": "object_4"
+    },
+    {
+     "equation": null,
+     "field_key": "field_167",
+     "field_name": "Review Dimension",
+     "object_key": "object_20"
+    }
+   ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_5",
@@ -10555,6 +11097,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_106",
@@ -10562,6 +11105,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_107",
@@ -10569,6 +11113,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_19",
      "scene_name": "Reviewer Details",
      "view_key": "view_44",
@@ -10576,6 +11121,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_35",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_45",
@@ -10583,6 +11129,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_36",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_46",
@@ -10590,6 +11137,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_81",
      "scene_name": "Edit Reviewer Responsibility",
      "view_key": "view_108",
@@ -10597,6 +11145,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_82",
      "scene_name": "Reviewer Responsibility Details",
      "view_key": "view_109",
@@ -10606,9 +11155,8 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 8,
-   "total_direct_impacts": 14
+   "total_direct_impacts": 16
   },
   "risk_assessment": {
    "affected_user_workflows": [
@@ -10616,7 +11164,7 @@
     "Related data relationships"
    ],
    "breaking_change_likelihood": "high",
-   "impact_score": 22
+   "impact_score": 24
   },
   "target": {
    "description": "8 fields",
@@ -10822,8 +11370,7 @@
     "scene_17",
     "scene_34",
     "scene_55"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -10841,6 +11388,15 @@
      "field_key": "field_129",
      "field_name": "Last Name",
      "object_key": "object_2"
+    }
+   ],
+   "rules": [
+    {
+     "description": "Referenced at rules.0.criteria.0.field in page 'users Home' (scene_55)",
+     "object_key": null,
+     "reference_path": "rules.0.criteria.0.field",
+     "scene_key": "scene_55",
+     "type": "scene_reference"
     }
    ],
    "scenes": [
@@ -10882,6 +11438,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_106",
@@ -10889,6 +11446,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_5",
      "scene_name": "Object Name 19",
      "view_key": "view_107",
@@ -10896,6 +11454,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_6",
@@ -10903,6 +11462,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_11",
@@ -10910,6 +11470,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_6",
      "scene_name": "Users",
      "view_key": "view_11",
@@ -10917,6 +11478,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_13",
      "scene_name": "Account Details",
      "view_key": "view_13",
@@ -10924,6 +11486,7 @@
      "view_type": "details"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_14",
      "scene_name": "Object Name 3",
      "view_key": "view_15",
@@ -10931,6 +11494,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_17",
      "scene_name": "Object Name 4",
      "view_key": "view_19",
@@ -10938,6 +11502,7 @@
      "view_type": null
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_34",
      "scene_name": "Edit Account",
      "view_key": "view_41",
@@ -10945,6 +11510,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_34",
      "scene_name": "Edit Account",
      "view_key": "view_43",
@@ -10954,17 +11520,17 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 7,
-   "total_direct_impacts": 12
+   "total_direct_impacts": 13
   },
   "risk_assessment": {
    "affected_user_workflows": [
     "Data display views",
-    "Related data relationships"
+    "Related data relationships",
+    "Rules, validations and scheduled tasks"
    ],
    "breaking_change_likelihood": "high",
-   "impact_score": 19
+   "impact_score": 20
   },
   "target": {
    "description": "7 fields",
@@ -11057,11 +11623,12 @@
      ]
     }
    ],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_16"
+   ],
    "affected_scenes": [
     "scene_78"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -11091,7 +11658,33 @@
     }
    ],
    "forms": [],
-   "formulas": [],
+   "formulas": [
+    {
+     "equation": null,
+     "field_key": "field_168",
+     "field_name": "Reviews Needed",
+     "object_key": "object_16"
+    },
+    {
+     "equation": null,
+     "field_key": "field_169",
+     "field_name": "Reviews Completed",
+     "object_key": "object_16"
+    },
+    {
+     "equation": null,
+     "field_key": "field_167",
+     "field_name": "Review Dimension",
+     "object_key": "object_20"
+    },
+    {
+     "equation": null,
+     "field_key": "field_169",
+     "field_name": "Reviews Completed",
+     "object_key": "object_16"
+    }
+   ],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_78",
@@ -11101,6 +11694,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_78",
      "scene_name": "items Relationy Details",
      "view_key": "view_101",
@@ -11110,9 +11704,8 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 4,
-   "total_direct_impacts": 5
+   "total_direct_impacts": 9
   },
   "risk_assessment": {
    "affected_user_workflows": [
@@ -11120,7 +11713,7 @@
     "Related data relationships"
    ],
    "breaking_change_likelihood": "medium",
-   "impact_score": 9
+   "impact_score": 13
   },
   "target": {
    "description": "7 fields",
@@ -11145,9 +11738,10 @@
      ]
     }
    ],
-   "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_objects": [
+    "object_22"
+   ],
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [
@@ -11160,11 +11754,11 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 1,
    "total_direct_impacts": 1
   },
@@ -11302,7 +11896,9 @@
      ]
     }
    ],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_15"
+   ],
    "affected_scenes": [
     "scene_44",
     "scene_63",
@@ -11310,8 +11906,7 @@
     "scene_65",
     "scene_60",
     "scene_61"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -11336,6 +11931,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_44",
@@ -11370,6 +11966,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_44",
      "scene_name": "Object Name 22",
      "view_key": "view_56",
@@ -11377,6 +11974,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_44",
      "scene_name": "Object Name 22",
      "view_key": "view_57",
@@ -11384,6 +11982,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_63",
      "scene_name": "Object Name 22",
      "view_key": "view_72",
@@ -11391,6 +11990,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_63",
      "scene_name": "Object Name 22",
      "view_key": "view_73",
@@ -11398,6 +11998,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_64",
      "scene_name": "Edit Ref Data Category Value",
      "view_key": "view_74",
@@ -11405,6 +12006,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_65",
      "scene_name": "Ref Data Category Value Details",
      "view_key": "view_75",
@@ -11414,7 +12016,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 2,
    "total_direct_impacts": 9
   },
@@ -11450,18 +12051,17 @@
     }
    ],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 1,
    "total_direct_impacts": 0
   },
@@ -11557,12 +12157,13 @@
      ]
     }
    ],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_17"
+   ],
    "affected_scenes": [
     "scene_66",
     "scene_67"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -11581,6 +12182,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_66",
@@ -11595,6 +12197,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_66",
      "scene_name": "Object Name 24",
      "view_key": "view_76",
@@ -11602,6 +12205,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_66",
      "scene_name": "Object Name 24",
      "view_key": "view_77",
@@ -11609,6 +12213,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_67",
      "scene_name": "Edit Subject",
      "view_key": "view_78",
@@ -11618,7 +12223,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 3,
    "total_direct_impacts": 5
   },
@@ -11798,8 +12402,7 @@
     "scene_14",
     "scene_15",
     "scene_16"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -11818,6 +12421,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_14",
@@ -11837,6 +12441,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_14",
      "scene_name": "Object Name 3",
      "view_key": "view_15",
@@ -11844,6 +12449,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_15",
      "scene_name": "Edit users",
      "view_key": "view_16",
@@ -11851,6 +12457,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_16",
      "scene_name": "users Details",
      "view_key": "view_17",
@@ -11860,7 +12467,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 7,
    "total_direct_impacts": 5
   },
@@ -12003,13 +12609,14 @@
      ]
     }
    ],
-   "affected_objects": [],
+   "affected_objects": [
+    "object_19"
+   ],
    "affected_scenes": [
     "scene_17",
     "scene_18",
     "scene_19"
-   ],
-   "dependency_chains": []
+   ]
   },
   "direct_impacts": {
    "connections": [
@@ -12028,6 +12635,7 @@
    ],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [
     {
      "scene_key": "scene_17",
@@ -12047,6 +12655,7 @@
    ],
    "views": [
     {
+     "orphaned_view": false,
      "scene_key": "scene_17",
      "scene_name": "Object Name 4",
      "view_key": "view_19",
@@ -12054,6 +12663,7 @@
      "view_type": "table"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_18",
      "scene_name": "Edit Reviewer",
      "view_key": "view_20",
@@ -12061,6 +12671,7 @@
      "view_type": "form"
     },
     {
+     "orphaned_view": false,
      "scene_key": "scene_19",
      "scene_name": "Reviewer Details",
      "view_key": "view_21",
@@ -12070,7 +12681,6 @@
    ]
   },
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 6,
    "total_direct_impacts": 5
   },
@@ -12093,19 +12703,18 @@
   "cascade_impacts": {
    "affected_fields": [],
    "affected_objects": [],
-   "affected_scenes": [],
-   "dependency_chains": []
+   "affected_scenes": []
   },
   "direct_impacts": {
    "connections": [],
    "forms": [],
    "formulas": [],
+   "rules": [],
    "scenes": [],
    "views": []
   },
   "error": "Object object_999999 not found",
   "metadata": {
-   "analysis_timestamp": null,
    "total_cascade_impacts": 0,
    "total_direct_impacts": 0
   },
