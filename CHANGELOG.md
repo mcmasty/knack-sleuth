@@ -10,6 +10,10 @@
   These now count as usages (`field_reference`, `object_reference`, `scene_reference`), so
   `search-field`, `search-object`, `impact-analysis` and `app-summary` report them too. On a
   real app, 12 of 203 reported orphans were in use.
+- `app-summary` listed some objects twice in `transactional_entities` or `supporting_entities`,
+  and listed core entities there as well, so the markdown counts were inflated (41
+  transactional entries for 25 objects on a real app). Each object is now in exactly one
+  category.
 - `impact-analysis` and `app-summary` list scenes and clusters in the same order on every run;
   they used to depend on Python's per-process string hashing.
 
