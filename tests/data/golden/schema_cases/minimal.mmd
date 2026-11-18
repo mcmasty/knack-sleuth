@@ -1,0 +1,23 @@
+erDiagram
+    %% Database schema for: Acme "Ops" App
+    %% Description: Every relationship shape and field edge case the schema exporters handle.
+    %% Knack App ID: app_schema_cases
+
+    ACCOUNTS ||--o{ ACCOUNTS_OBJECT_2 : "Owner"
+    ACCOUNTS }o--|| OBJ-3RD-PARTY-VENDOR : "Vendor"
+    ACCOUNTS_OBJECT_2 ||--|| OBJ-3RD-PARTY-VENDOR : "Primary Vendor"
+
+    ACCOUNTS {
+        string owner FK
+        string vendor FK
+    }
+
+    ACCOUNTS_OBJECT_2 {
+        string primaryVendor FK
+        string accountLink FK
+    }
+
+    OBJ-3RD-PARTY-VENDOR {
+        string partners FK
+    }
+

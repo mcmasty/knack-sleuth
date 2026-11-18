@@ -1,0 +1,326 @@
+{
+  "application": {
+    "name": "Acme \"Ops\" App",
+    "slug": "acme-ops",
+    "id": "app_schema_cases",
+    "description": "Every relationship shape and field edge case the schema exporters handle.",
+    "home_scene": {
+      "key": "scene_1",
+      "slug": "home"
+    },
+    "counts": {
+      "object_1": 3,
+      "object_2": 1,
+      "object_3": 12
+    },
+    "scenes": [],
+    "objects": [
+      {
+        "key": "object_1",
+        "name": "Accounts",
+        "user": true,
+        "identifier": "field_1",
+        "inflections": {
+          "singular": "Account",
+          "plural": "Accounts"
+        },
+        "connections": {
+          "outbound": [
+            {
+              "key": "field_3",
+              "name": "Owner",
+              "object": "object_2",
+              "has": "one",
+              "belongs_to": "many",
+              "field": {
+                "name": "Owner",
+                "inflections": {
+                  "singular": "Owner",
+                  "plural": "Owners"
+                }
+              }
+            },
+            {
+              "key": "field_10",
+              "name": "Vendor",
+              "object": "object_3",
+              "has": "many",
+              "belongs_to": "one",
+              "field": {
+                "name": "Vendor",
+                "inflections": {
+                  "singular": "Vendor",
+                  "plural": "Vendors"
+                }
+              }
+            }
+          ],
+          "inbound": [
+            {
+              "key": "field_21",
+              "name": "Account Link",
+              "object": "object_2",
+              "has": "many",
+              "belongs_to": "one",
+              "field": {
+                "name": "Account Link",
+                "inflections": {
+                  "singular": "Account Link",
+                  "plural": "Account Links"
+                }
+              }
+            },
+            {
+              "key": "field_30",
+              "name": "Partners",
+              "object": "object_3",
+              "has": "many",
+              "belongs_to": "many",
+              "field": {
+                "name": "Partners",
+                "inflections": {
+                  "singular": "Partners",
+                  "plural": "Partnerss"
+                }
+              }
+            }
+          ]
+        },
+        "fields": [
+          {
+            "key": "field_1",
+            "name": "Account Name",
+            "type": "short_text",
+            "required": true,
+            "unique": true,
+            "meta": {
+              "description": "<p>Main &amp; \"primary\"&nbsp;name</p>"
+            }
+          },
+          {
+            "key": "field_2",
+            "name": "E-mail (work)",
+            "type": "email",
+            "conditional": true,
+            "user": true
+          },
+          {
+            "key": "field_3",
+            "name": "Owner",
+            "type": "connection",
+            "relationship": {
+              "has": "one",
+              "object": "object_2",
+              "belongs_to": "many"
+            }
+          },
+          {
+            "key": "field_4",
+            "name": "Created At",
+            "type": "date_time"
+          },
+          {
+            "key": "field_5",
+            "name": "Address",
+            "type": "address"
+          },
+          {
+            "key": "field_6",
+            "name": "2nd Phone",
+            "type": "phone",
+            "unique": true
+          },
+          {
+            "key": "field_7",
+            "name": "Mystery",
+            "type": "weird_new_type"
+          },
+          {
+            "key": "field_8",
+            "name": "Label",
+            "type": "equation",
+            "format": {
+              "equation": "{field_4}"
+            }
+          },
+          {
+            "key": "field_9",
+            "name": "Website",
+            "type": "link",
+            "required": true
+          },
+          {
+            "key": "field_10",
+            "name": "Vendor",
+            "type": "connection",
+            "relationship": {
+              "has": "many",
+              "object": "object_3",
+              "belongs_to": "one"
+            }
+          }
+        ]
+      },
+      {
+        "key": "object_2",
+        "name": "Accounts",
+        "connections": {
+          "outbound": [
+            {
+              "key": "field_20",
+              "name": "Primary Vendor",
+              "object": "object_3",
+              "has": "one",
+              "belongs_to": "one",
+              "field": {
+                "name": "Primary Vendor",
+                "inflections": {
+                  "singular": "Primary Vendor",
+                  "plural": "Primary Vendors"
+                }
+              }
+            },
+            {
+              "key": "field_21",
+              "name": "Account Link",
+              "object": "object_1",
+              "has": "many",
+              "belongs_to": "one",
+              "field": {
+                "name": "Account Link",
+                "inflections": {
+                  "singular": "Account Link",
+                  "plural": "Account Links"
+                }
+              }
+            }
+          ],
+          "inbound": [
+            {
+              "key": "field_3",
+              "name": "Owner",
+              "object": "object_1",
+              "has": "one",
+              "belongs_to": "many",
+              "field": {
+                "name": "Owner",
+                "inflections": {
+                  "singular": "Owner",
+                  "plural": "Owners"
+                }
+              }
+            }
+          ]
+        },
+        "fields": [
+          {
+            "key": "field_20",
+            "name": "Primary Vendor",
+            "type": "connection",
+            "relationship": {
+              "has": "one",
+              "object": "object_3",
+              "belongs_to": "one"
+            }
+          },
+          {
+            "key": "field_21",
+            "name": "Account Link",
+            "type": "connection",
+            "relationship": {
+              "has": "many",
+              "object": "object_1",
+              "belongs_to": "one"
+            }
+          },
+          {
+            "key": "field_22",
+            "name": "Budget",
+            "type": "currency",
+            "required": true
+          }
+        ]
+      },
+      {
+        "key": "object_3",
+        "name": "3rd Party/Vendor",
+        "identifier": "field_31",
+        "inflections": {
+          "singular": "Vendor",
+          "plural": "Vendors"
+        },
+        "connections": {
+          "outbound": [
+            {
+              "key": "field_30",
+              "name": "Partners",
+              "object": "object_1",
+              "has": "many",
+              "belongs_to": "many",
+              "field": {
+                "name": "Partners",
+                "inflections": {
+                  "singular": "Partners",
+                  "plural": "Partnerss"
+                }
+              }
+            }
+          ],
+          "inbound": [
+            {
+              "key": "field_10",
+              "name": "Vendor",
+              "object": "object_1",
+              "has": "many",
+              "belongs_to": "one",
+              "field": {
+                "name": "Vendor",
+                "inflections": {
+                  "singular": "Vendor",
+                  "plural": "Vendors"
+                }
+              }
+            },
+            {
+              "key": "field_20",
+              "name": "Primary Vendor",
+              "object": "object_2",
+              "has": "one",
+              "belongs_to": "one",
+              "field": {
+                "name": "Primary Vendor",
+                "inflections": {
+                  "singular": "Primary Vendor",
+                  "plural": "Primary Vendors"
+                }
+              }
+            }
+          ]
+        },
+        "fields": [
+          {
+            "key": "field_30",
+            "name": "Partners",
+            "type": "connection",
+            "relationship": {
+              "has": "many",
+              "object": "object_1",
+              "belongs_to": "many"
+            }
+          },
+          {
+            "key": "field_31",
+            "name": "Vendor Name",
+            "type": "name",
+            "required": true
+          },
+          {
+            "key": "field_32",
+            "name": "µ-rating m²",
+            "type": "rating"
+          }
+        ]
+      }
+    ]
+  }
+}
