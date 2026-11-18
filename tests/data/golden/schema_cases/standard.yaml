@@ -1,0 +1,230 @@
+application:
+  name: Acme "Ops" App
+  slug: acme-ops
+  id: app_schema_cases
+  description: Every relationship shape and field edge case the schema exporters handle.
+objects:
+- key: object_1
+  name: Accounts
+  record_count: 3
+  is_user_object: true
+  identifier_field: field_1
+  fields:
+  - key: field_1
+    name: Account Name
+    type: short_text
+    sql_type: VARCHAR(255)
+    required: true
+    unique: true
+  - key: field_2
+    name: E-mail (work)
+    type: email
+    sql_type: VARCHAR(255)
+    required: false
+    unique: false
+    is_user_field: true
+    conditional: true
+  - key: field_3
+    name: Owner
+    type: connection
+    sql_type: VARCHAR(50)
+    required: false
+    unique: false
+    relationship:
+      has: one
+      object: object_2
+      belongs_to: many
+  - key: field_4
+    name: Created At
+    type: date_time
+    sql_type: TIMESTAMP
+    required: false
+    unique: false
+  - key: field_5
+    name: Address
+    type: address
+    sql_type: TEXT
+    required: false
+    unique: false
+  - key: field_6
+    name: 2nd Phone
+    type: phone
+    sql_type: VARCHAR(50)
+    required: false
+    unique: true
+  - key: field_7
+    name: Mystery
+    type: weird_new_type
+    sql_type: TEXT
+    required: false
+    unique: false
+  - key: field_8
+    name: Label
+    type: equation
+    sql_type: TEXT
+    required: false
+    unique: false
+    format:
+      equation: '{field_4}'
+  - key: field_9
+    name: Website
+    type: link
+    sql_type: VARCHAR(2048)
+    required: true
+    unique: false
+  - key: field_10
+    name: Vendor
+    type: connection
+    sql_type: VARCHAR(50)
+    required: false
+    unique: false
+    relationship:
+      has: many
+      object: object_3
+      belongs_to: one
+  inflections:
+    singular: Account
+    plural: Accounts
+  connections:
+    outbound:
+    - key: field_3
+      name: Owner
+      target_object: object_2
+      field_name: Owner
+      has: one
+      belongs_to: many
+      relationship_type: one-to-many
+    - key: field_10
+      name: Vendor
+      target_object: object_3
+      field_name: Vendor
+      has: many
+      belongs_to: one
+      relationship_type: many-to-one
+    inbound:
+    - key: field_21
+      name: Account Link
+      source_object: object_2
+      field_name: Account Link
+      has: many
+      belongs_to: one
+      relationship_type: many-to-one
+    - key: field_30
+      name: Partners
+      source_object: object_3
+      field_name: Partners
+      has: many
+      belongs_to: many
+      relationship_type: many-to-many
+- key: object_2
+  name: Accounts
+  record_count: 1
+  is_user_object: false
+  identifier_field: null
+  fields:
+  - key: field_20
+    name: Primary Vendor
+    type: connection
+    sql_type: VARCHAR(50)
+    required: false
+    unique: false
+    relationship:
+      has: one
+      object: object_3
+      belongs_to: one
+  - key: field_21
+    name: Account Link
+    type: connection
+    sql_type: VARCHAR(50)
+    required: false
+    unique: false
+    relationship:
+      has: many
+      object: object_1
+      belongs_to: one
+  - key: field_22
+    name: Budget
+    type: currency
+    sql_type: DECIMAL(19,4)
+    required: true
+    unique: false
+  connections:
+    outbound:
+    - key: field_20
+      name: Primary Vendor
+      target_object: object_3
+      field_name: Primary Vendor
+      has: one
+      belongs_to: one
+      relationship_type: one-to-one
+    - key: field_21
+      name: Account Link
+      target_object: object_1
+      field_name: Account Link
+      has: many
+      belongs_to: one
+      relationship_type: many-to-one
+    inbound:
+    - key: field_3
+      name: Owner
+      source_object: object_1
+      field_name: Owner
+      has: one
+      belongs_to: many
+      relationship_type: one-to-many
+- key: object_3
+  name: 3rd Party/Vendor
+  record_count: 12
+  is_user_object: false
+  identifier_field: field_31
+  fields:
+  - key: field_30
+    name: Partners
+    type: connection
+    sql_type: VARCHAR(50)
+    required: false
+    unique: false
+    relationship:
+      has: many
+      object: object_1
+      belongs_to: many
+  - key: field_31
+    name: Vendor Name
+    type: name
+    sql_type: VARCHAR(255)
+    required: true
+    unique: false
+  - key: field_32
+    name: "\xB5-rating m\xB2"
+    type: rating
+    sql_type: INTEGER
+    required: false
+    unique: false
+  inflections:
+    singular: Vendor
+    plural: Vendors
+  connections:
+    outbound:
+    - key: field_30
+      name: Partners
+      target_object: object_1
+      field_name: Partners
+      has: many
+      belongs_to: many
+      relationship_type: many-to-many
+    inbound:
+    - key: field_10
+      name: Vendor
+      source_object: object_1
+      field_name: Vendor
+      has: many
+      belongs_to: one
+      relationship_type: many-to-one
+    - key: field_20
+      name: Primary Vendor
+      source_object: object_2
+      field_name: Primary Vendor
+      has: one
+      belongs_to: one
+      relationship_type: one-to-one
+

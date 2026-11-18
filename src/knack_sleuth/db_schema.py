@@ -8,7 +8,7 @@ import re
 import unicodedata
 from collections import deque
 from copy import deepcopy
-from typing import Any
+from typing import Any, NamedTuple
 
 import yaml
 
@@ -269,7 +269,69 @@ def _build_field_json_schema(field: KnackField) -> dict[str, Any]:
     return schema
 
 
-def export_to_json_schema(app: Application, detail: str = "standard") -> dict[str, Any]:  # noqa: C901
+def _connection_entries(
+    obj: KnackObject, *, with_field_details: bool = False
+) -> dict[str, Any]:
+    """An object's outbound and inbound connections, for the JSON and YAML exports.
+
+    with_field_details adds the YAML-only field_name and relationship_type.
+    """
+    entries: dict[str, Any] = {}
+    if not obj.connections:
+        return entries
+    for direction, other_end, conns in (
+        ("outbound", "target_object", obj.connections.outbound),
+        ("inbound", "source_object", obj.connections.inbound),
+    ):
+        if not conns:
+            continue
+        entries[direction] = []
+        for conn in conns:
+            entry: dict[str, Any] = {
+                "key": conn.key,
+                "name": conn.name,
+                other_end: conn.object,
+            }
+            if with_field_details:
+                entry["field_name"] = conn.field.name
+            entry["has"] = conn.has
+            entry["belongs_to"] = conn.belongs_to
+            if with_field_details:
+                entry["relationship_type"] = _relationship(
+                    conn.has, conn.belongs_to
+                ).label
+            entries[direction].append(entry)
+    return entries
+
+
+def _object_json_schema(
+    app: Application, obj: KnackObject, detail: str
+) -> dict[str, Any]:
+    obj_schema: dict[str, Any] = {
+        "type": "object",
+        "title": obj.name,
+        "x-knack-key": obj.key,
+        "properties": {},
+        "x-record-count": app.counts.get(obj.key, 0),
+    }
+    if obj.user:
+        obj_schema["x-user-object"] = True
+    if obj.identifier:
+        obj_schema["x-identifier-field"] = obj.identifier
+
+    fields = [f for f in obj.fields if _should_include_field(f, obj, detail)]
+    for field in fields:
+        obj_schema["properties"][field.key] = _build_field_json_schema(field)
+    required_fields = [field.key for field in fields if field.required]
+    if required_fields:
+        obj_schema["required"] = required_fields
+
+    if obj.connections:
+        obj_schema["x-connections"] = _connection_entries(obj)
+    return obj_schema
+
+
+def export_to_json_schema(app: Application, detail: str = "standard") -> dict[str, Any]:
     """Generate JSON Schema representing the actual database structure.
 
     Args:
@@ -289,75 +351,79 @@ def export_to_json_schema(app: Application, detail: str = "standard") -> dict[st
         "properties": {},
         "definitions": {},
     }
-
-    # Build schema for each object (table)
     for obj in app.objects:
-        obj_schema: dict[str, Any] = {
-            "type": "object",
-            "title": obj.name,
-            "x-knack-key": obj.key,
-            "properties": {},
-            "x-record-count": app.counts.get(obj.key, 0),
-        }
-
-        if obj.user:
-            obj_schema["x-user-object"] = True
-
-        if obj.identifier:
-            obj_schema["x-identifier-field"] = obj.identifier
-
-        # Add fields based on detail level
-        required_fields = []
-        for field in obj.fields:
-            if _should_include_field(field, obj, detail):
-                obj_schema["properties"][field.key] = _build_field_json_schema(field)
-                if field.required:
-                    required_fields.append(field.key)
-
-        if required_fields:
-            obj_schema["required"] = required_fields
-
-        # Add connection information
-        if obj.connections:
-            connections_info: dict[str, Any] = {}
-
-            if obj.connections.outbound:
-                connections_info["outbound"] = [
-                    {
-                        "key": conn.key,
-                        "name": conn.name,
-                        "target_object": conn.object,
-                        "has": conn.has,
-                        "belongs_to": conn.belongs_to,
-                    }
-                    for conn in obj.connections.outbound
-                ]
-
-            if obj.connections.inbound:
-                connections_info["inbound"] = [
-                    {
-                        "key": conn.key,
-                        "name": conn.name,
-                        "source_object": conn.object,
-                        "has": conn.has,
-                        "belongs_to": conn.belongs_to,
-                    }
-                    for conn in obj.connections.inbound
-                ]
-
-            obj_schema["x-connections"] = connections_info
-
-        schema["definitions"][obj.key] = obj_schema
+        schema["definitions"][obj.key] = _object_json_schema(app, obj, detail)
         schema["properties"][obj.key] = {
             "$ref": f"#/definitions/{obj.key}",
             "type": "array",
             "items": {"$ref": f"#/definitions/{obj.key}"},
         }
-
     return schema
 
 
-def export_to_dbml(app: Application, detail: str = "standard") -> str:  # noqa: C901, PLR0912, PLR0915
+def _dbml_field_line(field: KnackField, obj: KnackObject) -> str:
+    attributes = []
+    if field.required:
+        attributes.append("not null")
+    if field.unique:
+        attributes.append("unique")
+    if field.key == obj.identifier:
+        attributes.append("pk")
+
+    line = f"  {field.key} {_get_field_sql_type(field)}"
+    if attributes:
+        line += f" [{', '.join(attributes)}]"
+    return line + f"  // {field.name} ({field.type})"
+
+
+def _dbml_table(app: Application, obj: KnackObject, detail: str) -> list[str]:
+    lines = [f"Table {obj.key} {{", f"  // {obj.name}"]
+    record_count = app.counts.get(obj.key, 0)
+    if record_count > 0:
+        lines.append(f"  // Records: {record_count}")
+    if obj.user:
+        lines.append("  // User Profile Object")
+    lines.append("")
+
+    lines += [
+        _dbml_field_line(field, obj)
+        for field in obj.fields
+        if _should_include_field(field, obj, detail)
+    ]
+    lines.append("")
+
+    if obj.inflections:
+        notes = (
+            f"Plural: {obj.inflections.plural}, Singular: {obj.inflections.singular}"
+        )
+        lines.append(f'  Note: "{notes}"')
+    lines += ["}", ""]
+    return lines
+
+
+def _dbml_refs(app: Application) -> list[str]:
+    objects_by_key = {obj.key: obj for obj in app.objects}
+    lines = ["// Relationships"]
+    for obj in app.objects:
+        if not obj.connections:
+            continue
+        for conn in obj.connections.outbound:
+            rel_type = _relationship(conn.has, conn.belongs_to).dbml
+            # The target's identifier field, else the connection's own key.
+            target_obj = objects_by_key.get(conn.object)
+            target_field = (
+                target_obj.identifier
+                if target_obj and target_obj.identifier
+                else conn.key
+            )
+            lines.append(
+                f"Ref: {obj.key}.{conn.key} {rel_type} {conn.object}.{target_field} "
+                f"// {conn.name}"
+            )
+    return lines
+
+
+def export_to_dbml(app: Application, detail: str = "standard") -> str:
     """Generate DBML (Database Markup Language) schema.
 
     DBML is a simple, readable DSL language designed to define database schemas.
@@ -370,110 +436,73 @@ def export_to_dbml(app: Application, detail: str = "standard") -> str:  # noqa: 
     Returns:
         A DBML string representing the database structure
     """
-    # Build object index for looking up identifiers
-    objects_by_key = {obj.key: obj for obj in app.objects}
-
-    lines = []
-    lines.append(f"// Database schema for: {app.name}")
+    lines = [f"// Database schema for: {app.name}"]
     if app.description:
         lines.append(f"// Description: {app.description}")
-    lines.append(f"// Knack App ID: {app.id}")
-    lines.append("")
-
-    # Project metadata
-    lines.append("Project knack_app {")
-    lines.append('  database_type: "Knack"')
-    lines.append(f'  Note: "{app.name}"')
-    lines.append("}")
-    lines.append("")
-
-    # Define tables (objects)
+    lines += [
+        f"// Knack App ID: {app.id}",
+        "",
+        "Project knack_app {",
+        '  database_type: "Knack"',
+        f'  Note: "{app.name}"',
+        "}",
+        "",
+    ]
     for obj in app.objects:
-        # Table name and metadata
-        table_name = obj.key
-        lines.append(f"Table {table_name} {{")
-        lines.append(f"  // {obj.name}")
-
-        record_count = app.counts.get(obj.key, 0)
-        if record_count > 0:
-            lines.append(f"  // Records: {record_count}")
-
-        if obj.user:
-            lines.append("  // User Profile Object")
-
-        lines.append("")
-
-        # Add fields based on detail level
-        for field in obj.fields:
-            if _should_include_field(field, obj, detail):
-                field_line = f"  {field.key} {_get_field_sql_type(field)}"
-
-                attributes = []
-                if field.required:
-                    attributes.append("not null")
-                if field.unique:
-                    attributes.append("unique")
-                if field.key == obj.identifier:
-                    attributes.append("pk")
-
-                if attributes:
-                    field_line += f" [{', '.join(attributes)}]"
-
-                field_line += f"  // {field.name} ({field.type})"
-                lines.append(field_line)
-
-        lines.append("")
-
-        # Add note with additional metadata
-        notes = []
-        if obj.inflections:
-            notes.append(
-                f"Plural: {obj.inflections.plural}, Singular: {obj.inflections.singular}"
-            )
-
-        if notes:
-            lines.append(f'  Note: "{"; ".join(notes)}"')
-
-        lines.append("}")
-        lines.append("")
-
-    # Define relationships (connections)
-    lines.append("// Relationships")
-    for obj in app.objects:
-        if not obj.connections or not obj.connections.outbound:
-            continue
-
-        for conn in obj.connections.outbound:
-            # Determine relationship type
-            if conn.has == "many" and conn.belongs_to == "one":
-                # Many-to-one
-                rel_type = ">"
-            elif conn.has == "one" and conn.belongs_to == "many":
-                # One-to-many
-                rel_type = "<"
-            elif conn.has == "one" and conn.belongs_to == "one":
-                # One-to-one
-                rel_type = "-"
-            else:  # many-to-many
-                rel_type = "<>"
-
-            # Get target object's identifier field
-            target_obj = objects_by_key.get(conn.object)
-            target_field = (
-                target_obj.identifier
-                if target_obj and target_obj.identifier
-                else conn.key
-            )
-
-            lines.append(
-                f"Ref: {obj.key}.{conn.key} {rel_type} {conn.object}.{target_field} "
-                f"// {conn.name}"
-            )
-
+        lines += _dbml_table(app, obj, detail)
+    lines += _dbml_refs(app)
     return "\n".join(lines)
 
 
-def export_to_yaml(app: Application, detail: str = "standard") -> str:  # noqa: C901
+def _yaml_field(field: KnackField) -> dict[str, Any]:
+    field_data: dict[str, Any] = {
+        "key": field.key,
+        "name": field.name,
+        "type": field.type,
+        "sql_type": _get_field_sql_type(field),
+        "required": field.required,
+        "unique": field.unique,
+    }
+    if field.user:
+        field_data["is_user_field"] = True
+    if field.conditional:
+        field_data["conditional"] = True
+    if field.relationship:
+        field_data["relationship"] = {
+            "has": field.relationship.has,
+            "object": field.relationship.object,
+            "belongs_to": field.relationship.belongs_to,
+        }
+    if field.format:
+        field_data["format"] = field.format.model_dump(exclude_none=True)
+    return field_data
+
+
+def _yaml_object(app: Application, obj: KnackObject, detail: str) -> dict[str, Any]:
+    obj_data: dict[str, Any] = {
+        "key": obj.key,
+        "name": obj.name,
+        "record_count": app.counts.get(obj.key, 0),
+        "is_user_object": obj.user,
+        "identifier_field": obj.identifier,
+        "fields": [],
+    }
+    if obj.inflections:
+        obj_data["inflections"] = {
+            "singular": obj.inflections.singular,
+            "plural": obj.inflections.plural,
+        }
+    obj_data["fields"] = [
+        _yaml_field(field)
+        for field in obj.fields
+        if _should_include_field(field, obj, detail)
+    ]
+    if obj.connections:
+        obj_data["connections"] = _connection_entries(obj, with_field_details=True)
+    return obj_data
+
+
+def export_to_yaml(app: Application, detail: str = "standard") -> str:
     """Generate YAML representation of the database structure.
 
     Args:
@@ -490,109 +519,32 @@ def export_to_yaml(app: Application, detail: str = "standard") -> str:  # noqa: 
             "id": app.id,
             "description": app.description,
         },
-        "objects": [],
+        "objects": [_yaml_object(app, obj, detail) for obj in app.objects],
     }
-
-    for obj in app.objects:
-        obj_data: dict[str, Any] = {
-            "key": obj.key,
-            "name": obj.name,
-            "record_count": app.counts.get(obj.key, 0),
-            "is_user_object": obj.user,
-            "identifier_field": obj.identifier,
-            "fields": [],
-        }
-
-        # Add inflections if available
-        if obj.inflections:
-            obj_data["inflections"] = {
-                "singular": obj.inflections.singular,
-                "plural": obj.inflections.plural,
-            }
-
-        # Add fields based on detail level
-        for field in obj.fields:
-            if _should_include_field(field, obj, detail):
-                field_data: dict[str, Any] = {
-                    "key": field.key,
-                    "name": field.name,
-                    "type": field.type,
-                    "sql_type": _get_field_sql_type(field),
-                    "required": field.required,
-                    "unique": field.unique,
-                }
-
-                if field.user:
-                    field_data["is_user_field"] = True
-
-                if field.conditional:
-                    field_data["conditional"] = True
-
-                if field.relationship:
-                    field_data["relationship"] = {
-                        "has": field.relationship.has,
-                        "object": field.relationship.object,
-                        "belongs_to": field.relationship.belongs_to,
-                    }
-
-                if field.format:
-                    field_data["format"] = field.format.model_dump(exclude_none=True)
-
-                obj_data["fields"].append(field_data)
-
-        # Add connections
-        if obj.connections:
-            connections: dict[str, Any] = {}
-
-            if obj.connections.outbound:
-                connections["outbound"] = [
-                    {
-                        "key": conn.key,
-                        "name": conn.name,
-                        "target_object": conn.object,
-                        "field_name": conn.field.name,
-                        "has": conn.has,
-                        "belongs_to": conn.belongs_to,
-                        "relationship_type": _get_relationship_type(
-                            conn.has, conn.belongs_to
-                        ),
-                    }
-                    for conn in obj.connections.outbound
-                ]
-
-            if obj.connections.inbound:
-                connections["inbound"] = [
-                    {
-                        "key": conn.key,
-                        "name": conn.name,
-                        "source_object": conn.object,
-                        "field_name": conn.field.name,
-                        "has": conn.has,
-                        "belongs_to": conn.belongs_to,
-                        "relationship_type": _get_relationship_type(
-                            conn.has, conn.belongs_to
-                        ),
-                    }
-                    for conn in obj.connections.inbound
-                ]
-
-            obj_data["connections"] = connections
-
-        schema["objects"].append(obj_data)
-
     return yaml.dump(schema, default_flow_style=False, sort_keys=False, indent=2)
 
 
-def _get_relationship_type(has: str, belongs_to: str) -> str:
-    """Determine the relationship type from has/belongs_to values."""
-    if has == "one" and belongs_to == "one":
-        return "one-to-one"
-    if has == "one" and belongs_to == "many":
-        return "one-to-many"
-    if has == "many" and belongs_to == "one":
-        return "many-to-one"
-    # many-to-many
-    return "many-to-many"
+class _Relationship(NamedTuple):
+    """One has/belongs_to combination in each export's notation."""
+
+    label: str
+    dbml: str
+    mermaid: str
+
+
+# Mermaid ER syntax: ||--|| exactly one on both sides; ||--o{ one to zero or
+# more; }o--|| zero or more to exactly one; }o--o{ zero or more on both sides.
+_RELATIONSHIPS = {
+    ("one", "one"): _Relationship("one-to-one", "-", "||--||"),
+    ("one", "many"): _Relationship("one-to-many", "<", "||--o{"),
+    ("many", "one"): _Relationship("many-to-one", ">", "}o--||"),
+}
+# Anything else, including unexpected values, is treated as many-to-many.
+_MANY_TO_MANY = _Relationship("many-to-many", "<>", "}o--o{")
+
+
+def _relationship(has: str, belongs_to: str) -> _Relationship:
+    return _RELATIONSHIPS.get((has, belongs_to), _MANY_TO_MANY)
 
 
 def _get_mermaid_type(field: KnackField) -> str:
@@ -630,25 +582,6 @@ def _get_mermaid_type(field: KnackField) -> str:
         "timer": "int",
     }
     return type_mapping.get(field.type, "string")
-
-
-def _get_mermaid_relationship(has: str, belongs_to: str) -> str:
-    """Convert has/belongs_to to Mermaid relationship notation.
-
-    Mermaid ER syntax:
-    - ||--|| : one-to-one (exactly one)
-    - ||--o{ : one-to-many (zero or more)
-    - }o--|| : many-to-one (zero or more to exactly one)
-    - }o--o{ : many-to-many (zero or more on both sides)
-    """
-    if has == "one" and belongs_to == "one":
-        return "||--||"
-    if has == "one" and belongs_to == "many":
-        return "||--o{"
-    if has == "many" and belongs_to == "one":
-        return "}o--||"
-    # many-to-many
-    return "}o--o{"
 
 
 def _sanitize_entity_name(name: str) -> str:
@@ -760,7 +693,74 @@ def _strip_html(text: str) -> str:
     return text.strip()
 
 
-def export_to_mermaid(app: Application, detail: str = "standard") -> str:  # noqa: C901, PLR0912, PLR0915
+def _mermaid_entity_names(app: Application) -> dict[str, str]:
+    """Sanitized entity name per object key; a repeated name gets its key appended."""
+    entity_names: dict[str, str] = {}
+    seen: set[str] = set()
+    for obj in app.objects:
+        sanitized = _sanitize_entity_name(obj.name)
+        if sanitized in seen:
+            entity_names[obj.key] = f"{sanitized}_{obj.key.upper()}"
+        else:
+            seen.add(sanitized)
+            entity_names[obj.key] = sanitized
+    return entity_names
+
+
+def _mermaid_relationship_lines(
+    app: Application, entity_names: dict[str, str]
+) -> list[str]:
+    """One line per connected pair of objects, from the first connection seen."""
+    lines = []
+    pairs_seen: set[tuple[str, ...]] = set()
+    for obj in app.objects:
+        if not obj.connections:
+            continue
+        for conn in obj.connections.outbound:
+            pair = tuple(sorted([obj.key, conn.object]))
+            if pair in pairs_seen:
+                continue
+            pairs_seen.add(pair)
+            notation = _relationship(conn.has, conn.belongs_to).mermaid
+            source_name = entity_names[obj.key]
+            target_name = entity_names.get(conn.object, conn.object)
+            lines.append(f'    {source_name} {notation} {target_name} : "{conn.name}"')
+    return lines
+
+
+def _mermaid_field_line(field: KnackField, obj: KnackObject) -> str:
+    # Mermaid allows one key constraint: PK, then FK, then UK (unique).
+    constraint = ""
+    if field.key == obj.identifier:
+        constraint = " PK"
+    elif field.type == "connection":
+        constraint = " FK"
+    elif field.unique:
+        constraint = " UK"
+
+    comment = ""
+    description = _field_description(field)
+    if description:
+        escaped_desc = description.replace('"', '\\"')
+        comment = f' "{escaped_desc}"'
+
+    field_type = _get_mermaid_type(field)
+    field_name = _sanitize_field_name(field.name)
+    return f"        {field_type} {field_name}{constraint}{comment}"
+
+
+def _field_description(field: KnackField) -> str | None:
+    """The field's description from its metadata, without HTML, if it has one."""
+    meta = getattr(field, "meta", None)
+    if not meta:
+        return None
+    meta = meta if isinstance(meta, dict) else meta.__dict__
+    if meta.get("description"):
+        return _strip_html(meta["description"])
+    return None
+
+
+def export_to_mermaid(app: Application, detail: str = "standard") -> str:
     """Generate Mermaid ER diagram syntax.
 
     Mermaid is a JavaScript-based diagramming tool that renders markdown-inspired
@@ -774,105 +774,25 @@ def export_to_mermaid(app: Application, detail: str = "standard") -> str:  # noq
     Returns:
         A Mermaid ER diagram string
     """
-    # Build a mapping from object keys to sanitized entity names
-    # Handle duplicate names by appending the key
-    entity_names: dict[str, str] = {}
-    name_counts: dict[str, int] = {}
+    entity_names = _mermaid_entity_names(app)
 
-    for obj in app.objects:
-        sanitized = _sanitize_entity_name(obj.name)
-
-        # Handle duplicate names
-        if sanitized in name_counts:
-            name_counts[sanitized] += 1
-            entity_names[obj.key] = f"{sanitized}_{obj.key.upper()}"
-        else:
-            name_counts[sanitized] = 1
-            entity_names[obj.key] = sanitized
-
-    lines = []
-    lines.append("erDiagram")
-    lines.append(f"    %% Database schema for: {app.name}")
+    lines = ["erDiagram", f"    %% Database schema for: {app.name}"]
     if app.description:
         lines.append(f"    %% Description: {app.description}")
-    lines.append(f"    %% Knack App ID: {app.id}")
-    lines.append("")
+    lines += [f"    %% Knack App ID: {app.id}", ""]
 
-    # First pass: Define all relationships
-    relationships_added = set()
+    relationship_lines = _mermaid_relationship_lines(app, entity_names)
+    if relationship_lines:
+        lines += [*relationship_lines, ""]
+
     for obj in app.objects:
-        if not obj.connections or not obj.connections.outbound:
-            continue
-
-        for conn in obj.connections.outbound:
-            # Create a unique key to avoid duplicate relationships
-            rel_key = tuple(sorted([obj.key, conn.object]))
-            if rel_key in relationships_added:
-                continue
-
-            relationships_added.add(rel_key)
-
-            # Get the relationship notation
-            rel_notation = _get_mermaid_relationship(conn.has, conn.belongs_to)
-
-            # Get entity names for source and target
-            source_name = entity_names[obj.key]
-            target_name = entity_names.get(conn.object, conn.object)
-
-            # Format: SOURCE_TABLE NOTATION TARGET_TABLE : "relationship_name"
-            lines.append(
-                f'    {source_name} {rel_notation} {target_name} : "{conn.name}"'
-            )
-
-    if relationships_added:
-        lines.append("")
-
-    # Second pass: Define all entities (tables) with their fields
-    for obj in app.objects:
-        # Start entity definition with readable name and key as comment
-        entity_name = entity_names[obj.key]
-        lines.append(f"    {entity_name} {{")
-
-        # Add fields based on detail level
-        for field in obj.fields:
-            if _should_include_field(field, obj, detail):
-                field_type = _get_mermaid_type(field)
-                field_name = _sanitize_field_name(field.name)
-
-                # Determine primary constraint (Mermaid supports one key constraint)
-                # Priority: PK, then FK, then UK (unique)
-                constraint = ""
-                if field.key == obj.identifier:
-                    constraint = " PK"
-                elif field.type == "connection":
-                    constraint = " FK"
-                elif field.unique:
-                    constraint = " UK"
-
-                # Add comment from field description if it exists
-                comment = ""
-
-                # Try to get description from field metadata
-                description = None
-                if hasattr(field, "meta") and field.meta:
-                    meta = (
-                        field.meta
-                        if isinstance(field.meta, dict)
-                        else field.meta.__dict__
-                    )
-                    if meta.get("description"):
-                        description = _strip_html(meta["description"])
-
-                if description:
-                    # Use the field description as comment
-                    escaped_desc = description.replace('"', '\\"')
-                    comment = f' "{escaped_desc}"'
-
-                # Build the attribute line: type name constraints "comment"
-                lines.append(f"        {field_type} {field_name}{constraint}{comment}")
-
-        lines.append("    }")
-        lines.append("")
+        lines.append(f"    {entity_names[obj.key]} {{")
+        lines += [
+            _mermaid_field_line(field, obj)
+            for field in obj.fields
+            if _should_include_field(field, obj, detail)
+        ]
+        lines += ["    }", ""]
 
     return "\n".join(lines)
 

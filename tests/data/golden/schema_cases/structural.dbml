@@ -1,0 +1,39 @@
+// Database schema for: Acme "Ops" App
+// Description: Every relationship shape and field edge case the schema exporters handle.
+// Knack App ID: app_schema_cases
+
+Project knack_app {
+  database_type: "Knack"
+  Note: "Acme "Ops" App"
+}
+
+Table object_1 {
+  // Accounts
+  // Records: 3
+  // User Profile Object
+
+
+  Note: "Plural: Accounts, Singular: Account"
+}
+
+Table object_2 {
+  // Accounts
+  // Records: 1
+
+
+}
+
+Table object_3 {
+  // 3rd Party/Vendor
+  // Records: 12
+
+
+  Note: "Plural: Vendors, Singular: Vendor"
+}
+
+// Relationships
+Ref: object_1.field_3 < object_2.field_3 // Owner
+Ref: object_1.field_10 > object_3.field_31 // Vendor
+Ref: object_2.field_20 - object_3.field_31 // Primary Vendor
+Ref: object_2.field_21 > object_1.field_1 // Account Link
+Ref: object_3.field_30 <> object_1.field_1 // Partners

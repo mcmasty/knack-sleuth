@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Acme \"Ops\" App",
+  "description": "Every relationship shape and field edge case the schema exporters handle.",
+  "type": "object",
+  "x-knack-app-id": "app_schema_cases",
+  "x-knack-slug": "acme-ops",
+  "properties": {
+    "object_1": {
+      "$ref": "#/definitions/object_1",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/object_1"
+      }
+    },
+    "object_2": {
+      "$ref": "#/definitions/object_2",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/object_2"
+      }
+    },
+    "object_3": {
+      "$ref": "#/definitions/object_3",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/object_3"
+      }
+    }
+  },
+  "definitions": {
+    "object_1": {
+      "type": "object",
+      "title": "Accounts",
+      "x-knack-key": "object_1",
+      "properties": {},
+      "x-record-count": 3,
+      "x-user-object": true,
+      "x-identifier-field": "field_1",
+      "x-connections": {
+        "outbound": [
+          {
+            "key": "field_3",
+            "name": "Owner",
+            "target_object": "object_2",
+            "has": "one",
+            "belongs_to": "many"
+          },
+          {
+            "key": "field_10",
+            "name": "Vendor",
+            "target_object": "object_3",
+            "has": "many",
+            "belongs_to": "one"
+          }
+        ],
+        "inbound": [
+          {
+            "key": "field_21",
+            "name": "Account Link",
+            "source_object": "object_2",
+            "has": "many",
+            "belongs_to": "one"
+          },
+          {
+            "key": "field_30",
+            "name": "Partners",
+            "source_object": "object_3",
+            "has": "many",
+            "belongs_to": "many"
+          }
+        ]
+      }
+    },
+    "object_2": {
+      "type": "object",
+      "title": "Accounts",
+      "x-knack-key": "object_2",
+      "properties": {},
+      "x-record-count": 1,
+      "x-connections": {
+        "outbound": [
+          {
+            "key": "field_20",
+            "name": "Primary Vendor",
+            "target_object": "object_3",
+            "has": "one",
+            "belongs_to": "one"
+          },
+          {
+            "key": "field_21",
+            "name": "Account Link",
+            "target_object": "object_1",
+            "has": "many",
+            "belongs_to": "one"
+          }
+        ],
+        "inbound": [
+          {
+            "key": "field_3",
+            "name": "Owner",
+            "source_object": "object_1",
+            "has": "one",
+            "belongs_to": "many"
+          }
+        ]
+      }
+    },
+    "object_3": {
+      "type": "object",
+      "title": "3rd Party/Vendor",
+      "x-knack-key": "object_3",
+      "properties": {},
+      "x-record-count": 12,
+      "x-identifier-field": "field_31",
+      "x-connections": {
+        "outbound": [
+          {
+            "key": "field_30",
+            "name": "Partners",
+            "target_object": "object_1",
+            "has": "many",
+            "belongs_to": "many"
+          }
+        ],
+        "inbound": [
+          {
+            "key": "field_10",
+            "name": "Vendor",
+            "source_object": "object_1",
+            "has": "many",
+            "belongs_to": "one"
+          },
+          {
+            "key": "field_20",
+            "name": "Primary Vendor",
+            "source_object": "object_2",
+            "has": "one",
+            "belongs_to": "one"
+          }
+        ]
+      }
+    }
+  }
+}
