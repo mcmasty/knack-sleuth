@@ -143,16 +143,29 @@ with `lint-baseline.json`. It also compares the config-level escape hatches
 (`ignore`, `per-file-ignores`, `max-complexity`), so debt can't move from a
 comment into `pyproject.toml` unnoticed.
 
-It fails when a count goes up, and also when one goes down until the baseline is
-lowered, so the commit that pays off debt also locks it in:
+It fails when a count goes up. A count that goes down passes, so a PR that only
+removes suppressions doesn't touch `lint-baseline.json`, and several cleanup PRs
+can be open at once without conflicting over it. (A PR that moves a still-suppressed
+function to another file creates a new file/rule pair, which counts as an increase,
+so that PR does update the baseline.)
+
+The release locks the gains in. `bump-my-version` runs `--tighten` as a pre-commit
+hook, which lowers the baseline to the code and adds it to the bump commit; it
+refuses, and so aborts the bump, if anything went up. CI on a release tag runs
+`--strict`, which also fails when the baseline is looser than the code, so a
+release can't ship with the tightening skipped. Between releases, a suppression
+that was removed can come back in the same file and rule without failing CI.
 
 ```bash
-uv run python scripts/lint_ratchet.py            # check
-uv run python scripts/lint_ratchet.py --update   # rewrite lint-baseline.json
+uv run python scripts/lint_ratchet.py             # check (CI, pre-commit)
+uv run python scripts/lint_ratchet.py --strict    # check + baseline must be tight (release tags)
+uv run python scripts/lint_ratchet.py --tighten   # lower the baseline (release bump)
+uv run python scripts/lint_ratchet.py --update    # rewrite the baseline, increases included
 ```
 
 Only run `--update` for an increase if review agreed the suppression is needed;
-the baseline diff shows exactly what changed.
+the baseline diff shows exactly what changed. If a bump aborts on the ratchet,
+`git checkout .` restores the files it had already edited.
 
 ## Coverage
 

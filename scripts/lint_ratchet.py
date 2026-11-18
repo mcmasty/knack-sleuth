@@ -7,12 +7,16 @@ rule (by re-running ruff with ``--ignore-noqa``) and compares the counts with
 (``ignore``, ``per-file-ignores``, ``max-complexity``) so debt cannot move from
 a noqa comment into pyproject.toml unnoticed.
 
-    uv run python scripts/lint_ratchet.py            # check (CI, pre-commit)
-    uv run python scripts/lint_ratchet.py --update   # rewrite the baseline
+    uv run python scripts/lint_ratchet.py             # check (CI, pre-commit)
+    uv run python scripts/lint_ratchet.py --strict    # check, and the baseline must be tight (release tags)
+    uv run python scripts/lint_ratchet.py --tighten   # lower the baseline to the code (release bump)
+    uv run python scripts/lint_ratchet.py --update    # rewrite the baseline, increases included
 
 The check fails when a count rises, a new file/rule pair appears, or the config
-changes. It also fails when a count FALLS, until the baseline is lowered with
---update, so an improvement is locked in by the change that made it.
+changes. A count that FALLS passes: cleanup PRs don't touch the baseline, so
+they can't conflict over it. The release bump runs --tighten (a bump-my-version
+pre-commit hook) and commits the lowered baseline, and CI on a release tag runs
+--strict, so each release locks in the gains made since the last one.
 """
 
 import argparse
@@ -98,10 +102,28 @@ def write(data: dict) -> None:
     BASELINE.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
 
 
+def _report(title: str, lines: list[str]) -> None:
+    print(title)
+    print("\n".join(f"  {line}" for line in lines))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument(
-        "--update", action="store_true", help="rewrite lint-baseline.json"
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--strict",
+        action="store_true",
+        help="also fail when the baseline is looser than the code",
+    )
+    mode.add_argument(
+        "--tighten",
+        action="store_true",
+        help="lower lint-baseline.json to the code; refuses if anything went up",
+    )
+    mode.add_argument(
+        "--update",
+        action="store_true",
+        help="rewrite lint-baseline.json, increases included",
     )
     args = parser.parse_args()
 
@@ -114,16 +136,31 @@ def main() -> int:
     baseline = json.loads(BASELINE.read_text())
     worse, better = compare(baseline, now)
     if worse:
-        print("Lint ratchet: suppressed findings went UP. Fix the code instead of")
-        print("adding a noqa or a config ignore. If a suppression is truly needed,")
-        print("justify it in review and run scripts/lint_ratchet.py --update.\n")
-        print("\n".join(f"  {line}" for line in worse))
+        _report(
+            "Lint ratchet: suppressed findings went UP. Fix the code instead of\n"
+            "adding a noqa or a config ignore. If a suppression is truly needed,\n"
+            "justify it in review and run scripts/lint_ratchet.py --update.\n",
+            worse,
+        )
+        return 1
+    if better and args.tighten:
+        write(now)
+        _report(f"lint-baseline.json tightened to {now['total']}:", better)
+        return 0
+    if better and args.strict:
+        _report(
+            "Lint ratchet: lint-baseline.json is looser than the code. The release\n"
+            "bump tightens it; run scripts/lint_ratchet.py --tighten and commit it.\n",
+            better,
+        )
         return 1
     if better:
-        print("Lint ratchet: suppressed findings went down. Lock the gain in with")
-        print("`uv run python scripts/lint_ratchet.py --update` and commit it.\n")
-        print("\n".join(f"  {line}" for line in better))
-        return 1
+        _report(
+            f"Lint ratchet: OK ({now['total']} suppressed findings, down from "
+            f"{baseline['total']}; the next release bump locks this in)",
+            better,
+        )
+        return 0
     print(f"Lint ratchet: OK ({now['total']} suppressed findings, none new)")
     return 0
 
