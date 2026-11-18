@@ -2,8 +2,8 @@
 
 import re
 from collections.abc import Iterator
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, replace
+from typing import Any, NamedTuple
 
 from knack_sleuth.models import KnackAppMetadata, KnackObject, Scene, View
 
@@ -150,6 +150,34 @@ def _is_typed_view_reference(path: tuple[str, ...]) -> bool:
     return False
 
 
+# Object attributes that _find_field_usages checks directly, or that hold the
+# object's own fields (indexed one field at a time).
+_OBJECT_TYPED_ATTRS = {"key", "fields", "connections", "identifier", "sort"}
+
+
+def _is_typed_equation_reference(
+    field_key: str, path: tuple[str, ...], field_data: dict[str, Any]
+) -> bool:
+    """Return whether the field_equation check already reports this reference.
+
+    That check only matches a literal ``{field_key}``; a connected-field
+    reference such as ``{field_2.field_1}`` or an equation stored as a list
+    falls through to the generic index.
+    """
+    if path[:2] != ("format", "equation"):
+        return False
+    equation = (field_data.get("format") or {}).get("equation")
+    return f"{{{field_key}}}" in str(equation)
+
+
+class _ReferenceOwner(NamedTuple):
+    """Where an indexed field reference lives, for building its Usage."""
+
+    location_type: str
+    where: str
+    details: dict[str, Any]
+
+
 class KnackSleuth:
     """Search engine for finding object and field usages in Knack metadata."""
 
@@ -196,12 +224,82 @@ class KnackSleuth:
                     if reference not in references:
                         references.append(reference)
 
+        self.metadata_field_references = self._index_metadata_references()
+
         # A view left out of its page layout never renders, so a reference
         # living only there does not keep a field or object alive. Cached
         # because every usage scan consults it.
         self.orphaned_view_keys: set[str] = {
             orphan.view.key for orphan in self.find_orphaned_views()
         }
+
+    def _index_metadata_references(self) -> dict[str, list[Usage]]:
+        """Index field references that live outside views.
+
+        Other fields' definitions (formulas, sum/count fields and their
+        filters, conditional rules, validation), object tasks and page rules
+        all name fields. A field's references to itself don't count, and those
+        the typed checks in _find_field_usages report are skipped.
+        """
+        index: dict[str, list[Usage]] = {}
+        for obj in self.app.objects:
+            for field in obj.fields:
+                data = field.model_dump(mode="python", exclude_none=True, by_alias=True)
+                owner = _ReferenceOwner(
+                    "field_reference",
+                    f"{obj.name}.{field.name} ({field.key})",
+                    {
+                        "object_key": obj.key,
+                        "object_name": obj.name,
+                        "field_key": field.key,
+                        "field_name": field.name,
+                    },
+                )
+                for field_key, path in _iter_field_references(data):
+                    if field_key != field.key and not _is_typed_equation_reference(
+                        field_key, path, data
+                    ):
+                        self._add_reference(index, field_key, path, owner)
+            data = obj.model_dump(
+                mode="python", exclude_none=True, exclude=_OBJECT_TYPED_ATTRS
+            )
+            owner = _ReferenceOwner(
+                "object_reference",
+                f"object {obj.name} ({obj.key})",
+                {"object_key": obj.key, "object_name": obj.name},
+            )
+            for field_key, path in _iter_field_references(data):
+                self._add_reference(index, field_key, path, owner)
+        for scene in self.app.scenes:
+            data = scene.model_dump(mode="python", exclude_none=True, exclude={"views"})
+            owner = _ReferenceOwner(
+                "scene_reference",
+                f"page '{scene.name}' ({scene.key})",
+                {"scene_key": scene.key, "scene_name": scene.name},
+            )
+            for field_key, path in _iter_field_references(data):
+                self._add_reference(index, field_key, path, owner)
+        return index
+
+    def _add_reference(
+        self,
+        index: dict[str, list[Usage]],
+        field_key: str,
+        path: tuple[str, ...],
+        owner: _ReferenceOwner,
+    ) -> None:
+        """Record one reference to a known field, once per owner and path."""
+        if field_key not in self.field_to_object:
+            return
+        reference_path = ".".join(path)
+        usage = Usage(
+            location_type=owner.location_type,
+            context=f"Referenced at {reference_path} in {owner.where}",
+            details={**owner.details, "reference_path": reference_path},
+        )
+        usages = index.setdefault(field_key, [])
+        if usage not in usages:
+            usages.append(usage)
 
     def search_object(self, object_key: str) -> dict[str, list[Usage]]:
         """
@@ -527,6 +625,13 @@ class KnackSleuth:
                     },
                 )
             )
+
+        # 8. Other fields' definitions, object tasks and page rules. Copies,
+        # so a caller that edits a Usage can't change the shared index.
+        usages.extend(
+            replace(usage, details=dict(usage.details))
+            for usage in self.metadata_field_references.get(field_key, [])
+        )
 
         return self._tag_orphaned_view_usages(usages)
 
