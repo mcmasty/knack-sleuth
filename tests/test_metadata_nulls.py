@@ -111,7 +111,7 @@ def test_cli_reports_bad_metadata_in_one_line(metadata, tmp_path):
 
 def test_missing_key_message_names_no_input():
     with pytest.raises(ValidationError) as caught:
-        KnackAppMetadata()
+        KnackAppMetadata.model_validate({})
     assert describe_validation_error(caught.value) == (
         "Invalid metadata at application: Field required"
     )
