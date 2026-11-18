@@ -429,211 +429,174 @@ class KnackSleuth:
                 usage.details["orphaned_view"] = view_key in self.orphaned_view_keys
         return usages
 
-    def _find_field_usages(self, field_key: str) -> list[Usage]:  # noqa: C901, PLR0912
+    def _find_field_usages(self, field_key: str) -> list[Usage]:
         """Find all places where a field is referenced."""
-        usages: list[Usage] = []
+        usages = [
+            *self._connection_field_usages(field_key),
+            *self._object_setting_usages(field_key),
+            *self._equation_usages(field_key),
+            *self._view_column_usages(field_key),
+            *self._view_source_usages(field_key),
+            *self._form_input_usages(field_key),
+            *self._view_reference_usages(field_key),
+            *self._metadata_reference_usages(field_key),
+        ]
+        return self._tag_orphaned_view_usages(usages)
 
-        # 1. Check if it's a connection field
+    def _views(self) -> Iterator[tuple[Scene, View]]:
+        for scene in self.app.scenes:
+            for view in scene.views:
+                yield scene, view
+
+    @staticmethod
+    def _view_details(scene: Scene, view: View, **extra: Any) -> dict[str, Any]:
+        return {
+            "scene_key": scene.key,
+            "scene_name": scene.name,
+            "view_key": view.key,
+            "view_name": view.name,
+            **extra,
+        }
+
+    def _connection_field_usages(self, field_key: str) -> Iterator[Usage]:
+        """The field is a connection defined on an object."""
         for obj in self.app.objects:
-            if obj.connections:
-                for conn in obj.connections.outbound:
-                    if conn.key == field_key:
-                        usages.append(
-                            Usage(
-                                location_type="connection_field",
-                                context=f"Connection field in {obj.name} ({obj.key})",
-                                details={
-                                    "object_key": obj.key,
-                                    "object_name": obj.name,
-                                    "target_object": conn.object,
-                                    "connection_name": conn.name,
-                                },
-                            )
-                        )
+            if not obj.connections:
+                continue
+            for conn in obj.connections.outbound:
+                if conn.key == field_key:
+                    yield Usage(
+                        location_type="connection_field",
+                        context=f"Connection field in {obj.name} ({obj.key})",
+                        details={
+                            "object_key": obj.key,
+                            "object_name": obj.name,
+                            "target_object": conn.object,
+                            "connection_name": conn.name,
+                        },
+                    )
 
-        # 2. Check object sort fields
+    def _object_setting_usages(self, field_key: str) -> Iterator[Usage]:
+        """The field sorts an object's records or identifies them."""
         for obj in self.app.objects:
             if obj.sort and obj.sort.field == field_key:
-                usages.append(
-                    Usage(
-                        location_type="object_sort",
-                        context=f"Used as sort field for {obj.name} ({obj.key})",
-                        details={
-                            "object_key": obj.key,
-                            "object_name": obj.name,
-                            "sort_order": obj.sort.order,
-                        },
-                    )
-                )
-
-            # Check if it's the identifier field
-            if obj.identifier == field_key:
-                usages.append(
-                    Usage(
-                        location_type="object_identifier",
-                        context=f"Used as identifier field for {obj.name} ({obj.key})",
-                        details={
-                            "object_key": obj.key,
-                            "object_name": obj.name,
-                        },
-                    )
-                )
-
-        # 3. Check field equations (field references like {field_123})
-        for obj in self.app.objects:
-            for field in obj.fields:
-                if field.format:
-                    # Access equation from the format dict if it exists
-                    format_dict = (
-                        field.format.model_dump()
-                        if hasattr(field.format, "model_dump")
-                        else {}
-                    )
-                    equation = format_dict.get("equation")
-                    if equation and f"{{{field_key}}}" in str(equation):
-                        usages.append(
-                            Usage(
-                                location_type="field_equation",
-                                context=f"Referenced in equation for {obj.name}.{field.name} ({field.key})",
-                                details={
-                                    "object_key": obj.key,
-                                    "object_name": obj.name,
-                                    "field_key": field.key,
-                                    "field_name": field.name,
-                                    "equation": equation,
-                                },
-                            )
-                        )
-
-        # 4. Check view columns
-        for scene in self.app.scenes:
-            for view in scene.views:
-                for col in view.columns:
-                    if col.field and col.field.get("key") == field_key:
-                        usages.append(
-                            Usage(
-                                location_type="view_column",
-                                context=f"Column in view '{view.name}' ({view.key}) in scene '{scene.name}'",
-                                details={
-                                    "scene_key": scene.key,
-                                    "scene_name": scene.name,
-                                    "view_key": view.key,
-                                    "view_name": view.name,
-                                    "view_type": view.type,
-                                    "column_header": col.header,
-                                },
-                            )
-                        )
-
-        # 5. Check view source sort fields
-        for scene in self.app.scenes:
-            for view in scene.views:
-                if view.source and view.source.sort:
-                    for sort in view.source.sort:
-                        if sort.field == field_key:
-                            usages.append(
-                                Usage(
-                                    location_type="view_sort",
-                                    context=f"Sort field in view '{view.name}' ({view.key})",
-                                    details={
-                                        "scene_key": scene.key,
-                                        "scene_name": scene.name,
-                                        "view_key": view.key,
-                                        "view_name": view.name,
-                                        "sort_order": sort.order,
-                                    },
-                                )
-                            )
-
-                # Check connection_key in parent_source
-                if (
-                    view.source
-                    and view.source.parent_source
-                    and view.source.parent_source.connection == field_key
-                ):
-                    usages.append(
-                        Usage(
-                            location_type="view_parent_connection",
-                            context=f"Parent connection in view '{view.name}' ({view.key})",
-                            details={
-                                "scene_key": scene.key,
-                                "scene_name": scene.name,
-                                "view_key": view.key,
-                                "view_name": view.name,
-                            },
-                        )
-                    )
-
-                # Check connection_key
-                if view.source and view.source.connection_key == field_key:
-                    usages.append(
-                        Usage(
-                            location_type="view_connection_key",
-                            context=f"Connection key in view '{view.name}' ({view.key})",
-                            details={
-                                "scene_key": scene.key,
-                                "scene_name": scene.name,
-                                "view_key": view.key,
-                                "view_name": view.name,
-                            },
-                        )
-                    )
-
-        # 6. Check form inputs
-        for scene in self.app.scenes:
-            for view in scene.views:
-                for input_field in view.inputs:
-                    if (
-                        isinstance(input_field, dict)
-                        and input_field.get("key") == field_key
-                    ):
-                        usages.append(
-                            Usage(
-                                location_type="form_input",
-                                context=f"Input field in form '{view.name}' ({view.key})",
-                                details={
-                                    "scene_key": scene.key,
-                                    "scene_name": scene.name,
-                                    "view_key": view.key,
-                                    "view_name": view.name,
-                                },
-                            )
-                        )
-
-        # 7. Check untyped/nested view metadata. Knack stores important field
-        # references in containers such as form groups, view rules, totals,
-        # preset filters, and report calculations. These structures vary by
-        # view type, so walk the complete serialized view rather than maintain
-        # an incomplete list of schemas. References already covered by the
-        # typed checks above are skipped to avoid duplicate results.
-        for scene, view, path in self.view_field_references.get(field_key, []):
-            reference_path = ".".join(path)
-            usages.append(
-                Usage(
-                    location_type="view_field_reference",
-                    context=(
-                        f"Referenced at {reference_path} in view "
-                        f"'{view.name}' ({view.key})"
-                    ),
+                yield Usage(
+                    location_type="object_sort",
+                    context=f"Used as sort field for {obj.name} ({obj.key})",
                     details={
-                        "scene_key": scene.key,
-                        "scene_name": scene.name,
-                        "view_key": view.key,
-                        "view_name": view.name,
-                        "view_type": view.type,
-                        "reference_path": reference_path,
+                        "object_key": obj.key,
+                        "object_name": obj.name,
+                        "sort_order": obj.sort.order,
                     },
                 )
+            if obj.identifier == field_key:
+                yield Usage(
+                    location_type="object_identifier",
+                    context=f"Used as identifier field for {obj.name} ({obj.key})",
+                    details={"object_key": obj.key, "object_name": obj.name},
+                )
+
+    def _equation_usages(self, field_key: str) -> Iterator[Usage]:
+        """Another field's equation contains a literal ``{field_key}``."""
+        for obj in self.app.objects:
+            for field in obj.fields:
+                if field.format is None:
+                    continue
+                equation = field.format.model_dump().get("equation")
+                if equation and f"{{{field_key}}}" in str(equation):
+                    yield Usage(
+                        location_type="field_equation",
+                        context=f"Referenced in equation for {obj.name}.{field.name} ({field.key})",
+                        details={
+                            "object_key": obj.key,
+                            "object_name": obj.name,
+                            "field_key": field.key,
+                            "field_name": field.name,
+                            "equation": equation,
+                        },
+                    )
+
+    def _view_column_usages(self, field_key: str) -> Iterator[Usage]:
+        """A table view shows the field as a column."""
+        for scene, view in self._views():
+            for col in view.columns:
+                if col.field and col.field.get("key") == field_key:
+                    yield Usage(
+                        location_type="view_column",
+                        context=f"Column in view '{view.name}' ({view.key}) in scene '{scene.name}'",
+                        details=self._view_details(
+                            scene, view, view_type=view.type, column_header=col.header
+                        ),
+                    )
+
+    def _view_source_usages(self, field_key: str) -> Iterator[Usage]:
+        """A view's data source sorts by the field or connects through it."""
+        for scene, view in self._views():
+            source = view.source
+            if not source:
+                continue
+            for sort in source.sort or []:
+                if sort.field == field_key:
+                    yield Usage(
+                        location_type="view_sort",
+                        context=f"Sort field in view '{view.name}' ({view.key})",
+                        details=self._view_details(scene, view, sort_order=sort.order),
+                    )
+            if source.parent_source and source.parent_source.connection == field_key:
+                yield Usage(
+                    location_type="view_parent_connection",
+                    context=f"Parent connection in view '{view.name}' ({view.key})",
+                    details=self._view_details(scene, view),
+                )
+            if source.connection_key == field_key:
+                yield Usage(
+                    location_type="view_connection_key",
+                    context=f"Connection key in view '{view.name}' ({view.key})",
+                    details=self._view_details(scene, view),
+                )
+
+    def _form_input_usages(self, field_key: str) -> Iterator[Usage]:
+        """A form view's top-level inputs include the field."""
+        for scene, view in self._views():
+            for input_field in view.inputs:
+                if (
+                    isinstance(input_field, dict)
+                    and input_field.get("key") == field_key
+                ):
+                    yield Usage(
+                        location_type="form_input",
+                        context=f"Input field in form '{view.name}' ({view.key})",
+                        details=self._view_details(scene, view),
+                    )
+
+    def _view_reference_usages(self, field_key: str) -> Iterator[Usage]:
+        """Untyped view metadata names the field.
+
+        Knack stores important field references in containers such as form
+        groups, view rules, totals, preset filters, and report calculations.
+        These vary by view type, so _build_indexes walks each complete view
+        rather than maintain an incomplete list of schemas, skipping what the
+        typed checks above already report.
+        """
+        for scene, view, path in self.view_field_references.get(field_key, []):
+            reference_path = ".".join(path)
+            yield Usage(
+                location_type="view_field_reference",
+                context=(
+                    f"Referenced at {reference_path} in view '{view.name}' ({view.key})"
+                ),
+                details=self._view_details(
+                    scene, view, view_type=view.type, reference_path=reference_path
+                ),
             )
 
-        # 8. Other fields' definitions, object tasks and page rules. Copies,
-        # so a caller that edits a Usage can't change the shared index.
-        usages.extend(
-            replace(usage, details=dict(usage.details))
-            for usage in self.metadata_field_references.get(field_key, [])
-        )
+    def _metadata_reference_usages(self, field_key: str) -> Iterator[Usage]:
+        """Other fields' definitions, object tasks and page rules name the field.
 
-        return self._tag_orphaned_view_usages(usages)
+        Copies, so a caller that edits a Usage can't change the shared index.
+        """
+        for usage in self.metadata_field_references.get(field_key, []):
+            yield replace(usage, details=dict(usage.details))
 
     def get_object_info(self, object_key: str) -> KnackObject | None:
         """Get the object definition."""
