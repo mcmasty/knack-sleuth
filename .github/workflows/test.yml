@@ -35,6 +35,9 @@ jobs:
       - name: Ruff format
         run: uv run --locked ruff format --check .
 
+      - name: Lint ratchet (noqa suppressions may only go down)
+        run: uv run --locked python scripts/lint_ratchet.py
+
       - name: Pyrefly
         run: uv run --locked pyrefly check
 

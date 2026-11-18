@@ -115,7 +115,9 @@ extend-immutable-calls = ["typer.Option", "typer.Argument"]
     "PLR2004",  # magic numbers are expected values
 ]
 # Typer commands take one parameter per CLI option.
-"src/knack_sleuth/cli.py" = ["PLR0913"]
+"src/knack_sleuth/cli/*.py" = ["PLR0913"]
+# A vulture whitelist is bare attribute expressions on an undefined name.
+"vulture_whitelist.py" = ["B018", "F821"]
 # Examples are linear demo scripts; size limits do not help them.
 "examples/**" = ["C901", "PLR0912", "PLR0915", "PLR2004"]
 
@@ -142,7 +144,7 @@ branch = true
 
 [tool.coverage.report]
 # Ratchet: raise as coverage improves, never lower.
-fail_under = 72
+fail_under = 90
 show_missing = true
 skip_covered = true
 
@@ -159,5 +161,5 @@ addopts = [
 ]
 
 [tool.pyrefly]
-project-includes = ["src", "tests", "examples"]
+project-includes = ["src", "tests", "examples", "scripts"]
 python-version = "3.11"
