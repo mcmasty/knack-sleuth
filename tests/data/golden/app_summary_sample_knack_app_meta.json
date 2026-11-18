@@ -443,7 +443,7 @@
      "from_name": "Object Name 2",
      "to": "object_11",
      "to_name": "Object Name 11",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_116"
     },
     {
@@ -452,7 +452,7 @@
      "from_name": "Object Name 3",
      "to": "object_11",
      "to_name": "Object Name 11",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_117"
     },
     {
@@ -461,7 +461,7 @@
      "from_name": "Object Name 3",
      "to": "object_14",
      "to_name": "Object Name 14",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_118"
     },
     {
@@ -470,7 +470,7 @@
      "from_name": "Object Name 4",
      "to": "object_11",
      "to_name": "Object Name 11",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_119"
     },
     {
@@ -479,7 +479,7 @@
      "from_name": "Object Name 10",
      "to": "object_11",
      "to_name": "Object Name 11",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_123"
     },
     {
@@ -488,7 +488,7 @@
      "from_name": "Object Name 12",
      "to": "object_11",
      "to_name": "Object Name 11",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_105"
     },
     {
@@ -497,7 +497,7 @@
      "from_name": "Object Name 13",
      "to": "object_12",
      "to_name": "Object Name 12",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_107"
     },
     {
@@ -506,7 +506,7 @@
      "from_name": "Object Name 13",
      "to": "object_11",
      "to_name": "Object Name 11",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_126"
     },
     {
@@ -515,7 +515,7 @@
      "from_name": "Object Name 14",
      "to": "object_13",
      "to_name": "Object Name 13",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_108"
     },
     {
@@ -524,7 +524,7 @@
      "from_name": "Object Name 14",
      "to": "object_11",
      "to_name": "Object Name 11",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_128"
     },
     {
@@ -533,7 +533,7 @@
      "from_name": "Object Name 15",
      "to": "object_22",
      "to_name": "Ref Data Category Value",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_133"
     },
     {
@@ -542,7 +542,7 @@
      "from_name": "Object Name 15",
      "to": "object_11",
      "to_name": "Object Name 11",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_135"
     },
     {
@@ -551,7 +551,7 @@
      "from_name": "Object Name 15",
      "to": "object_22",
      "to_name": "Ref Data Category Value",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_136"
     },
     {
@@ -560,7 +560,7 @@
      "from_name": "Object Name 17",
      "to": "object_11",
      "to_name": "Object Name 11",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_137"
     },
     {
@@ -569,7 +569,7 @@
      "from_name": "Object Name 17",
      "to": "object_24",
      "to_name": "Object Name 24",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_143"
     },
     {
@@ -578,7 +578,7 @@
      "from_name": "Object Name 18",
      "to": "object_15",
      "to_name": "Object Name 15",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_151"
     },
     {
@@ -587,7 +587,7 @@
      "from_name": "Object Name 16",
      "to": "object_11",
      "to_name": "Object Name 11",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_124"
     },
     {
@@ -596,7 +596,7 @@
      "from_name": "Object Name 16",
      "to": "object_17",
      "to_name": "Object Name 17",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_156"
     },
     {
@@ -605,7 +605,7 @@
      "from_name": "Object Name 16",
      "to": "object_18",
      "to_name": "Object Name 18",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_157"
     },
     {
@@ -614,7 +614,7 @@
      "from_name": "Object Name 16",
      "to": "object_20",
      "to_name": "Object Name 20",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_159"
     },
     {
@@ -623,7 +623,7 @@
      "from_name": "Object Name 19",
      "to": "object_4",
      "to_name": "Object Name 4",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_110"
     },
     {
@@ -632,7 +632,7 @@
      "from_name": "Object Name 19",
      "to": "object_11",
      "to_name": "Object Name 11",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_111"
     },
     {
@@ -641,7 +641,7 @@
      "from_name": "Object Name 19",
      "to": "object_12",
      "to_name": "Object Name 12",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_112"
     },
     {
@@ -650,7 +650,7 @@
      "from_name": "Object Name 19",
      "to": "object_13",
      "to_name": "Object Name 13",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_113"
     },
     {
@@ -659,7 +659,7 @@
      "from_name": "Object Name 19",
      "to": "object_14",
      "to_name": "Object Name 14",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_114"
     },
     {
@@ -668,7 +668,7 @@
      "from_name": "Object Name 19",
      "to": "object_11",
      "to_name": "Object Name 11",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_173"
     },
     {
@@ -677,7 +677,7 @@
      "from_name": "Object Name 20",
      "to": "object_11",
      "to_name": "Object Name 11",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_162"
     },
     {
@@ -686,7 +686,7 @@
      "from_name": "Object Name 20",
      "to": "object_16",
      "to_name": "Object Name 16",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_161"
     },
     {
@@ -695,7 +695,7 @@
      "from_name": "Object Name 20",
      "to": "object_19",
      "to_name": "Object Name 19",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_163"
     },
     {
@@ -704,7 +704,7 @@
      "from_name": "Ref Data Category Value",
      "to": "object_21",
      "to_name": "Ref Data Category",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_134"
     },
     {
@@ -713,7 +713,7 @@
      "from_name": "Object Name 24",
      "to": "object_11",
      "to_name": "Object Name 11",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_142"
     }
    ],

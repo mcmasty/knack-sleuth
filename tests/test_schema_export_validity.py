@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from knack_sleuth.db_schema import export_to_dbml, export_to_mermaid
+from knack_sleuth.db_schema import _relationship, export_to_dbml, export_to_mermaid
 from knack_sleuth.models import Application, KnackAppMetadata
 
 DATA = Path(__file__).parent / "data"
@@ -56,7 +56,7 @@ def test_every_dbml_ref_endpoint_is_a_declared_column(fixture, detail):
 def test_dbml_ref_points_at_the_record_id_even_without_an_identifier():
     app = load("schema_cases_meta.json")
     assert app.objects[1].identifier is None
-    assert "Ref: object_1.field_3 < object_2.id // Owner" in export_to_dbml(app)
+    assert "Ref: object_1.field_3 > object_2.id // Owner" in export_to_dbml(app)
 
 
 def test_dbml_strings_are_escaped_and_comments_stay_on_one_line():
@@ -90,3 +90,19 @@ def test_mermaid_labels_and_comments_never_contain_a_bare_double_quote():
     for line in mermaid.splitlines():
         quoted = line.split('"', 1)[1] if '"' in line else ""
         assert quoted.count('"') <= 1
+
+
+@pytest.mark.parametrize(
+    ("has", "belongs_to", "label", "dbml", "mermaid"),
+    [
+        # Events.Client: each Event holds one Client, a Client is on many Events.
+        ("one", "many", "many-to-one", ">", "}o--||"),
+        ("many", "one", "one-to-many", "<", "||--o{"),
+        ("one", "one", "one-to-one", "-", "||--||"),
+        ("many", "many", "many-to-many", "<>", "}o--o{"),
+    ],
+)
+def test_cardinality_reads_from_the_connecting_object(
+    has, belongs_to, label, dbml, mermaid
+):
+    assert _relationship(has, belongs_to) == (label, dbml, mermaid)

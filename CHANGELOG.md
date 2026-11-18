@@ -34,6 +34,14 @@
   the same two objects disappeared (95 of 114 connections shown on a real app). Every
   connection now has its own line. Double quotes in a field description or connection name no
   longer break the diagram.
+- DBML, Mermaid and YAML exports, and `app-summary`'s relationship `type`, read one-to-many
+  connections backwards. Knack's `has` is how many connected records each connecting record
+  holds, and `belongs_to` how many connecting records each connected record can belong to,
+  so `Events.Client` with `has: one, belongs_to: many` is many Events to one Client. Real
+  records confirm it: no Event holds two Clients, and one Client is on up to four Events.
+  These were drawn as one Event to many Clients (`||--o{`, `<`, `one-to-many`,
+  `one_to_many`); now they are `}o--||`, `>`, `many-to-one` and `many_to_one`, and the
+  reverse for `has: many, belongs_to: one`. One-to-one and many-to-many are unchanged.
 - `impact-analysis` and `app-summary` list scenes and clusters in the same order on every run;
   they used to depend on Python's per-process string hashing.
 

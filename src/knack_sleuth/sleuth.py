@@ -1335,7 +1335,9 @@ class KnackSleuth:
                             ),
                             "via": conn.key,
                             "connection_name": conn.name,
-                            "type": f"{conn.has}_to_{conn.belongs_to}",
+                            # From the connecting object's side: many Events
+                            # to one Client is has=one, belongs_to=many.
+                            "type": f"{conn.belongs_to}_to_{conn.has}",
                         }
                     )
 
