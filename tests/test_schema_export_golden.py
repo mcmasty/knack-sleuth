@@ -49,7 +49,8 @@ def app():
 @pytest.mark.parametrize("detail", DETAILS)
 @pytest.mark.parametrize("fmt", EXPORTERS)
 def test_matches_golden(app, fmt, detail):
-    actual = EXPORTERS[fmt](app, detail) + "\n"
+    # Exactly one trailing newline, as pre-commit's end-of-file-fixer leaves it.
+    actual = EXPORTERS[fmt](app, detail).rstrip("\n") + "\n"
     golden = GOLDEN / f"{detail}.{fmt}"
     if os.environ.get("UPDATE_GOLDEN"):
         golden.parent.mkdir(parents=True, exist_ok=True)

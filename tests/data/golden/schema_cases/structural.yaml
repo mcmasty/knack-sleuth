@@ -107,4 +107,3 @@ objects:
       has: one
       belongs_to: one
       relationship_type: one-to-one
-
