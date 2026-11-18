@@ -274,7 +274,8 @@ def _connection_entries(
 ) -> dict[str, Any]:
     """An object's outbound and inbound connections, for the JSON and YAML exports.
 
-    with_field_details adds the YAML-only field_name and relationship_type.
+    with_field_details adds the YAML-only field_name and relationship_type,
+    which reads from this object to the other end in both directions.
     """
     entries: dict[str, Any] = {}
     if not obj.connections:
@@ -297,9 +298,13 @@ def _connection_entries(
             entry["has"] = conn.has
             entry["belongs_to"] = conn.belongs_to
             if with_field_details:
-                entry["relationship_type"] = _relationship(
-                    conn.has, conn.belongs_to
-                ).label
+                label = _relationship(conn.has, conn.belongs_to).label
+                # Knack gives an inbound entry the connecting object's
+                # has/belongs_to; read it from this object instead, as the
+                # outbound entries are.
+                if direction == "inbound":
+                    label = "-to-".join(reversed(label.split("-to-")))
+                entry["relationship_type"] = label
             entries[direction].append(entry)
     return entries
 
