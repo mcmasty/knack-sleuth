@@ -22,7 +22,7 @@
   The identifier field is no longer marked `pk`; its comment says `identifier` instead.
   Checked with `@dbml/core`: master's export of a real app gave 228 errors, now none.
 - Mermaid exports drew one relationship per pair of objects, so a second connection between
-  the same two objects disappeared (163 of 316 connections shown on a real app). Every
+  the same two objects disappeared (95 of 114 connections shown on a real app). Every
   connection now has its own line. Double quotes in a field description or connection name no
   longer break the diagram.
 - `impact-analysis` and `app-summary` list scenes and clusters in the same order on every run;
