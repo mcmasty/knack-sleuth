@@ -217,6 +217,38 @@ def _form_impact(usage: Usage) -> dict[str, Any]:
     }
 
 
+def _score_importance(summaries: list[dict[str, Any]]) -> None:
+    """Set each summary's importance_score: 60% volume, 40% connectivity,
+    each normalised to the largest in the list."""
+    if not summaries:
+        return
+    max_volume = max(s["record_count"] for s in summaries) or 1
+    max_connectivity = max(s["total_connections"] for s in summaries) or 1
+    for summary in summaries:
+        volume_score = summary["record_count"] / max_volume
+        connectivity_score = summary["total_connections"] / max_connectivity
+        summary["importance_score"] = (volume_score * 0.6) + (connectivity_score * 0.4)
+
+
+def _core_entity_keys(summaries: list[dict[str, Any]]) -> set[str]:
+    """Keys of the top N by importance: N is 20% of the list, at least 4, at most 10."""
+    max_core_entities = min(10, max(4, int(len(summaries) * 0.2)))
+    ranked = sorted(summaries, key=lambda x: x.get("importance_score", 0), reverse=True)
+    return {summary["object_key"] for summary in ranked[:max_core_entities]}
+
+
+def _cohesion(internal: int, total: int) -> str:
+    """How much of a cluster's connectivity stays inside it."""
+    if total == 0:
+        return "low"
+    ratio = internal / total
+    if ratio > COHESION_HIGH:
+        return "high"
+    if ratio > COHESION_MEDIUM:
+        return "medium"
+    return "low"
+
+
 class _ReferenceOwner(NamedTuple):
     """Where an indexed field reference lives, for building its Usage."""
 
@@ -1138,7 +1170,7 @@ class KnackSleuth:
 
         return round(centrality, 3)
 
-    def _analyze_domain_model(self) -> dict[str, Any]:  # noqa: C901, PLR0912, PLR0915
+    def _analyze_domain_model(self) -> dict[str, Any]:
         """Analyze domain model and classify objects into orthogonal categories.
 
         Core entity selection: Top N objects by record count OR connectivity.
@@ -1154,113 +1186,36 @@ class KnackSleuth:
             - supporting_entities: Low record count, low connectivity (primary role)
         """
         user_profiles = []
-        all_objects_summary = []  # For core entity ranking
-        reference_data = []
-        transactional = []
-        supporting = []
-
+        ranked_pool = []  # everyone else, ranked for core status
         for obj in self.app.objects:
-            record_count = self.app.counts.get(obj.key, 0)
             roles = self._classify_object_roles(obj)
-            centrality = self._calculate_centrality(obj)
-
-            # Count field types
-            field_types = {}
-            for field in obj.fields:
-                field_type = field.type
-                field_types[field_type] = field_types.get(field_type, 0) + 1
-
-            # Calculate total connections
-            total_connections = 0
-            if obj.connections:
-                total_connections = len(obj.connections.inbound) + len(
-                    obj.connections.outbound
-                )
-
-            obj_summary: dict[str, Any] = {
-                "object_key": obj.key,
-                "name": obj.name,
-                "record_count": record_count,
-                "field_count": len(obj.fields),
-                "centrality_score": centrality,
-                "field_types": field_types,
-                "total_connections": total_connections,
-                "is_core_entity": False,  # Will be set below
-                "primary_role": roles["primary_role"],
-            }
-
-            # Categorize into primary buckets
+            summary = self._object_summary(obj, roles)
             if roles["is_user_profile"]:
-                user_profiles.append(obj_summary)
-            elif roles["primary_role"] == "reference":
-                # Add list of objects that use this reference
-                used_by = []
-                for other_obj in self.app.objects:
-                    if other_obj.connections:
-                        for conn in other_obj.connections.outbound:
-                            if conn.object == obj.key:
-                                used_by.append(other_obj.key)
-                obj_summary["used_by"] = used_by
+                user_profiles.append(summary)
+                continue
+            if roles["primary_role"] == "reference":
+                summary["used_by"] = self._objects_connecting_to(obj.key)
+            ranked_pool.append(summary)
 
-            # Every other object is ranked for core status below, then filed
-            # under its primary role only if it doesn't make the cut.
-            if not roles["is_user_profile"]:
-                all_objects_summary.append(obj_summary)
+        _score_importance(ranked_pool)
+        core_keys = _core_entity_keys(ranked_pool)
 
-        # Determine core entities dynamically:
-        # Rank by combined importance (volume + connectivity)
-        # Then take top N where N = max(4, 20% of objects) capped at 10
-        total_non_user_objects = len(all_objects_summary)
-        max_core_entities = min(10, max(4, int(total_non_user_objects * 0.2)))
-
-        # Score each object by combined importance
-        # Normalize scores to 0-1 range
-        if all_objects_summary:
-            max_volume = max(obj["record_count"] for obj in all_objects_summary) or 1
-            max_connectivity = (
-                max(obj["total_connections"] for obj in all_objects_summary) or 1
-            )
-
-            for obj in all_objects_summary:
-                volume_score = obj["record_count"] / max_volume
-                connectivity_score = obj["total_connections"] / max_connectivity
-                # Weighted: 60% volume, 40% connectivity
-                obj["importance_score"] = (volume_score * 0.6) + (
-                    connectivity_score * 0.4
-                )
-
-        # Get top N by importance score
-        ranked_objects = sorted(
-            all_objects_summary,
-            key=lambda x: x.get("importance_score", 0),
-            reverse=True,
-        )
-        core_entity_keys = {
-            obj["object_key"] for obj in ranked_objects[:max_core_entities]
-        }
-
-        # Mark core entities and separate them
+        # Core entities come out of the pool; everything else is filed under
+        # its primary role, so each object appears in exactly one category.
         core_entities = []
-        other_objects = []
-
-        for obj_summary in all_objects_summary:
-            if obj_summary["object_key"] in core_entity_keys:
-                obj_summary["is_core_entity"] = True
-                core_entities.append(obj_summary)
+        by_role: dict[str, list[dict[str, Any]]] = {
+            "reference": [],
+            "transactional": [],
+            "supporting": [],
+        }
+        for summary in ranked_pool:
+            if summary["object_key"] in core_keys:
+                summary["is_core_entity"] = True
+                core_entities.append(summary)
             else:
-                other_objects.append(obj_summary)
+                role = summary["primary_role"]
+                by_role[role if role in by_role else "supporting"].append(summary)
 
-        # Reassign other objects back to their primary buckets
-        for obj_summary in other_objects:
-            role = obj_summary["primary_role"]
-            if role == "reference":
-                reference_data.append(obj_summary)
-            elif role == "transactional":
-                transactional.append(obj_summary)
-            else:
-                supporting.append(obj_summary)
-
-        # Sort core entities by importance (descending)
         core_entities.sort(key=lambda x: x.get("importance_score", 0), reverse=True)
 
         return {
@@ -1269,13 +1224,49 @@ class KnackSleuth:
             ),
             "core_entities": core_entities,
             "transactional_entities": sorted(
-                transactional, key=lambda x: x["record_count"], reverse=True
+                by_role["transactional"], key=lambda x: x["record_count"], reverse=True
             ),
             "reference_data": sorted(
-                reference_data, key=lambda x: len(x.get("used_by", [])), reverse=True
+                by_role["reference"],
+                key=lambda x: len(x.get("used_by", [])),
+                reverse=True,
             ),
-            "supporting_entities": supporting,
+            "supporting_entities": by_role["supporting"],
         }
+
+    def _object_summary(
+        self, obj: KnackObject, roles: dict[str, Any]
+    ) -> dict[str, Any]:
+        """The per-object entry the domain model lists."""
+        field_types: dict[str, int] = {}
+        for field in obj.fields:
+            field_types[field.type] = field_types.get(field.type, 0) + 1
+        total_connections = (
+            len(obj.connections.inbound) + len(obj.connections.outbound)
+            if obj.connections
+            else 0
+        )
+        return {
+            "object_key": obj.key,
+            "name": obj.name,
+            "record_count": self.app.counts.get(obj.key, 0),
+            "field_count": len(obj.fields),
+            "centrality_score": self._calculate_centrality(obj),
+            "field_types": field_types,
+            "total_connections": total_connections,
+            "is_core_entity": False,
+            "primary_role": roles["primary_role"],
+        }
+
+    def _objects_connecting_to(self, object_key: str) -> list[str]:
+        """Keys of objects with an outbound connection to this one, once per connection."""
+        return [
+            other.key
+            for other in self.app.objects
+            if other.connections
+            for conn in other.connections.outbound
+            if conn.object == object_key
+        ]
 
     def _analyze_relationship_topology(self) -> dict[str, Any]:
         """Analyze connection graph, clusters, and hub objects."""
@@ -1350,90 +1341,80 @@ class KnackSleuth:
             return "Core hub - high bidirectional connectivity"
         return "Moderately connected"
 
-    def _identify_clusters(self) -> list[dict[str, Any]]:  # noqa: C901, PLR0912
-        """Identify groups of highly interconnected objects (simplified clustering)."""
-        # Build adjacency map
-        adjacency = {obj.key: set() for obj in self.app.objects}
+    def _identify_clusters(self) -> list[dict[str, Any]]:
+        """Identify groups of highly interconnected objects (simplified clustering).
 
-        for obj in self.app.objects:
-            if obj.connections:
-                for conn in obj.connections.outbound:
-                    adjacency[obj.key].add(conn.object)
-                for conn in obj.connections.inbound:
-                    adjacency[obj.key].add(conn.object)
-
-        # Simple clustering: find objects with shared neighbors
+        Each object not yet clustered seeds a cluster of the objects it
+        connects to or shares enough neighbours with.
+        """
+        adjacency = self._adjacency()
         clusters = []
-        processed = set()
-
+        processed: set[str] = set()
         for obj in self.app.objects:
             if obj.key in processed:
                 continue
-
-            # Find closely related objects (share 2+ connections)
-            # dict, not set: members stay in app object order, so the
-            # emitted object/object_keys lists are stable across processes.
-            cluster_members: dict[str, None] = {obj.key: None}
-            obj_neighbors = adjacency[obj.key]
-
-            if len(obj_neighbors) >= CLUSTER_MIN_SHARED_NEIGHBORS:
-                for other_obj in self.app.objects:
-                    if other_obj.key == obj.key or other_obj.key in processed:
-                        continue
-
-                    other_neighbors = adjacency[other_obj.key]
-                    shared = obj_neighbors & other_neighbors
-
-                    # If they share 2+ neighbors or connect to each other, cluster them
-                    if (
-                        len(shared) >= CLUSTER_MIN_SHARED_NEIGHBORS
-                        or other_obj.key in obj_neighbors
-                    ):
-                        cluster_members[other_obj.key] = None
-
-            if len(cluster_members) > 1:
-                # Count internal vs external connections
-                internal = 0
-                external = 0
-
-                for member_key in cluster_members:
-                    neighbors = adjacency[member_key]
-                    for neighbor in neighbors:
-                        if neighbor in cluster_members:
-                            internal += 1
-                        else:
-                            external += 1
-
-                # Determine cohesion
-                total_conn = internal + external
-                cohesion = "low"
-                if total_conn > 0:
-                    cohesion_ratio = internal / total_conn
-                    if cohesion_ratio > COHESION_HIGH:
-                        cohesion = "high"
-                    elif cohesion_ratio > COHESION_MEDIUM:
-                        cohesion = "medium"
-
-                cluster_names = [
-                    self.objects_by_key[k].name
-                    for k in cluster_members
-                    if k in self.objects_by_key
-                ]
-
-                clusters.append(
-                    {
-                        "objects": cluster_names,
-                        "object_keys": list(cluster_members),
-                        "internal_connections": internal
-                        // 2,  # Divide by 2 to avoid double-counting
-                        "external_connections": external,
-                        "cohesion": cohesion,
-                    }
-                )
-
-                processed.update(cluster_members)
-
+            members = self._cluster_members(obj.key, adjacency, processed)
+            if len(members) > 1:
+                clusters.append(self._cluster_stats(members, adjacency))
+                processed.update(members)
         return clusters
+
+    def _adjacency(self) -> dict[str, set[str]]:
+        """Each object's neighbours through inbound or outbound connections."""
+        adjacency: dict[str, set[str]] = {obj.key: set() for obj in self.app.objects}
+        for obj in self.app.objects:
+            if obj.connections:
+                for conn in [*obj.connections.outbound, *obj.connections.inbound]:
+                    adjacency[obj.key].add(conn.object)
+        return adjacency
+
+    def _cluster_members(
+        self, seed: str, adjacency: dict[str, set[str]], processed: set[str]
+    ) -> dict[str, None]:
+        """The seed plus each unclustered object it connects to or shares
+        CLUSTER_MIN_SHARED_NEIGHBORS neighbours with.
+
+        dict, not set: members stay in app object order, so the emitted
+        object/object_keys lists are stable across processes.
+        """
+        members: dict[str, None] = {seed: None}
+        seed_neighbors = adjacency[seed]
+        if len(seed_neighbors) < CLUSTER_MIN_SHARED_NEIGHBORS:
+            return members
+        for other in self.app.objects:
+            if other.key == seed or other.key in processed:
+                continue
+            shared = seed_neighbors & adjacency[other.key]
+            if (
+                len(shared) >= CLUSTER_MIN_SHARED_NEIGHBORS
+                or other.key in seed_neighbors
+            ):
+                members[other.key] = None
+        return members
+
+    def _cluster_stats(
+        self, members: dict[str, None], adjacency: dict[str, set[str]]
+    ) -> dict[str, Any]:
+        """Names, keys, connection counts and cohesion for one cluster."""
+        internal = sum(
+            1 for key in members for neighbor in adjacency[key] if neighbor in members
+        )
+        external = sum(
+            1
+            for key in members
+            for neighbor in adjacency[key]
+            if neighbor not in members
+        )
+        return {
+            "objects": [
+                self.objects_by_key[k].name for k in members if k in self.objects_by_key
+            ],
+            "object_keys": list(members),
+            # Each internal connection is seen from both ends.
+            "internal_connections": internal // 2,
+            "external_connections": external,
+            "cohesion": _cohesion(internal, internal + external),
+        }
 
     def _analyze_data_patterns(self) -> dict[str, Any]:
         """Detect temporal and calculation patterns."""
