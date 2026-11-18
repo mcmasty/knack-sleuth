@@ -10,6 +10,15 @@
   These now count as usages (`field_reference`, `object_reference`, `scene_reference`), so
   `search-field`, `search-object`, `impact-analysis` and `app-summary` report them too. On a
   real app, 12 of 203 reported orphans were in use.
+- `impact-analysis` of a field ignored the formula, rule, task and page-rule references that
+  `find-orphans` now counts, so a field used only in a page rule scored `none`. Sum, count
+  and similar fields that name it are now under `formulas` (with `equation: null`); object
+  rules, validations, tasks and page rules are under a new `direct_impacts.rules`. Both count
+  toward the score, and object analysis picks them up from the object's fields too.
+- `impact-analysis` scored views and forms that no page shows. They are still listed, with
+  `orphaned_view: true`, but no longer count, and their scenes are not listed as affected.
+- `impact-analysis` of a field left out the pages of the forms that use it; object analysis
+  already listed them.
 - `app-summary` listed some objects twice in `transactional_entities` or `supporting_entities`,
   and listed core entities there as well, so the markdown counts were inflated (41
   transactional entries for 25 objects on a real app). Each object is now in exactly one
@@ -30,6 +39,11 @@
 
 ### Changed
 
+- `impact-analysis` fills `cascade_impacts.affected_objects` with the other objects that
+  connect to, compute from, or have rules on the target. It was always empty. The
+  always-empty `cascade_impacts.dependency_chains` and always-null
+  `metadata.analysis_timestamp` are removed, and an unknown target type is an error instead
+  of an analysis with likelihood `unknown`.
 - `download-metadata` now goes through the same cache-then-API loader as every other
   command, so a download also refreshes the local cache, and an unreadable cache file reports
   the same warning everywhere.

@@ -56,7 +56,7 @@ def _direct_impacts(direct: dict) -> list[str]:
             direct["views"],
             lambda v: (
                 f"- **{v['view_name']}** (`{v['view_key']}`) - {v['view_type']} "
-                f"in scene {v['scene_name']}"
+                f"in scene {v['scene_name']}{_orphan_note(v)}"
             ),
             "No view impacts",
         ),
@@ -64,20 +64,35 @@ def _direct_impacts(direct: dict) -> list[str]:
         *_section(
             "Forms",
             direct["forms"],
-            lambda f: f"- **{f['view_name']}** (`{f['view_key']}`)",
+            lambda f: f"- **{f['view_name']}** (`{f['view_key']}`){_orphan_note(f)}",
             "No form impacts",
         ),
         "",
         *_section(
             "Formulas",
             direct["formulas"],
-            lambda f: (
-                f"- **{f['field_name']}** (`{f['field_key']}`): "
-                f"`{f.get('equation', 'N/A')}`"
-            ),
+            _formula_line,
             "No formula impacts",
         ),
+        "",
+        *_section(
+            "Rules",
+            direct.get("rules", []),
+            lambda r: f"- {r['description']}",
+            "No rule, validation, task or page rule impacts",
+        ),
     ]
+
+
+def _orphan_note(impact: dict) -> str:
+    return " *(on no page; not scored)*" if impact.get("orphaned_view") else ""
+
+
+def _formula_line(formula: dict) -> str:
+    head = f"- **{formula['field_name']}** (`{formula['field_key']}`)"
+    if formula.get("equation") is None:
+        return f"{head}: its settings name the target"
+    return f"{head}: `{formula['equation']}`"
 
 
 def _cascade_impacts(cascade: dict, scenes_by_key: dict[str, dict]) -> list[str]:
@@ -99,6 +114,13 @@ def _cascade_impacts(cascade: dict, scenes_by_key: dict[str, dict]) -> list[str]
                 f"- {f['usage_count']} usages"
             ),
             "No field cascade impacts",
+        ),
+        "",
+        *_section(
+            "Affected Objects",
+            cascade.get("affected_objects", []),
+            lambda key: f"- `{key}`",
+            "No other objects depend on it",
         ),
         "",
         *_section(

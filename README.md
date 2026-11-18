@@ -565,8 +565,9 @@ knack-sleuth impact-analysis field_116 --output impact.json
 - `yaml`: Alternative structured format
 
 **What it shows:**
-- Direct impacts: connections, views, forms, and formulas affected
-- Cascade impacts: dependent fields and scenes
+- Direct impacts: connections, views, forms, formulas, and rules (object rules, validations, scheduled tasks, page rules) affected
+- Cascade impacts: dependent fields, other objects that depend on the target, and scenes
+- Views and forms on no page are listed, marked `orphaned_view`, and left out of the score
 - Risk assessment: breaking change likelihood and impact score
 - Affected user workflows
 

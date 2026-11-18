@@ -5,6 +5,8 @@ or reordering any branch of the search fails these tests, which the sample
 fixtures can't guarantee: no fixture has a form ``inputs`` entry, for one.
 """
 
+import copy
+
 from knack_sleuth.models import KnackAppMetadata
 from knack_sleuth.sleuth import KnackSleuth
 
@@ -135,20 +137,68 @@ def test_every_source_of_a_connection_field_in_order():
     ]
 
 
-def test_impact_analysis_files_forms_and_formulas():
+def test_impact_analysis_files_forms_formulas_and_rules():
     """Neither sample fixture has a form input, so only this app covers forms."""
     sleuth = KnackSleuth(KnackAppMetadata(application=APP))
-    form = {"view_key": "view_2", "view_name": "View view_2", "scene_key": "scene_1"}
+    form = {
+        "view_key": "view_2",
+        "view_name": "View view_2",
+        "scene_key": "scene_1",
+        "orphaned_view": False,
+    }
 
     field = sleuth.generate_impact_analysis("field_1")
-    assert field["direct_impacts"]["forms"] == [form]
-    assert [f["field_key"] for f in field["direct_impacts"]["formulas"]] == ["field_3"]
+    direct = field["direct_impacts"]
+    assert direct["forms"] == [form]
+    # The equation, then the count field whose filter names field_1.
+    assert [(f["field_key"], f["equation"]) for f in direct["formulas"]] == [
+        ("field_3", "{field_1}"),
+        ("field_4", None),
+    ]
+    assert [(r["type"], r["reference_path"]) for r in direct["rules"]] == [
+        ("object_reference", "tasks.0.action.criteria.0.field"),
+        ("scene_reference", "rules.0.criteria.0.field"),
+    ]
     assert field["risk_assessment"]["affected_user_workflows"] == [
         "User data entry forms",
         "Data display views",
         "Calculated fields and formulas",
+        "Rules, validations and scheduled tasks",
     ]
+    # Every formula and rule here is on object_1, field_1's own object.
+    assert field["cascade_impacts"]["affected_objects"] == []
 
     obj = sleuth.generate_impact_analysis("object_1")
     assert obj["direct_impacts"]["forms"] == [form]
     assert obj["cascade_impacts"]["affected_scenes"] == ["scene_1"]
+    assert obj["cascade_impacts"]["affected_objects"] == []
+    assert len(obj["direct_impacts"]["rules"]) == 2
+
+
+def test_impact_analysis_names_other_objects_that_depend_on_a_field():
+    sleuth = KnackSleuth(KnackAppMetadata(application=APP))
+    owner = sleuth.generate_impact_analysis("field_2")
+    assert owner["cascade_impacts"]["affected_objects"] == ["object_2"]
+
+
+def test_unknown_target_type_is_an_error():
+    sleuth = KnackSleuth(KnackAppMetadata(application=APP))
+    assert "error" in sleuth.generate_impact_analysis("field_1", "view")
+
+
+def test_views_no_page_shows_are_listed_but_not_scored():
+    app = copy.deepcopy(APP)
+    app["scenes"][0]["groups"] = [{"columns": [{"keys": ["view_1", "view_2"]}]}]
+    shown = KnackSleuth(KnackAppMetadata(application=APP))
+    hidden = KnackSleuth(KnackAppMetadata(application=app))
+
+    before = shown.generate_impact_analysis("field_1")
+    after = hidden.generate_impact_analysis("field_1")
+    views = {
+        v["view_key"]: v["orphaned_view"] for v in after["direct_impacts"]["views"]
+    }
+    assert views == {"view_1": False, "view_3": True}
+    assert (
+        after["risk_assessment"]["impact_score"]
+        == before["risk_assessment"]["impact_score"] - 1
+    )
