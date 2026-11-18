@@ -1,0 +1,942 @@
+{
+ "access_patterns": {
+  "authentication_model": "user_based",
+  "role_usage": {
+   "interpretation": "Role-based access control in use",
+   "scenes_with_role_restrictions": 30
+  },
+  "user_objects": [
+   "Object Name 2",
+   "Object Name 3",
+   "Object Name 4",
+   "Object Name 10"
+  ]
+ },
+ "application": {
+  "complexity_metrics": {
+   "connection_density": 0.181,
+   "total_fields": 102,
+   "total_objects": 19,
+   "total_records": 61,
+   "total_scenes": 65,
+   "total_views": 79
+  },
+  "id": "68e7c082cef9a2028d3e8d86",
+  "name": "Sample Application"
+ },
+ "data_patterns": {
+  "calculation_complexity": {
+   "interpretation": "Low formula dependencies",
+   "max_formula_chain_depth": 2,
+   "objects_with_formulas": 7,
+   "total_formula_fields": 9
+  },
+  "temporal_objects": [
+   {
+    "has_created_date": false,
+    "has_modified_date": false,
+    "has_status_field": true,
+    "lifecycle_pattern": "stateful_entity",
+    "object": "Object Name 2",
+    "object_key": "object_2"
+   },
+   {
+    "has_created_date": false,
+    "has_modified_date": false,
+    "has_status_field": true,
+    "lifecycle_pattern": "stateful_entity",
+    "object": "Object Name 3",
+    "object_key": "object_3"
+   },
+   {
+    "has_created_date": false,
+    "has_modified_date": false,
+    "has_status_field": true,
+    "lifecycle_pattern": "stateful_entity",
+    "object": "Object Name 4",
+    "object_key": "object_4"
+   },
+   {
+    "has_created_date": false,
+    "has_modified_date": false,
+    "has_status_field": true,
+    "lifecycle_pattern": "stateful_entity",
+    "object": "Object Name 10",
+    "object_key": "object_10"
+   },
+   {
+    "has_created_date": false,
+    "has_modified_date": false,
+    "has_status_field": true,
+    "lifecycle_pattern": "stateful_entity",
+    "object": "Object Name 20",
+    "object_key": "object_20"
+   }
+  ]
+ },
+ "domain_model": {
+  "core_entities": [
+   {
+    "centrality_score": 0.178,
+    "field_count": 6,
+    "field_types": {
+     "concatenation": 1,
+     "connection": 2,
+     "count": 1,
+     "short_text": 2
+    },
+    "importance_score": 0.7142857142857143,
+    "is_core_entity": true,
+    "name": "Object Name 13",
+    "object_key": "object_13",
+    "primary_role": "supporting",
+    "record_count": 16,
+    "total_connections": 4
+   },
+   {
+    "centrality_score": 0.178,
+    "field_count": 4,
+    "field_types": {
+     "connection": 2,
+     "multiple_choice": 1,
+     "short_text": 1
+    },
+    "importance_score": 0.5267857142857143,
+    "is_core_entity": true,
+    "name": "Object Name 14",
+    "object_key": "object_14",
+    "primary_role": "supporting",
+    "record_count": 11,
+    "total_connections": 4
+   },
+   {
+    "centrality_score": 0.544,
+    "field_count": 3,
+    "field_types": {
+     "auto_increment": 1,
+     "short_text": 2
+    },
+    "importance_score": 0.4375,
+    "is_core_entity": true,
+    "name": "Object Name 11",
+    "object_key": "object_11",
+    "primary_role": "reference",
+    "record_count": 1,
+    "total_connections": 14,
+    "used_by": [
+     "object_2",
+     "object_3",
+     "object_4",
+     "object_10",
+     "object_12",
+     "object_13",
+     "object_14",
+     "object_15",
+     "object_17",
+     "object_16",
+     "object_19",
+     "object_19",
+     "object_20",
+     "object_24"
+    ]
+   },
+   {
+    "centrality_score": 0.299,
+    "field_count": 8,
+    "field_types": {
+     "connection": 6,
+     "rich_text": 1,
+     "short_text": 1
+    },
+    "importance_score": 0.3875,
+    "is_core_entity": true,
+    "name": "Object Name 19",
+    "object_key": "object_19",
+    "primary_role": "supporting",
+    "record_count": 5,
+    "total_connections": 7
+   }
+  ],
+  "reference_data": [
+   {
+    "centrality_score": 0.128,
+    "field_count": 4,
+    "field_types": {
+     "connection": 1,
+     "count": 1,
+     "short_text": 2
+    },
+    "importance_score": 0.1982142857142857,
+    "is_core_entity": false,
+    "name": "Object Name 12",
+    "object_key": "object_12",
+    "primary_role": "reference",
+    "record_count": 3,
+    "total_connections": 3,
+    "used_by": [
+     "object_13",
+     "object_19"
+    ]
+   },
+   {
+    "centrality_score": 0.139,
+    "field_count": 2,
+    "field_types": {
+     "connection": 1,
+     "short_text": 1
+    },
+    "importance_score": 0.27321428571428574,
+    "is_core_entity": false,
+    "name": "Ref Data Category Value",
+    "object_key": "object_22",
+    "primary_role": "reference",
+    "record_count": 5,
+    "total_connections": 3,
+    "used_by": [
+     "object_15",
+     "object_15"
+    ]
+   },
+   {
+    "centrality_score": 0.039,
+    "field_count": 1,
+    "field_types": {
+     "short_text": 1
+    },
+    "importance_score": 0.10357142857142856,
+    "is_core_entity": false,
+    "name": "Ref Data Category",
+    "object_key": "object_21",
+    "primary_role": "reference",
+    "record_count": 2,
+    "total_connections": 1,
+    "used_by": [
+     "object_22"
+    ]
+   }
+  ],
+  "supporting_entities": [
+   {
+    "centrality_score": 0.178,
+    "field_count": 6,
+    "field_types": {
+     "connection": 3,
+     "count": 1,
+     "short_text": 2
+    },
+    "importance_score": 0.15178571428571427,
+    "is_core_entity": false,
+    "name": "Object Name 15",
+    "object_key": "object_15",
+    "primary_role": "supporting",
+    "record_count": 1,
+    "total_connections": 4
+   },
+   {
+    "centrality_score": 0.132,
+    "field_count": 7,
+    "field_types": {
+     "boolean": 1,
+     "connection": 2,
+     "paragraph_text": 1,
+     "short_text": 3
+    },
+    "importance_score": 0.12321428571428572,
+    "is_core_entity": false,
+    "name": "Object Name 17",
+    "object_key": "object_17",
+    "primary_role": "supporting",
+    "record_count": 1,
+    "total_connections": 3
+   },
+   {
+    "centrality_score": 0.093,
+    "field_count": 9,
+    "field_types": {
+     "boolean": 1,
+     "connection": 1,
+     "link": 1,
+     "paragraph_text": 2,
+     "short_text": 4
+    },
+    "importance_score": 0.09464285714285714,
+    "is_core_entity": false,
+    "name": "Object Name 18",
+    "object_key": "object_18",
+    "primary_role": "supporting",
+    "record_count": 1,
+    "total_connections": 2
+   },
+   {
+    "centrality_score": 0.21,
+    "field_count": 10,
+    "field_types": {
+     "auto_increment": 1,
+     "connection": 4,
+     "count": 2,
+     "date_time": 1,
+     "multiple_choice": 1,
+     "paragraph_text": 1
+    },
+    "importance_score": 0.18035714285714288,
+    "is_core_entity": false,
+    "name": "Object Name 16",
+    "object_key": "object_16",
+    "primary_role": "supporting",
+    "record_count": 1,
+    "total_connections": 5
+   },
+   {
+    "centrality_score": 0.0,
+    "field_count": 3,
+    "field_types": {
+     "connection": 1,
+     "short_text": 2
+    },
+    "importance_score": 0.0,
+    "is_core_entity": false,
+    "name": "Access Roles",
+    "object_key": "object_1",
+    "primary_role": "supporting",
+    "record_count": 0,
+    "total_connections": 0
+   },
+   {
+    "centrality_score": 0.159,
+    "field_count": 7,
+    "field_types": {
+     "concatenation": 1,
+     "connection": 3,
+     "date_time": 1,
+     "multiple_choice": 1,
+     "paragraph_text": 1
+    },
+    "importance_score": 0.22678571428571426,
+    "is_core_entity": false,
+    "name": "Object Name 20",
+    "object_key": "object_20",
+    "primary_role": "supporting",
+    "record_count": 3,
+    "total_connections": 4
+   },
+   {
+    "centrality_score": 0.0,
+    "field_count": 1,
+    "field_types": {
+     "short_text": 1
+    },
+    "importance_score": 0.0,
+    "is_core_entity": false,
+    "name": "User Planning List",
+    "object_key": "object_23",
+    "primary_role": "supporting",
+    "record_count": 0,
+    "total_connections": 0
+   },
+   {
+    "centrality_score": 0.089,
+    "field_count": 3,
+    "field_types": {
+     "connection": 1,
+     "short_text": 2
+    },
+    "importance_score": 0.09464285714285714,
+    "is_core_entity": false,
+    "name": "Object Name 24",
+    "object_key": "object_24",
+    "primary_role": "supporting",
+    "record_count": 1,
+    "total_connections": 2
+   }
+  ],
+  "transactional_entities": [],
+  "user_profiles": [
+   {
+    "centrality_score": 0.058,
+    "field_count": 7,
+    "field_types": {
+     "concatenation": 1,
+     "connection": 1,
+     "email": 1,
+     "multiple_choice": 1,
+     "name": 1,
+     "password": 1,
+     "user_roles": 1
+    },
+    "is_core_entity": false,
+    "name": "Object Name 2",
+    "object_key": "object_2",
+    "primary_role": "supporting",
+    "record_count": 5,
+    "total_connections": 1
+   },
+   {
+    "centrality_score": 0.089,
+    "field_count": 7,
+    "field_types": {
+     "connection": 1,
+     "count": 1,
+     "email": 1,
+     "multiple_choice": 1,
+     "name": 1,
+     "password": 1,
+     "user_roles": 1
+    },
+    "is_core_entity": false,
+    "name": "Object Name 4",
+    "object_key": "object_4",
+    "primary_role": "supporting",
+    "record_count": 3,
+    "total_connections": 2
+   },
+   {
+    "centrality_score": 0.089,
+    "field_count": 8,
+    "field_types": {
+     "connection": 2,
+     "email": 1,
+     "multiple_choice": 1,
+     "name": 1,
+     "password": 1,
+     "short_text": 1,
+     "user_roles": 1
+    },
+    "is_core_entity": false,
+    "name": "Object Name 3",
+    "object_key": "object_3",
+    "primary_role": "supporting",
+    "record_count": 1,
+    "total_connections": 2
+   },
+   {
+    "centrality_score": 0.039,
+    "field_count": 6,
+    "field_types": {
+     "connection": 1,
+     "email": 1,
+     "multiple_choice": 1,
+     "name": 1,
+     "password": 1,
+     "user_roles": 1
+    },
+    "is_core_entity": false,
+    "name": "Object Name 10",
+    "object_key": "object_10",
+    "primary_role": "supporting",
+    "record_count": 1,
+    "total_connections": 1
+   }
+  ]
+ },
+ "extensibility_assessment": {
+  "architectural_style": "modular",
+  "interpretation": "Highly modular - easy to extend",
+  "modularity_score": 0.74,
+  "tight_coupling_pairs": []
+ },
+ "relationship_map": {
+  "connection_graph": {
+   "edges": [
+    {
+     "connection_name": "Object Name 11",
+     "from": "object_2",
+     "from_name": "Object Name 2",
+     "to": "object_11",
+     "to_name": "Object Name 11",
+     "type": "one_to_many",
+     "via": "field_116"
+    },
+    {
+     "connection_name": "Object Name 11",
+     "from": "object_3",
+     "from_name": "Object Name 3",
+     "to": "object_11",
+     "to_name": "Object Name 11",
+     "type": "one_to_many",
+     "via": "field_117"
+    },
+    {
+     "connection_name": "Object Name 14",
+     "from": "object_3",
+     "from_name": "Object Name 3",
+     "to": "object_14",
+     "to_name": "Object Name 14",
+     "type": "one_to_many",
+     "via": "field_118"
+    },
+    {
+     "connection_name": "Object Name 11",
+     "from": "object_4",
+     "from_name": "Object Name 4",
+     "to": "object_11",
+     "to_name": "Object Name 11",
+     "type": "one_to_many",
+     "via": "field_119"
+    },
+    {
+     "connection_name": "Object Name 11",
+     "from": "object_10",
+     "from_name": "Object Name 10",
+     "to": "object_11",
+     "to_name": "Object Name 11",
+     "type": "one_to_many",
+     "via": "field_123"
+    },
+    {
+     "connection_name": "Object Name 11",
+     "from": "object_12",
+     "from_name": "Object Name 12",
+     "to": "object_11",
+     "to_name": "Object Name 11",
+     "type": "one_to_many",
+     "via": "field_105"
+    },
+    {
+     "connection_name": "Object Name 12",
+     "from": "object_13",
+     "from_name": "Object Name 13",
+     "to": "object_12",
+     "to_name": "Object Name 12",
+     "type": "one_to_many",
+     "via": "field_107"
+    },
+    {
+     "connection_name": "Object Name 11",
+     "from": "object_13",
+     "from_name": "Object Name 13",
+     "to": "object_11",
+     "to_name": "Object Name 11",
+     "type": "one_to_many",
+     "via": "field_126"
+    },
+    {
+     "connection_name": "Object Name 13",
+     "from": "object_14",
+     "from_name": "Object Name 14",
+     "to": "object_13",
+     "to_name": "Object Name 13",
+     "type": "one_to_many",
+     "via": "field_108"
+    },
+    {
+     "connection_name": "Object Name 11",
+     "from": "object_14",
+     "from_name": "Object Name 14",
+     "to": "object_11",
+     "to_name": "Object Name 11",
+     "type": "one_to_many",
+     "via": "field_128"
+    },
+    {
+     "connection_name": "Object Name 22",
+     "from": "object_15",
+     "from_name": "Object Name 15",
+     "to": "object_22",
+     "to_name": "Ref Data Category Value",
+     "type": "one_to_many",
+     "via": "field_133"
+    },
+    {
+     "connection_name": "Parent Object",
+     "from": "object_15",
+     "from_name": "Object Name 15",
+     "to": "object_11",
+     "to_name": "Object Name 11",
+     "type": "one_to_many",
+     "via": "field_135"
+    },
+    {
+     "connection_name": "Object Name 22",
+     "from": "object_15",
+     "from_name": "Object Name 15",
+     "to": "object_22",
+     "to_name": "Ref Data Category Value",
+     "type": "one_to_many",
+     "via": "field_136"
+    },
+    {
+     "connection_name": "Object Name 11",
+     "from": "object_17",
+     "from_name": "Object Name 17",
+     "to": "object_11",
+     "to_name": "Object Name 11",
+     "type": "one_to_many",
+     "via": "field_137"
+    },
+    {
+     "connection_name": "Object Name 24",
+     "from": "object_17",
+     "from_name": "Object Name 17",
+     "to": "object_24",
+     "to_name": "Object Name 24",
+     "type": "one_to_many",
+     "via": "field_143"
+    },
+    {
+     "connection_name": "Object Name 15",
+     "from": "object_18",
+     "from_name": "Object Name 18",
+     "to": "object_15",
+     "to_name": "Object Name 15",
+     "type": "one_to_many",
+     "via": "field_151"
+    },
+    {
+     "connection_name": "Object Name 11",
+     "from": "object_16",
+     "from_name": "Object Name 16",
+     "to": "object_11",
+     "to_name": "Object Name 11",
+     "type": "one_to_many",
+     "via": "field_124"
+    },
+    {
+     "connection_name": "Object Name 17",
+     "from": "object_16",
+     "from_name": "Object Name 16",
+     "to": "object_17",
+     "to_name": "Object Name 17",
+     "type": "one_to_many",
+     "via": "field_156"
+    },
+    {
+     "connection_name": "Object Name 18",
+     "from": "object_16",
+     "from_name": "Object Name 16",
+     "to": "object_18",
+     "to_name": "Object Name 18",
+     "type": "one_to_many",
+     "via": "field_157"
+    },
+    {
+     "connection_name": "Review Decision",
+     "from": "object_16",
+     "from_name": "Object Name 16",
+     "to": "object_20",
+     "to_name": "Object Name 20",
+     "type": "one_to_many",
+     "via": "field_159"
+    },
+    {
+     "connection_name": "Object Name 4",
+     "from": "object_19",
+     "from_name": "Object Name 19",
+     "to": "object_4",
+     "to_name": "Object Name 4",
+     "type": "one_to_many",
+     "via": "field_110"
+    },
+    {
+     "connection_name": "Object Name 11",
+     "from": "object_19",
+     "from_name": "Object Name 19",
+     "to": "object_11",
+     "to_name": "Object Name 11",
+     "type": "one_to_many",
+     "via": "field_111"
+    },
+    {
+     "connection_name": "Object Name 12",
+     "from": "object_19",
+     "from_name": "Object Name 19",
+     "to": "object_12",
+     "to_name": "Object Name 12",
+     "type": "one_to_many",
+     "via": "field_112"
+    },
+    {
+     "connection_name": "Object Name 13",
+     "from": "object_19",
+     "from_name": "Object Name 19",
+     "to": "object_13",
+     "to_name": "Object Name 13",
+     "type": "one_to_many",
+     "via": "field_113"
+    },
+    {
+     "connection_name": "Object Name 14",
+     "from": "object_19",
+     "from_name": "Object Name 19",
+     "to": "object_14",
+     "to_name": "Object Name 14",
+     "type": "one_to_many",
+     "via": "field_114"
+    },
+    {
+     "connection_name": "Owning Object*",
+     "from": "object_19",
+     "from_name": "Object Name 19",
+     "to": "object_11",
+     "to_name": "Object Name 11",
+     "type": "one_to_many",
+     "via": "field_173"
+    },
+    {
+     "connection_name": "Object Name 11",
+     "from": "object_20",
+     "from_name": "Object Name 20",
+     "to": "object_11",
+     "to_name": "Object Name 11",
+     "type": "one_to_many",
+     "via": "field_162"
+    },
+    {
+     "connection_name": "Object Name 16",
+     "from": "object_20",
+     "from_name": "Object Name 20",
+     "to": "object_16",
+     "to_name": "Object Name 16",
+     "type": "one_to_many",
+     "via": "field_161"
+    },
+    {
+     "connection_name": "Object Name 19",
+     "from": "object_20",
+     "from_name": "Object Name 20",
+     "to": "object_19",
+     "to_name": "Object Name 19",
+     "type": "one_to_many",
+     "via": "field_163"
+    },
+    {
+     "connection_name": "Category",
+     "from": "object_22",
+     "from_name": "Ref Data Category Value",
+     "to": "object_21",
+     "to_name": "Ref Data Category",
+     "type": "one_to_many",
+     "via": "field_134"
+    },
+    {
+     "connection_name": "Object Name 11",
+     "from": "object_24",
+     "from_name": "Object Name 24",
+     "to": "object_11",
+     "to_name": "Object Name 11",
+     "type": "one_to_many",
+     "via": "field_142"
+    }
+   ],
+   "nodes": [
+    "object_2",
+    "object_3",
+    "object_4",
+    "object_10",
+    "object_11",
+    "object_12",
+    "object_13",
+    "object_14",
+    "object_15",
+    "object_17",
+    "object_18",
+    "object_16",
+    "object_1",
+    "object_19",
+    "object_20",
+    "object_21",
+    "object_22",
+    "object_23",
+    "object_24"
+   ],
+   "total_connections": 31
+  },
+  "dependency_clusters": [
+   {
+    "cohesion": "medium",
+    "external_connections": 13,
+    "internal_connections": 8,
+    "object_keys": [
+     "object_3",
+     "object_11",
+     "object_13",
+     "object_14",
+     "object_19"
+    ],
+    "objects": [
+     "Object Name 3",
+     "Object Name 11",
+     "Object Name 13",
+     "Object Name 14",
+     "Object Name 19"
+    ]
+   },
+   {
+    "cohesion": "low",
+    "external_connections": 8,
+    "internal_connections": 0,
+    "object_keys": [
+     "object_4",
+     "object_12",
+     "object_20"
+    ],
+    "objects": [
+     "Object Name 4",
+     "Object Name 12",
+     "Object Name 20"
+    ]
+   },
+   {
+    "cohesion": "medium",
+    "external_connections": 5,
+    "internal_connections": 3,
+    "object_keys": [
+     "object_15",
+     "object_18",
+     "object_16",
+     "object_22"
+    ],
+    "objects": [
+     "Object Name 15",
+     "Object Name 18",
+     "Object Name 16",
+     "Ref Data Category Value"
+    ]
+   },
+   {
+    "cohesion": "low",
+    "external_connections": 3,
+    "internal_connections": 1,
+    "object_keys": [
+     "object_17",
+     "object_24"
+    ],
+    "objects": [
+     "Object Name 17",
+     "Object Name 24"
+    ]
+   }
+  ],
+  "hub_objects": [
+   {
+    "inbound_connections": 14,
+    "interpretation": "Central dependency - many objects depend on this",
+    "object": "Object Name 11",
+    "object_key": "object_11",
+    "outbound_connections": 0,
+    "total_connections": 14
+   },
+   {
+    "inbound_connections": 1,
+    "interpretation": "Aggregator - depends on many objects",
+    "object": "Object Name 19",
+    "object_key": "object_19",
+    "outbound_connections": 6,
+    "total_connections": 7
+   },
+   {
+    "inbound_connections": 1,
+    "interpretation": "Aggregator - depends on many objects",
+    "object": "Object Name 16",
+    "object_key": "object_16",
+    "outbound_connections": 4,
+    "total_connections": 5
+   },
+   {
+    "inbound_connections": 2,
+    "interpretation": "Moderately connected",
+    "object": "Object Name 13",
+    "object_key": "object_13",
+    "outbound_connections": 2,
+    "total_connections": 4
+   },
+   {
+    "inbound_connections": 2,
+    "interpretation": "Moderately connected",
+    "object": "Object Name 14",
+    "object_key": "object_14",
+    "outbound_connections": 2,
+    "total_connections": 4
+   },
+   {
+    "inbound_connections": 1,
+    "interpretation": "Aggregator - depends on many objects",
+    "object": "Object Name 15",
+    "object_key": "object_15",
+    "outbound_connections": 3,
+    "total_connections": 4
+   },
+   {
+    "inbound_connections": 1,
+    "interpretation": "Aggregator - depends on many objects",
+    "object": "Object Name 20",
+    "object_key": "object_20",
+    "outbound_connections": 3,
+    "total_connections": 4
+   },
+   {
+    "inbound_connections": 2,
+    "interpretation": "Moderately connected",
+    "object": "Object Name 12",
+    "object_key": "object_12",
+    "outbound_connections": 1,
+    "total_connections": 3
+   },
+   {
+    "inbound_connections": 1,
+    "interpretation": "Moderately connected",
+    "object": "Object Name 17",
+    "object_key": "object_17",
+    "outbound_connections": 2,
+    "total_connections": 3
+   },
+   {
+    "inbound_connections": 2,
+    "interpretation": "Moderately connected",
+    "object": "Ref Data Category Value",
+    "object_key": "object_22",
+    "outbound_connections": 1,
+    "total_connections": 3
+   }
+  ]
+ },
+ "technical_debt_indicators": {
+  "bottleneck_objects": [
+   {
+    "object": "Object Name 11",
+    "object_key": "object_11"
+   }
+  ],
+  "dangling_layout_keys": 0,
+  "high_fan_out_objects": [
+   {
+    "object": "Object Name 19",
+    "object_key": "object_19"
+   }
+  ],
+  "interpretation": "Some complexity hotspots",
+  "orphaned_fields": 14,
+  "orphaned_objects": 2,
+  "orphaned_objects_list": [
+   {
+    "name": "Access Roles",
+    "object_key": "object_1"
+   },
+   {
+    "name": "User Planning List",
+    "object_key": "object_23"
+   }
+  ],
+  "orphaned_views": 0,
+  "stale_view_rule_references": 0
+ },
+ "ui_architecture": {
+  "navigation_depth": {
+   "avg_depth": 1.8,
+   "interpretation": "Simple hierarchy",
+   "max_depth": 2
+  },
+  "scene_patterns": {
+   "authenticated_scenes": 2,
+   "public_scenes": 63,
+   "total_scenes": 65
+  },
+  "view_patterns": {
+   "details": 16,
+   "form": 27,
+   "login": 9,
+   "menu": 3,
+   "rich_text": 6,
+   "table": 18
+  }
+ }
+}

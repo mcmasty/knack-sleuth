@@ -1,0 +1,226 @@
+{
+ "access_patterns": {
+  "authentication_model": "public",
+  "role_usage": {
+   "interpretation": "No role restrictions detected",
+   "scenes_with_role_restrictions": 0
+  },
+  "user_objects": []
+ },
+ "application": {
+  "complexity_metrics": {
+   "connection_density": 1.667,
+   "total_fields": 16,
+   "total_objects": 3,
+   "total_records": 0,
+   "total_scenes": 0,
+   "total_views": 0
+  },
+  "id": "app_schema_cases",
+  "name": "Acme \"Ops\" App"
+ },
+ "data_patterns": {
+  "calculation_complexity": {
+   "interpretation": "Low formula dependencies",
+   "max_formula_chain_depth": 1,
+   "objects_with_formulas": 1,
+   "total_formula_fields": 1
+  },
+  "temporal_objects": []
+ },
+ "domain_model": {
+  "core_entities": [
+   {
+    "centrality_score": 1.05,
+    "field_count": 3,
+    "field_types": {
+     "connection": 1,
+     "name": 1,
+     "rating": 1
+    },
+    "importance_score": 0.9,
+    "is_core_entity": true,
+    "name": "3rd Party/Vendor",
+    "object_key": "object_3",
+    "primary_role": "reference",
+    "record_count": 12,
+    "total_connections": 3,
+    "used_by": [
+     "object_1",
+     "object_2"
+    ]
+   },
+   {
+    "centrality_score": 1.4,
+    "field_count": 10,
+    "field_types": {
+     "address": 1,
+     "connection": 2,
+     "date_time": 1,
+     "email": 1,
+     "equation": 1,
+     "link": 1,
+     "phone": 1,
+     "short_text": 1,
+     "weird_new_type": 1
+    },
+    "importance_score": 0.55,
+    "is_core_entity": true,
+    "name": "Accounts",
+    "object_key": "object_1",
+    "primary_role": "supporting",
+    "record_count": 3,
+    "total_connections": 4
+   },
+   {
+    "centrality_score": 1.05,
+    "field_count": 3,
+    "field_types": {
+     "connection": 2,
+     "currency": 1
+    },
+    "importance_score": 0.35000000000000003,
+    "is_core_entity": true,
+    "name": "Accounts",
+    "object_key": "object_2",
+    "primary_role": "supporting",
+    "record_count": 1,
+    "total_connections": 3
+   }
+  ],
+  "reference_data": [],
+  "supporting_entities": [],
+  "transactional_entities": [],
+  "user_profiles": []
+ },
+ "extensibility_assessment": {
+  "architectural_style": "modular",
+  "interpretation": "Highly modular - easy to extend",
+  "modularity_score": 1.0,
+  "tight_coupling_pairs": []
+ },
+ "relationship_map": {
+  "connection_graph": {
+   "edges": [
+    {
+     "connection_name": "Owner",
+     "from": "object_1",
+     "from_name": "Accounts",
+     "to": "object_2",
+     "to_name": "Accounts",
+     "type": "one_to_many",
+     "via": "field_3"
+    },
+    {
+     "connection_name": "Vendor",
+     "from": "object_1",
+     "from_name": "Accounts",
+     "to": "object_3",
+     "to_name": "3rd Party/Vendor",
+     "type": "many_to_one",
+     "via": "field_10"
+    },
+    {
+     "connection_name": "Primary Vendor",
+     "from": "object_2",
+     "from_name": "Accounts",
+     "to": "object_3",
+     "to_name": "3rd Party/Vendor",
+     "type": "one_to_one",
+     "via": "field_20"
+    },
+    {
+     "connection_name": "Account Link",
+     "from": "object_2",
+     "from_name": "Accounts",
+     "to": "object_1",
+     "to_name": "Accounts",
+     "type": "many_to_one",
+     "via": "field_21"
+    },
+    {
+     "connection_name": "Partners",
+     "from": "object_3",
+     "from_name": "3rd Party/Vendor",
+     "to": "object_1",
+     "to_name": "Accounts",
+     "type": "many_to_many",
+     "via": "field_30"
+    }
+   ],
+   "nodes": [
+    "object_1",
+    "object_2",
+    "object_3"
+   ],
+   "total_connections": 5
+  },
+  "dependency_clusters": [
+   {
+    "cohesion": "high",
+    "external_connections": 0,
+    "internal_connections": 3,
+    "object_keys": [
+     "object_1",
+     "object_2",
+     "object_3"
+    ],
+    "objects": [
+     "Accounts",
+     "Accounts",
+     "3rd Party/Vendor"
+    ]
+   }
+  ],
+  "hub_objects": [
+   {
+    "inbound_connections": 2,
+    "interpretation": "Moderately connected",
+    "object": "Accounts",
+    "object_key": "object_1",
+    "outbound_connections": 2,
+    "total_connections": 4
+   },
+   {
+    "inbound_connections": 1,
+    "interpretation": "Moderately connected",
+    "object": "Accounts",
+    "object_key": "object_2",
+    "outbound_connections": 2,
+    "total_connections": 3
+   },
+   {
+    "inbound_connections": 2,
+    "interpretation": "Moderately connected",
+    "object": "3rd Party/Vendor",
+    "object_key": "object_3",
+    "outbound_connections": 1,
+    "total_connections": 3
+   }
+  ]
+ },
+ "technical_debt_indicators": {
+  "bottleneck_objects": [],
+  "dangling_layout_keys": 0,
+  "high_fan_out_objects": [],
+  "interpretation": "Low technical debt",
+  "orphaned_fields": 8,
+  "orphaned_objects": 0,
+  "orphaned_objects_list": [],
+  "orphaned_views": 0,
+  "stale_view_rule_references": 0
+ },
+ "ui_architecture": {
+  "navigation_depth": {
+   "avg_depth": 0,
+   "interpretation": "Simple hierarchy",
+   "max_depth": 0
+  },
+  "scene_patterns": {
+   "authenticated_scenes": 0,
+   "public_scenes": 0,
+   "total_scenes": 0
+  },
+  "view_patterns": {}
+ }
+}
