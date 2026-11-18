@@ -42,6 +42,14 @@
   These were drawn as one Event to many Clients (`||--o{`, `<`, `one-to-many`,
   `one_to_many`); now they are `}o--||`, `>`, `many-to-one` and `many_to_one`, and the
   reverse for `has: many, belongs_to: one`. One-to-one and many-to-many are unchanged.
+- One null in the metadata, such as a view with `name: null`, made every command exit with
+  a multi-line pydantic dump. A null now means "absent": fields with a default take it, and a
+  null name, slug or inflection falls back to the key. Of 879 places in the sample metadata,
+  a null used to break loading in 109 and now breaks it in 42. Those 42 are keys, types,
+  connection targets and null list entries, and they now fail with one line naming the
+  path, for example `Invalid metadata at application.scenes[2].views[0].key: Input should
+  be a valid string, got null`.
+- A null entry in a view's `allowed_profiles` crashed the security report.
 - `impact-analysis` and `app-summary` list scenes and clusters in the same order on every run;
   they used to depend on Python's per-process string hashing.
 

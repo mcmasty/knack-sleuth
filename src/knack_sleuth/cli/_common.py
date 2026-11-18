@@ -11,6 +11,7 @@ from typing import Any, NoReturn, TypeVar
 
 import httpx
 import typer
+from pydantic import ValidationError
 from rich.console import Console
 
 from knack_sleuth.config import Settings
@@ -62,8 +63,26 @@ def exit_on_error(prefix: str = "") -> Iterator[None]:
         fail(f"HTTP {e.response.status_code}: {e.response.text}")
     except httpx.RequestError as e:
         fail(f"Failed to connect to Knack API: {e}")
+    except ValidationError as e:
+        fail(f"{prefix}{describe_validation_error(e)}")
     except Exception as e:
         fail(f"{prefix}{e}")
+
+
+def describe_validation_error(error: ValidationError) -> str:
+    """The first problem in Knack metadata as one line, with its JSON path."""
+    first = error.errors()[0]
+    path = ""
+    for part in first["loc"]:
+        if isinstance(part, int):
+            path += f"[{part}]"
+        else:
+            path += f".{part}" if path else str(part)
+    value = first.get("input")
+    shown = "null" if value is None else type(value).__name__
+    more = len(error.errors()) - 1
+    extra = f" (and {more} more)" if more else ""
+    return f"Invalid metadata at {path}: {first['msg']}, got {shown}{extra}"
 
 
 def validate_choice(value: str, valid: Iterable[str], label: str = "format") -> None:
