@@ -396,3 +396,34 @@ class TestReviewRegressions:
         (rule,) = entry["rules"]
         assert rule["values"][0]["set_to"] == "Rejected"
         assert rule["criteria"][0]["field_name"] == "Reviewer Notes"
+
+
+class TestViewSelection:
+    """Which views collect_rules looks at, for each combination of arguments."""
+
+    @pytest.fixture
+    def metadata(self):
+        return load_app_metadata(file_path=FIXTURE)
+
+    def test_quiet_view_is_listed_with_reachability(self, report):
+        assert report["views_without_rules"] == [
+            {
+                "scene_key": "scene_2",
+                "view_key": "view_7",
+                "view_name": "Plain Table",
+                "view_type": "table",
+                "reachable": True,
+            }
+        ]
+
+    def test_object_and_view_keeps_the_view_even_from_another_object(self, metadata):
+        """view_5 is sourced on object_2; naming it explicitly still reports it,
+        while object_1's own tasks come along."""
+        result = collect_rules(metadata, object_key="object_1", view_key="view_5")
+        assert {t["view_key"] for t in result["triggers"]} == {"view_5"}
+        assert len(result["tasks"]) == 1
+
+    def test_connected_rules_only_without_a_view(self, metadata):
+        assert collect_rules(metadata, object_key="object_1")["connected_record_rules"]
+        with_view = collect_rules(metadata, object_key="object_1", view_key="view_1")
+        assert with_view["connected_record_rules"] == []

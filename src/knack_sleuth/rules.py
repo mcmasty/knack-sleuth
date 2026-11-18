@@ -18,7 +18,7 @@ import re
 from collections.abc import Iterator
 from typing import Any
 
-from knack_sleuth.models import KnackAppMetadata, Scene, View
+from knack_sleuth.models import KnackAppMetadata, KnackObject, Scene, View
 from knack_sleuth.sleuth import FIELD_KEY_PATTERN, KnackSleuth
 
 FORM_RULE_LISTS = ("emails", "records", "submits", "fields")
@@ -446,7 +446,7 @@ def _task(task: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
     return entry
 
 
-def collect_rules(  # noqa: C901, PLR0912
+def collect_rules(
     app_export: KnackAppMetadata,
     object_key: str | None = None,
     view_key: str | None = None,
@@ -459,37 +459,9 @@ def collect_rules(  # noqa: C901, PLR0912
     """
     names = _FieldNames(app_export)
     orphaned = KnackSleuth(app_export).orphaned_view_keys
-    triggers: list[dict[str, Any]] = []
-    quiet_views: list[dict[str, Any]] = []
-    for scene in app_export.application.scenes:
-        for view in scene.views:
-            if view_key and view.key != view_key:
-                continue
-            source = view.source.object if view.source else None
-            if object_key and not view_key and source != object_key:
-                continue
-            header = _view_header(scene, view, orphaned)
-            view_data = view.model_dump(mode="python")
-            found = len(triggers)
-            form = _form_trigger(header, view_data, names)
-            if form:
-                triggers.append(form)
-            for column in _iter_action_links(view_data):
-                triggers.append(_action_link_trigger(header, column, names))
-            if len(triggers) == found:
-                # Listed so "no rules here" is visible, not inferred from silence.
-                quiet_views.append(
-                    {
-                        k: header[k]
-                        for k in (
-                            "scene_key",
-                            "view_key",
-                            "view_name",
-                            "view_type",
-                            "reachable",
-                        )
-                    }
-                )
+    triggers, quiet_views = _view_triggers(
+        app_export, object_key, view_key, names, orphaned
+    )
 
     connected: list[dict[str, Any]] = []
     if object_key and not view_key:
@@ -497,31 +469,13 @@ def collect_rules(  # noqa: C901, PLR0912
             triggers, app_export, object_key, names, orphaned
         )
 
-    tasks = []
+    tasks: list[dict[str, Any]] = []
     field_rules: list[dict[str, Any]] = []
     if object_key:
         for obj in app_export.application.objects:
-            if obj.key != object_key:
-                continue
-            tasks = [_task(t, names) for t in obj.tasks if isinstance(t, dict)]
-            # Conditional field rules set a value whenever a record is saved,
-            # whichever form, link, import or API call saved it.
-            for field in obj.fields:
-                rules = [
-                    {
-                        "key": rule.get("key"),
-                        "values": [
-                            _value(v, names)
-                            for v in _list(rule.get("values"))
-                            if isinstance(v, dict)
-                        ],
-                        "criteria": _criteria(rule.get("criteria"), names),
-                    }
-                    for rule in _list(field.rules)
-                    if isinstance(rule, dict)
-                ]
-                if rules:
-                    field_rules.append({**names.label(field.key), "rules": rules})
+            if obj.key == object_key:
+                tasks = [_task(t, names) for t in obj.tasks if isinstance(t, dict)]
+                field_rules += _conditional_field_rules(obj, names)
 
     return {
         "triggers": triggers,
@@ -530,6 +484,79 @@ def collect_rules(  # noqa: C901, PLR0912
         "conditional_field_rules": field_rules,
         "tasks": tasks,
     }
+
+
+def _view_triggers(
+    app_export: KnackAppMetadata,
+    object_key: str | None,
+    view_key: str | None,
+    names: _FieldNames,
+    orphaned: set[str],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Form and action-link triggers on the selected views, and the selected
+    views that have none (listed so "no rules here" is visible, not inferred
+    from silence)."""
+    triggers: list[dict[str, Any]] = []
+    quiet_views: list[dict[str, Any]] = []
+    for scene, view in _selected_views(app_export, object_key, view_key):
+        header = _view_header(scene, view, orphaned)
+        view_data = view.model_dump(mode="python")
+        found = len(triggers)
+        form = _form_trigger(header, view_data, names)
+        if form:
+            triggers.append(form)
+        triggers += [
+            _action_link_trigger(header, column, names)
+            for column in _iter_action_links(view_data)
+        ]
+        if len(triggers) == found:
+            quiet_views.append({k: header[k] for k in _QUIET_VIEW_KEYS})
+    return triggers, quiet_views
+
+
+_QUIET_VIEW_KEYS = ("scene_key", "view_key", "view_name", "view_type", "reachable")
+
+
+def _selected_views(
+    app_export: KnackAppMetadata, object_key: str | None, view_key: str | None
+) -> Iterator[tuple[Scene, View]]:
+    """The one view asked for, else every view sourced on the object, else all."""
+    for scene in app_export.application.scenes:
+        for view in scene.views:
+            if view_key and view.key != view_key:
+                continue
+            source = view.source.object if view.source else None
+            if object_key and not view_key and source != object_key:
+                continue
+            yield scene, view
+
+
+def _conditional_field_rules(
+    obj: KnackObject, names: _FieldNames
+) -> list[dict[str, Any]]:
+    """The object's conditional field rules.
+
+    These set a value whenever a record is saved, whichever form, link,
+    import or API call saved it.
+    """
+    field_rules = []
+    for field in obj.fields:
+        rules = [
+            {
+                "key": rule.get("key"),
+                "values": [
+                    _value(v, names)
+                    for v in _list(rule.get("values"))
+                    if isinstance(v, dict)
+                ],
+                "criteria": _criteria(rule.get("criteria"), names),
+            }
+            for rule in _list(field.rules)
+            if isinstance(rule, dict)
+        ]
+        if rules:
+            field_rules.append({**names.label(field.key), "rules": rules})
+    return field_rules
 
 
 def _targets_object(record: dict[str, Any], object_key: str) -> bool:
