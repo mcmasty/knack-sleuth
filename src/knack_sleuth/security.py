@@ -5,7 +5,7 @@ access which scenes (pages) in a Knack application.
 """
 
 from collections import Counter, defaultdict
-from typing import Any
+from typing import Any, NamedTuple
 
 from pydantic import BaseModel
 
@@ -390,7 +390,88 @@ def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, 
     }
 
 
-def analyze_scene_security(  # noqa: C901, PLR0915
+class _Access(NamedTuple):
+    """Who can open a scene once inheritance from its ancestors is applied."""
+
+    profile_keys: list[str]
+    authenticated: bool | None
+    inherits: bool
+    inherited_from: str | None
+    ambiguous_parents: str | None  # labels of disagreeing ancestors, if any
+
+
+def _effective_access(scene: Scene, hierarchy: dict[str, Any]) -> _Access:
+    """The scene's own restriction, or what it inherits from above.
+
+    Only a profile restriction is final. A bare authenticated=True still
+    inherits any profile restriction from a login page above it (issue #27).
+    """
+    allowed = _get_allowed_profile_keys(scene)
+    authenticated = scene.authenticated
+    if not scene.parent or allowed:
+        return _Access(allowed, authenticated, False, None, None)
+
+    restrictions = _inherited_restrictions(scene.parent, hierarchy)
+    # Least restrictive branches win. If any route to this scene is
+    # unprotected, that is the finding; a stricter sibling route must not
+    # mask it and report the scene as safe. Where the weakest branches are
+    # role-restricted to *different* roles, access is the union of them --
+    # picking one would hide the other role's route.
+    weakest = min(_restriction_strength(r) for r in restrictions)
+    effective = [r for r in restrictions if _restriction_strength(r) == weakest]
+    inherited_profiles = list(
+        dict.fromkeys(profile for profiles, _, _ in effective for profile in profiles)
+    )
+    inherited_auth = any(auth for _, auth, _ in effective)
+    ambiguous = None
+    if len(restrictions) > 1:
+        ambiguous = " / ".join(sorted(label for _, _, label in restrictions if label))
+
+    # A scene that already demands login only "inherits" when the ancestor
+    # adds something: a profile restriction.
+    if inherited_profiles or (inherited_auth and authenticated is not True):
+        inherited_from = (
+            " / ".join(dict.fromkeys(label for _, _, label in effective if label))
+            or None
+        )
+        return _Access(
+            inherited_profiles, authenticated, True, inherited_from, ambiguous
+        )
+    return _Access(allowed, authenticated, False, None, ambiguous)
+
+
+def _security_concerns(
+    scene: Scene, access: _Access, requires_login: bool, role_count: int
+) -> list[str]:
+    """The findings to flag for one scene, in report order."""
+    has_parent = bool(scene.parent)
+    is_utility_page = scene.type == "user"
+    concerns = []
+    if is_utility_page:
+        concerns.append(
+            "UTILITY PAGE: Requires Knack system-level account (beyond app profiles)"
+        )
+    if access.ambiguous_parents:
+        # The fork is not necessarily at the parent slug -- it can be any
+        # duplicate slug further up -- so name the disagreeing scenes.
+        concerns.append(
+            f"AMBIGUOUS PARENT: ancestors reached via {scene.parent!r} disagree on "
+            f"security ({access.ambiguous_parents}); reporting the least "
+            "restrictive access"
+        )
+    if not requires_login:
+        where = "parent also public" if has_parent else "no parent"
+        concerns.append(f"PUBLIC: Accessible without login ({where})")
+    elif not access.profile_keys and not has_parent and not is_utility_page:
+        concerns.append(
+            "UNRESTRICTED: Requires login but no specific profiles restricted"
+        )
+    if role_count > MANY_ROLES_THRESHOLD:
+        concerns.append(f"MANY_ROLES: Accessible by {role_count} different roles")
+    return concerns
+
+
+def analyze_scene_security(
     scene: Scene, profiles: dict[str, str], hierarchy: dict[str, Any]
 ) -> SceneSecurity:
     """Analyze security settings for a single scene with navigation context.
@@ -403,135 +484,38 @@ def analyze_scene_security(  # noqa: C901, PLR0915
     Returns:
         SceneSecurity model with complete analysis
     """
-    scene_key = scene.key
-    scene_name = scene.name
-    scene_slug = scene.slug
-    scene_type = scene.type or "N/A"
-    is_utility_page = scene_type == "user"
-    parent_slug = scene.parent
-
-    # Build navigation path
     nav_info = build_navigation_path(scene, hierarchy)
-
-    # Check authentication requirement
-    authenticated = scene.authenticated
-
-    # Get direct scene/view restrictions.
-    allowed_profile_keys = _get_allowed_profile_keys(scene)
-
-    # Check parent security
-    has_parent = bool(parent_slug)
-    inherits_security = False
-    inherited_from_name = None
-
-    ambiguous_parents = None
-    # Only a profile restriction is final. A bare authenticated=True still
-    # inherits any profile restriction from a login page above it (issue #27).
-    if has_parent and not allowed_profile_keys:
-        restrictions = _inherited_restrictions(parent_slug, hierarchy)
-        # Least restrictive branches win. If any route to this scene is
-        # unprotected, that is the finding; a stricter sibling route must not
-        # mask it and report the scene as safe. Where the weakest branches are
-        # role-restricted to *different* roles, access is the union of them --
-        # picking one would hide the other role's route.
-        weakest = min(_restriction_strength(r) for r in restrictions)
-        effective = [r for r in restrictions if _restriction_strength(r) == weakest]
-        inherited_profiles = tuple(
-            dict.fromkeys(
-                profile for profiles, _, _ in effective for profile in profiles
-            )
-        )
-        inherited_auth = any(authenticated for _, authenticated, _ in effective)
-        inherited_from_name = (
-            " / ".join(dict.fromkeys(label for _, _, label in effective if label))
-            or None
-        )
-        if len(restrictions) > 1:
-            ambiguous_parents = " / ".join(
-                sorted(label for _, _, label in restrictions if label)
-            )
-
-        # A scene that already demands login only "inherits" when the
-        # ancestor adds something: a profile restriction.
-        if inherited_profiles or (inherited_auth and authenticated is not True):
-            inherits_security = True
-            allowed_profile_keys = list(inherited_profiles)
-            if authenticated is None:
-                authenticated = inherited_auth
-        else:
-            inherited_from_name = None
-
-    # Map profile keys to names
-    allowed_profile_names = [profiles.get(pk, pk) for pk in allowed_profile_keys]
-
-    # Determine if login is required (considering inheritance and profiles)
+    access = _effective_access(scene, hierarchy)
+    allowed_profile_names = [profiles.get(pk, pk) for pk in access.profile_keys]
     requires_login = (
-        authenticated is True or bool(allowed_profile_keys) or inherits_security
+        access.authenticated is True or bool(access.profile_keys) or access.inherits
     )
 
-    # Security concerns
-    concerns = []
-
-    if is_utility_page:
-        concerns.append(
-            "UTILITY PAGE: Requires Knack system-level account (beyond app profiles)"
-        )
-
-    if ambiguous_parents:
-        # The fork is not necessarily at parent_slug -- it can be any duplicate
-        # slug further up -- so name the disagreeing scenes, not a slug.
-        concerns.append(
-            f"AMBIGUOUS PARENT: ancestors reached via {parent_slug!r} disagree on "
-            f"security ({ambiguous_parents}); reporting the least restrictive access"
-        )
-
-    # Public = does not require login
-    if not requires_login and not has_parent:
-        concerns.append("PUBLIC: Accessible without login (no parent)")
-    elif not requires_login and has_parent:
-        concerns.append("PUBLIC: Accessible without login (parent also public)")
-
-    # Unrestricted = requires login but no specific roles
-    if (
-        requires_login
-        and not allowed_profile_keys
-        and not has_parent
-        and not is_utility_page
-    ):
-        concerns.append(
-            "UNRESTRICTED: Requires login but no specific profiles restricted"
-        )
-
-    if len(allowed_profile_names) > MANY_ROLES_THRESHOLD:
-        concerns.append(
-            f"MANY_ROLES: Accessible by {len(allowed_profile_names)} different roles"
-        )
-
+    concerns = _security_concerns(
+        scene, access, requires_login, len(allowed_profile_names)
+    )
     security_note = ""
-    if inherits_security:
-        security_note = f"Inherits security from parent/ancestor: {inherited_from_name}"
-
+    if access.inherits:
+        security_note = (
+            f"Inherits security from parent/ancestor: {access.inherited_from}"
+        )
     security_concern = "; ".join(concerns) if concerns else security_note or "OK"
-
-    # Extract all view names and keys from this scene
-    view_names = [view.name for view in scene.views]
-    view_keys = [view.key for view in scene.views]
 
     return SceneSecurity(
         root_nav=nav_info["root_nav"],
-        scene_name=scene_name,
+        scene_name=scene.name,
         nav_level=nav_info["nav_level"],
         allowed_profile_count=len(allowed_profile_names),
         allowed_profiles=allowed_profile_names,
         page_nav=nav_info["page_nav"],
-        scene_key=scene_key,
-        scene_slug=scene_slug,
-        scene_type=scene_type,
+        scene_key=scene.key,
+        scene_slug=scene.slug,
+        scene_type=scene.type or "N/A",
         security_concern=security_concern,
         requires_login=requires_login,
-        inherits_security=inherits_security,
-        view_names=view_names,
-        view_keys=view_keys,
+        inherits_security=access.inherits,
+        view_names=[view.name for view in scene.views],
+        view_keys=[view.key for view in scene.views],
     )
 
 
