@@ -95,6 +95,15 @@ class TestMetadataLoading:
         assert result.exit_code == 1
         assert "Failed to connect to Knack API: no route" in result.stderr
 
+    def test_unusable_cache_dir_is_one_line(self, tmp_path):
+        not_a_dir = tmp_path / "cache"
+        not_a_dir.write_text("")
+        env = {"KNACK_CACHE_DIR": str(not_a_dir), "KNACK_APP_ID": ""}
+        result = runner.invoke(cli, ["list-objects", "--app-id", "abc"], env=env)
+        assert result.exit_code == 1
+        assert result.stderr.startswith("Error:")
+        assert not isinstance(result.exception, FileExistsError)
+
     def test_missing_file(self, env):
         result = runner.invoke(cli, ["list-objects", "nope.json"], env=env)
         assert result.exit_code == 1
@@ -111,6 +120,18 @@ class TestDownloadMetadata:
         assert "Objects: 19 | Scenes: 65" in result.stdout
         # The download refreshes the cache other commands read.
         assert list((tmp_path / "cache").glob("abc_app_metadata_*.json"))
+
+    def test_malformed_metadata_is_one_line(self, env, api, tmp_path, monkeypatch):
+        cache = tmp_path / "cache"
+        cache.mkdir()
+        (cache / "abc_app_metadata_209901010000.json").write_text(
+            '{"application": null}'
+        )
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(cli, ["download-metadata", "--app-id", "abc"], env=env)
+        assert result.exit_code == 1
+        assert "Failed to save file" in result.stderr
+        assert not isinstance(result.exception, AttributeError)
 
     def test_unwritable_output(self, env, api, tmp_path):
         out = tmp_path / "missing" / "dir" / "out.json"

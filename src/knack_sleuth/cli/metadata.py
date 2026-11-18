@@ -82,9 +82,10 @@ def download_metadata(
     # refreshes the cache. The raw dict is saved as-is, without validation.
     data = load_by_app_id(final_app_id, refresh, dict)
 
-    with exit_on_error("Failed to save file: "), output_file.open("w") as f:
-        json.dump(data, f, indent=2)
-    _print_saved(output_file, data)
+    with exit_on_error("Failed to save file: "):
+        with output_file.open("w") as f:
+            json.dump(data, f, indent=2)
+        _print_saved(output_file, data)
 
 
 # --- diff ---------------------------------------------------------------------

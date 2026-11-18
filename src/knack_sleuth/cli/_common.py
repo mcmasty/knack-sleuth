@@ -92,7 +92,8 @@ def require_app_id(app_id: str | None) -> str:
 
 def _from_cache(app_id: str, parse: Callable[[dict], T]) -> T | None:
     """Parse a fresh cache file, or None when there is none or it is unusable."""
-    cached = find_valid_cache(app_id)
+    with exit_on_error():
+        cached = find_valid_cache(app_id)
     if not cached:
         return None
     cache_path, cache_age_hours = cached
