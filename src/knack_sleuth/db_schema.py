@@ -554,12 +554,19 @@ class _Relationship(NamedTuple):
     mermaid: str
 
 
+# Read from the connecting object to the connected one. Knack's `has` is how
+# many connected records each connecting record holds; `belongs_to` is how many
+# connecting records each connected record can belong to. So Events.Client with
+# has=one, belongs_to=many is many Events to one Client, which real records
+# confirm (no Event holds two Clients; a Client is on up to four Events).
+#
 # Mermaid ER syntax: ||--|| exactly one on both sides; ||--o{ one to zero or
 # more; }o--|| zero or more to exactly one; }o--o{ zero or more on both sides.
+# DBML: `a.x > b.id` is many a to one b; `<` the reverse.
 _RELATIONSHIPS = {
     ("one", "one"): _Relationship("one-to-one", "-", "||--||"),
-    ("one", "many"): _Relationship("one-to-many", "<", "||--o{"),
-    ("many", "one"): _Relationship("many-to-one", ">", "}o--||"),
+    ("one", "many"): _Relationship("many-to-one", ">", "}o--||"),
+    ("many", "one"): _Relationship("one-to-many", "<", "||--o{"),
 }
 # Anything else, including unexpected values, is treated as many-to-many.
 _MANY_TO_MANY = _Relationship("many-to-many", "<>", "}o--o{")

@@ -108,7 +108,7 @@
      "from_name": "Accounts",
      "to": "object_2",
      "to_name": "Accounts",
-     "type": "one_to_many",
+     "type": "many_to_one",
      "via": "field_3"
     },
     {
@@ -117,7 +117,7 @@
      "from_name": "Accounts",
      "to": "object_3",
      "to_name": "3rd Party/Vendor",
-     "type": "many_to_one",
+     "type": "one_to_many",
      "via": "field_10"
     },
     {
@@ -135,7 +135,7 @@
      "from_name": "Accounts",
      "to": "object_1",
      "to_name": "Accounts",
-     "type": "many_to_one",
+     "type": "one_to_many",
      "via": "field_21"
     },
     {

@@ -41,14 +41,14 @@ objects:
       field_name: Owner
       has: one
       belongs_to: many
-      relationship_type: one-to-many
+      relationship_type: many-to-one
     - key: field_10
       name: Vendor
       target_object: object_3
       field_name: Vendor
       has: many
       belongs_to: one
-      relationship_type: many-to-one
+      relationship_type: one-to-many
     inbound:
     - key: field_21
       name: Account Link
@@ -56,7 +56,7 @@ objects:
       field_name: Account Link
       has: many
       belongs_to: one
-      relationship_type: many-to-one
+      relationship_type: one-to-many
     - key: field_30
       name: Partners
       source_object: object_3
@@ -105,7 +105,7 @@ objects:
       field_name: Account Link
       has: many
       belongs_to: one
-      relationship_type: many-to-one
+      relationship_type: one-to-many
     inbound:
     - key: field_3
       name: Owner
@@ -113,7 +113,7 @@ objects:
       field_name: Owner
       has: one
       belongs_to: many
-      relationship_type: one-to-many
+      relationship_type: many-to-one
 - key: object_3
   name: 3rd Party/Vendor
   record_count: 12
@@ -149,7 +149,7 @@ objects:
       field_name: Vendor
       has: many
       belongs_to: one
-      relationship_type: many-to-one
+      relationship_type: one-to-many
     - key: field_20
       name: Primary Vendor
       source_object: object_2

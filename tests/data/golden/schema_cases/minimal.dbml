@@ -40,8 +40,8 @@ Table object_3 {
 }
 
 // Relationships
-Ref: object_1.field_3 < object_2.id // Owner
-Ref: object_1.field_10 > object_3.id // Vendor
+Ref: object_1.field_3 > object_2.id // Owner
+Ref: object_1.field_10 < object_3.id // Vendor
 Ref: object_2.field_20 - object_3.id // Primary Vendor
-Ref: object_2.field_21 > object_1.id // Account Link
+Ref: object_2.field_21 < object_1.id // Account Link
 Ref: object_3.field_30 <> object_1.id // Partners
