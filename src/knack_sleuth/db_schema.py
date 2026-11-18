@@ -361,64 +361,86 @@ def export_to_json_schema(app: Application, detail: str = "standard") -> dict[st
     return schema
 
 
+def _dbml_string(text: str) -> str:
+    """A double-quoted DBML string."""
+    escaped = text.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{_one_line(escaped)}"'
+
+
+def _one_line(text: str) -> str:
+    """Text for a // comment or a string: line breaks would end it early."""
+    return re.sub(r"\s*[\r\n]+\s*", " ", text)
+
+
 def _dbml_field_line(field: KnackField, obj: KnackObject) -> str:
     attributes = []
     if field.required:
         attributes.append("not null")
     if field.unique:
         attributes.append("unique")
-    if field.key == obj.identifier:
-        attributes.append("pk")
 
     line = f"  {field.key} {_get_field_sql_type(field)}"
     if attributes:
         line += f" [{', '.join(attributes)}]"
-    return line + f"  // {field.name} ({field.type})"
+    identifier = ", identifier" if field.key == obj.identifier else ""
+    return line + f"  // {_one_line(field.name)} ({field.type}{identifier})"
+
+
+def _dbml_columns(obj: KnackObject, detail: str) -> list[str]:
+    """The record ID, the fields the detail level keeps, and every outbound
+    connection column, which the Refs need at any detail level."""
+    outbound = obj.connections.outbound if obj.connections else []
+    ref_keys = {conn.key for conn in outbound}
+    lines = [_DBML_ID_COLUMN]
+    lines += [
+        _dbml_field_line(field, obj)
+        for field in obj.fields
+        if field.key in ref_keys or _should_include_field(field, obj, detail)
+    ]
+    field_keys = {field.key for field in obj.fields}
+    lines += [
+        f"  {conn.key} VARCHAR(50)  // {_one_line(conn.name)} (connection)"
+        for conn in outbound
+        if conn.key not in field_keys
+    ]
+    return lines
+
+
+# Knack connection fields hold the connected records' IDs, so every table
+# declares one and the Refs point at it.
+_DBML_ID_COLUMN = "  id VARCHAR(50) [pk]  // Knack record ID"
 
 
 def _dbml_table(app: Application, obj: KnackObject, detail: str) -> list[str]:
-    lines = [f"Table {obj.key} {{", f"  // {obj.name}"]
+    lines = [f"Table {obj.key} {{", f"  // {_one_line(obj.name)}"]
     record_count = app.counts.get(obj.key, 0)
     if record_count > 0:
         lines.append(f"  // Records: {record_count}")
     if obj.user:
         lines.append("  // User Profile Object")
     lines.append("")
-
-    lines += [
-        _dbml_field_line(field, obj)
-        for field in obj.fields
-        if _should_include_field(field, obj, detail)
-    ]
+    lines += _dbml_columns(obj, detail)
     lines.append("")
 
     if obj.inflections:
         notes = (
             f"Plural: {obj.inflections.plural}, Singular: {obj.inflections.singular}"
         )
-        lines.append(f'  Note: "{notes}"')
+        lines.append(f"  Note: {_dbml_string(notes)}")
     lines += ["}", ""]
     return lines
 
 
 def _dbml_refs(app: Application) -> list[str]:
-    objects_by_key = {obj.key: obj for obj in app.objects}
     lines = ["// Relationships"]
     for obj in app.objects:
         if not obj.connections:
             continue
         for conn in obj.connections.outbound:
             rel_type = _relationship(conn.has, conn.belongs_to).dbml
-            # The target's identifier field, else the connection's own key.
-            target_obj = objects_by_key.get(conn.object)
-            target_field = (
-                target_obj.identifier
-                if target_obj and target_obj.identifier
-                else conn.key
-            )
             lines.append(
-                f"Ref: {obj.key}.{conn.key} {rel_type} {conn.object}.{target_field} "
-                f"// {conn.name}"
+                f"Ref: {obj.key}.{conn.key} {rel_type} {conn.object}.id "
+                f"// {_one_line(conn.name)}"
             )
     return lines
 
@@ -436,15 +458,15 @@ def export_to_dbml(app: Application, detail: str = "standard") -> str:
     Returns:
         A DBML string representing the database structure
     """
-    lines = [f"// Database schema for: {app.name}"]
+    lines = [f"// Database schema for: {_one_line(app.name)}"]
     if app.description:
-        lines.append(f"// Description: {app.description}")
+        lines.append(f"// Description: {_one_line(app.description)}")
     lines += [
         f"// Knack App ID: {app.id}",
         "",
         "Project knack_app {",
         '  database_type: "Knack"',
-        f'  Note: "{app.name}"',
+        f"  Note: {_dbml_string(app.name)}",
         "}",
         "",
     ]
@@ -710,21 +732,18 @@ def _mermaid_entity_names(app: Application) -> dict[str, str]:
 def _mermaid_relationship_lines(
     app: Application, entity_names: dict[str, str]
 ) -> list[str]:
-    """One line per connected pair of objects, from the first connection seen."""
+    """One line per outbound connection; a pair of objects can have several."""
     lines = []
-    pairs_seen: set[tuple[str, ...]] = set()
     for obj in app.objects:
         if not obj.connections:
             continue
         for conn in obj.connections.outbound:
-            pair = tuple(sorted([obj.key, conn.object]))
-            if pair in pairs_seen:
-                continue
-            pairs_seen.add(pair)
             notation = _relationship(conn.has, conn.belongs_to).mermaid
             source_name = entity_names[obj.key]
             target_name = entity_names.get(conn.object, conn.object)
-            lines.append(f'    {source_name} {notation} {target_name} : "{conn.name}"')
+            # A double quote would end the label early.
+            label = _one_line(conn.name).replace('"', "'")
+            lines.append(f'    {source_name} {notation} {target_name} : "{label}"')
     return lines
 
 
@@ -741,8 +760,9 @@ def _mermaid_field_line(field: KnackField, obj: KnackObject) -> str:
     comment = ""
     description = _field_description(field)
     if description:
-        escaped_desc = description.replace('"', '\\"')
-        comment = f' "{escaped_desc}"'
+        # Mermaid has no escape for a double quote inside a comment.
+        unquoted = description.replace('"', "'")
+        comment = f' "{unquoted}"'
 
     field_type = _get_mermaid_type(field)
     field_name = _sanitize_field_name(field.name)

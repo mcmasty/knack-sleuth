@@ -6,9 +6,11 @@ erDiagram
     ACCOUNTS ||--o{ ACCOUNTS_OBJECT_2 : "Owner"
     ACCOUNTS }o--|| OBJ-3RD-PARTY-VENDOR : "Vendor"
     ACCOUNTS_OBJECT_2 ||--|| OBJ-3RD-PARTY-VENDOR : "Primary Vendor"
+    ACCOUNTS_OBJECT_2 }o--|| ACCOUNTS : "Account Link"
+    OBJ-3RD-PARTY-VENDOR }o--o{ ACCOUNTS : "Partners"
 
     ACCOUNTS {
-        string accountName PK "Main & \"primary\" name"
+        string accountName PK "Main & 'primary' name"
         string eMailWork
         string owner FK
         datetime createdAt
