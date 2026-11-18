@@ -86,7 +86,8 @@ def _get_allowed_profile_keys(scene: Scene) -> list[str]:
             for view in scene.views
             for profile in _extra(view).get("allowed_profiles") or []
         ]
-    return list(dict.fromkeys(allowed_profiles))
+    # A null entry restricts nothing; keeping it would fail SceneSecurity.
+    return [key for key in dict.fromkeys(allowed_profiles) if isinstance(key, str)]
 
 
 def _scene_label(scene: Scene) -> str:

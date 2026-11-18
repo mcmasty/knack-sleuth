@@ -1,20 +1,52 @@
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 from pydantic import Field as PydanticField
+
+
+class _KnackModel(BaseModel):
+    """Base for models of Knack's metadata, which writes null where a value
+    is simply absent.
+
+    A null in a field that has a default takes the default. A null display
+    name, slug or inflection falls back to the record's key (or ""), so one unnamed view
+    doesn't stop every command. Keys, types and connection targets stay
+    required: without them the analyses would be wrong, not just less tidy.
+    """
+
+    _NAME_FIELDS: ClassVar[frozenset[str]] = frozenset(
+        {"name", "slug", "singular", "plural"}
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _null_means_absent(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or None not in data.values():
+            return data
+        data = dict(data)
+        for name, info in cls.model_fields.items():
+            alias = info.alias or name
+            if alias not in data or data[alias] is not None:
+                continue
+            if not info.is_required():
+                del data[alias]
+            elif name in cls._NAME_FIELDS:
+                data[alias] = data.get("key") or ""
+        return data
+
 
 # ============================================================================
 # Field Models
 # ============================================================================
 
 
-class FieldFormat(BaseModel):
+class FieldFormat(_KnackModel):
     """Format configuration for a field."""
 
     model_config = {"extra": "allow"}  # Allow additional format properties
 
 
-class FieldRelationship(BaseModel):
+class FieldRelationship(_KnackModel):
     """Connection relationship configuration."""
 
     has: str  # "one" or "many"
@@ -22,7 +54,7 @@ class FieldRelationship(BaseModel):
     belongs_to: str  # "one" or "many"
 
 
-class KnackField(BaseModel):
+class KnackField(_KnackModel):
     """Represents a field in a Knack object."""
 
     key: str  # Unique field identifier (e.g., "field_4")
@@ -61,21 +93,21 @@ class KnackField(BaseModel):
 # ============================================================================
 
 
-class Inflections(BaseModel):
+class Inflections(_KnackModel):
     """Singular and plural forms of an object/field name."""
 
     singular: str
     plural: str
 
 
-class ConnectionField(BaseModel):
+class ConnectionField(_KnackModel):
     """Metadata about the connected field."""
 
     name: str
     inflections: Inflections | None = None
 
 
-class Connection(BaseModel):
+class Connection(_KnackModel):
     """Represents a connection between objects."""
 
     has: str  # "one" or "many"
@@ -86,21 +118,21 @@ class Connection(BaseModel):
     belongs_to: str  # "one" or "many"
 
 
-class Connections(BaseModel):
+class Connections(_KnackModel):
     """Inbound and outbound connections for an object."""
 
     inbound: list[Connection] = PydanticField(default_factory=list)
     outbound: list[Connection] = PydanticField(default_factory=list)
 
 
-class ObjectSort(BaseModel):
+class ObjectSort(_KnackModel):
     """Default sort configuration for an object."""
 
     field: str  # Field key to sort by
     order: Literal["asc", "desc"]
 
 
-class KnackObject(BaseModel):
+class KnackObject(_KnackModel):
     """Represents a data object (table) in Knack."""
 
     key: str  # Unique object identifier (e.g., "object_2")
@@ -124,7 +156,7 @@ class KnackObject(BaseModel):
 # ============================================================================
 
 
-class ViewColumn(BaseModel):
+class ViewColumn(_KnackModel):
     """Column configuration in a table view."""
 
     type: str | None = None  # "field" or "link" - can be null
@@ -135,7 +167,7 @@ class ViewColumn(BaseModel):
     model_config = {"extra": "allow"}
 
 
-class ViewLink(BaseModel):
+class ViewLink(_KnackModel):
     """Link configuration in a menu view."""
 
     name: str
@@ -151,7 +183,7 @@ class ViewLink(BaseModel):
 # added later would look orphaned.
 
 
-class ViewSourceCriteria(BaseModel):
+class ViewSourceCriteria(_KnackModel):
     """Filter criteria for a view's data source."""
 
     match: str  # "all" or "any"
@@ -161,7 +193,7 @@ class ViewSourceCriteria(BaseModel):
     model_config = {"extra": "allow"}
 
 
-class ViewSourceSort(BaseModel):
+class ViewSourceSort(_KnackModel):
     """Sort configuration for a view's data source."""
 
     field: str  # Field key
@@ -170,7 +202,7 @@ class ViewSourceSort(BaseModel):
     model_config = {"extra": "allow"}
 
 
-class ParentSource(BaseModel):
+class ParentSource(_KnackModel):
     """Parent connection information for a view source."""
 
     object: str  # Object key
@@ -179,7 +211,7 @@ class ParentSource(BaseModel):
     model_config = {"extra": "allow"}
 
 
-class ViewSource(BaseModel):
+class ViewSource(_KnackModel):
     """Data source configuration for a view."""
 
     object: str  # Object key that this view displays
@@ -202,7 +234,7 @@ class ViewSource(BaseModel):
         return v
 
 
-class View(BaseModel):
+class View(_KnackModel):
     """Represents a view in a Knack scene."""
 
     key: str  # Unique view identifier (e.g., "view_4")
@@ -222,7 +254,7 @@ class View(BaseModel):
 # ============================================================================
 
 
-class Scene(BaseModel):
+class Scene(_KnackModel):
     """Represents a scene (page) in a Knack application."""
 
     key: str  # Unique scene identifier (e.g., "scene_46")
@@ -245,14 +277,14 @@ class Scene(BaseModel):
 # ============================================================================
 
 
-class HomeScene(BaseModel):
+class HomeScene(_KnackModel):
     """Reference to the application's home scene."""
 
     key: str  # Scene key
     slug: str
 
 
-class Application(BaseModel):
+class Application(_KnackModel):
     """Represents a Knack application's metadata."""
 
     name: str
@@ -273,8 +305,16 @@ class Application(BaseModel):
 
     model_config = {"extra": "allow"}
 
+    @field_validator("counts", mode="before")
+    @classmethod
+    def drop_null_counts(cls, v: Any) -> Any:
+        """An object whose count is null has no count, as if it were missing."""
+        if isinstance(v, dict):
+            return {key: count for key, count in v.items() if count is not None}
+        return v
 
-class KnackAppMetadata(BaseModel):
+
+class KnackAppMetadata(_KnackModel):
     """Root model for a Knack application export JSON."""
 
     application: Application
