@@ -78,11 +78,13 @@ def describe_validation_error(error: ValidationError) -> str:
             path += f"[{part}]"
         else:
             path += f".{part}" if path else str(part)
-    value = first.get("input")
-    shown = "null" if value is None else type(value).__name__
+    got = ""
+    if first["type"] != "missing":  # a missing key's input is its parent
+        value = first.get("input")
+        got = ", got " + ("null" if value is None else type(value).__name__)
     more = len(error.errors()) - 1
     extra = f" (and {more} more)" if more else ""
-    return f"Invalid metadata at {path}: {first['msg']}, got {shown}{extra}"
+    return f"Invalid metadata at {path}: {first['msg']}{got}{extra}"
 
 
 def validate_choice(value: str, valid: Iterable[str], label: str = "format") -> None:

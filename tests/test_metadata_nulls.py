@@ -107,3 +107,11 @@ def test_cli_reports_bad_metadata_in_one_line(metadata, tmp_path):
     assert result.exit_code == 1
     assert "Invalid metadata at application.scenes[" in result.output
     assert "errors.pydantic.dev" not in result.output
+
+
+def test_missing_key_message_names_no_input():
+    with pytest.raises(ValidationError) as caught:
+        KnackAppMetadata()
+    assert describe_validation_error(caught.value) == (
+        "Invalid metadata at application: Field required"
+    )
