@@ -387,27 +387,28 @@ _EFFERENT = (
 
 def _print_coupling_side(connections: list, objects_by_key: dict, side: tuple) -> None:
     heading, suffix, explain, explain_none, arrow = side
+    inbound = side is _AFFERENT
     if not connections:
         console.print(f"\n[bold cyan]{heading}:[/bold cyan] 0 objects")
         console.print(f"[dim]{explain_none}[/dim]")
         return
 
     console.print(f"\n[bold cyan]{heading}:[/bold cyan] {len(connections)} {suffix}")
-    console.print(f"[dim]{explain}[/dim]\n")
+    console.print(f"[dim]{explain}; cardinality reads from this object[/dim]\n")
     for conn in sorted(
         connections,
         key=lambda c: getattr(objects_by_key.get(c.object), "name", ""),
     ):
         related = objects_by_key.get(conn.object)
         if related:
-            relationship = f"{conn.has} → {conn.belongs_to}"
+            relationship = conn.relationship_type(from_connected=inbound)
             console.print(
                 f"  [yellow]{arrow}[/yellow] [bold cyan]{related.name}[/bold cyan] ({conn.object})\n"
-                f"     via [dim]{conn.name}[/dim] ({conn.key}) [{relationship}]"
+                f"     via [dim]{conn.name}[/dim] ({conn.key}) \\[{relationship}]"
             )
 
 
-def _connection_payload(conn, objects_by_key: dict) -> dict:
+def _connection_payload(conn, objects_by_key: dict, *, inbound: bool) -> dict:
     related = objects_by_key.get(conn.object)
     return {
         "object_key": conn.object,
@@ -416,6 +417,8 @@ def _connection_payload(conn, objects_by_key: dict) -> dict:
         "connection_name": conn.name,
         "has": conn.has,
         "belongs_to": conn.belongs_to,
+        # From this object to object_key, as in the rich output.
+        "relationship_type": conn.relationship_type(from_connected=inbound),
     }
 
 
@@ -461,8 +464,12 @@ def show_coupling(
             "ca": ca,
             "ce": ce,
             "instability": round(ce / (ca + ce), 2) if (ca + ce) else None,
-            "inbound": [_connection_payload(c, objects_by_key) for c in inbound],
-            "outbound": [_connection_payload(c, objects_by_key) for c in outbound],
+            "inbound": [
+                _connection_payload(c, objects_by_key, inbound=True) for c in inbound
+            ],
+            "outbound": [
+                _connection_payload(c, objects_by_key, inbound=False) for c in outbound
+            ],
         }
         typer.echo(json.dumps(payload, indent=2))
         return

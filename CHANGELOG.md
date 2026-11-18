@@ -44,6 +44,10 @@
   reverse for `has: many, belongs_to: one`. One-to-one and many-to-many are unchanged.
   In YAML, an inbound connection's `relationship_type` reads from the object listing it,
   so Clients lists the Events connection as `one-to-many`.
+  `show-coupling` and `search-object` printed Knack's raw pair (`[one → many]`,
+  `"one to many"`), which reads the same wrong way. They now print the same labels:
+  `show-coupling` from the object shown (its JSON gains `relationship_type`), and
+  `search-object`'s `relationship` from the connecting object.
 - One null in the metadata, such as a view with `name: null`, made every command exit with
   a multi-line pydantic dump. A null now means "absent": fields with a default take it, and a
   null name, slug or inflection falls back to the key. Of 879 places in the sample metadata,
