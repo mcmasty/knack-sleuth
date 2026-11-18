@@ -1201,13 +1201,9 @@ class KnackSleuth:
                             if conn.object == obj.key:
                                 used_by.append(other_obj.key)
                 obj_summary["used_by"] = used_by
-                # Don't add to reference_data yet - will be added in reassignment if not core
-            elif roles["primary_role"] == "transactional":
-                transactional.append(obj_summary)
-            else:  # supporting
-                supporting.append(obj_summary)
 
-            # Track for core entity ranking (exclude user profiles)
+            # Every other object is ranked for core status below, then filed
+            # under its primary role only if it doesn't make the cut.
             if not roles["is_user_profile"]:
                 all_objects_summary.append(obj_summary)
 

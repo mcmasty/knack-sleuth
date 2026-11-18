@@ -1,5 +1,8 @@
 """Tests for KnackSleuth orphan detection."""
 
+import json
+from pathlib import Path
+
 import pytest
 
 from knack_sleuth.models import KnackAppMetadata
@@ -540,3 +543,28 @@ class TestPrimaryRole:
         )
         sleuth.app.counts[obj.key] = records
         assert sleuth._classify_object_roles(obj)["primary_role"] == expected
+
+
+class TestDomainModelBuckets:
+    """Each object appears in exactly one domain-model category."""
+
+    @pytest.mark.parametrize(
+        "fixture", ["sample_knack_app_meta.json", "rules_app_meta.json"]
+    )
+    def test_every_object_once(self, fixture):
+        path = Path(__file__).parent / "data" / fixture
+        sleuth = KnackSleuth(KnackAppMetadata(**json.loads(path.read_text())))
+        domain = sleuth.generate_app_summary()["domain_model"]
+
+        keys = [
+            entity["object_key"]
+            for bucket in (
+                "user_profiles",
+                "core_entities",
+                "transactional_entities",
+                "reference_data",
+                "supporting_entities",
+            )
+            for entity in domain[bucket]
+        ]
+        assert sorted(keys) == sorted(obj.key for obj in sleuth.app.objects)
