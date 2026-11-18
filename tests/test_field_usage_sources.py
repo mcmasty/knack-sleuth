@@ -133,3 +133,22 @@ def test_every_source_of_a_connection_field_in_order():
         ("view_parent_connection", "view_2"),
         ("view_connection_key", "view_2"),
     ]
+
+
+def test_impact_analysis_files_forms_and_formulas():
+    """Neither sample fixture has a form input, so only this app covers forms."""
+    sleuth = KnackSleuth(KnackAppMetadata(application=APP))
+    form = {"view_key": "view_2", "view_name": "View view_2", "scene_key": "scene_1"}
+
+    field = sleuth.generate_impact_analysis("field_1")
+    assert field["direct_impacts"]["forms"] == [form]
+    assert [f["field_key"] for f in field["direct_impacts"]["formulas"]] == ["field_3"]
+    assert field["risk_assessment"]["affected_user_workflows"] == [
+        "User data entry forms",
+        "Data display views",
+        "Calculated fields and formulas",
+    ]
+
+    obj = sleuth.generate_impact_analysis("object_1")
+    assert obj["direct_impacts"]["forms"] == [form]
+    assert obj["cascade_impacts"]["affected_scenes"] == ["scene_1"]

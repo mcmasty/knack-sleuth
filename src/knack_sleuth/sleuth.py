@@ -170,6 +170,53 @@ def _is_typed_equation_reference(
     return f"{{{field_key}}}" in str(equation)
 
 
+# Workflow hint per kind of direct impact, in the order hints are listed.
+_WORKFLOW_HINTS = {
+    "forms": "User data entry forms",
+    "views": "Data display views",
+    "connections": "Related data relationships",
+    "formulas": "Calculated fields and formulas",
+}
+
+
+def _risk_level(score: int, low_max: int, medium_max: int) -> str:
+    """Breaking-change likelihood for an impact score."""
+    if score == 0:
+        return "none"
+    if score <= low_max:
+        return "low"
+    if score <= medium_max:
+        return "medium"
+    return "high"
+
+
+def _count_direct_impacts(direct: dict[str, list]) -> int:
+    return sum(
+        len(direct[kind]) for kind in ("connections", "views", "formulas", "forms")
+    )
+
+
+def _workflow_hints(direct: dict[str, list], kinds: tuple[str, ...]) -> list[str]:
+    return [_WORKFLOW_HINTS[kind] for kind in kinds if direct[kind]]
+
+
+def _formula_impact(usage: Usage) -> dict[str, Any]:
+    return {
+        "field_key": usage.details.get("field_key"),
+        "field_name": usage.details.get("field_name"),
+        "object_key": usage.details.get("object_key"),
+        "equation": usage.details.get("equation"),
+    }
+
+
+def _form_impact(usage: Usage) -> dict[str, Any]:
+    return {
+        "view_key": usage.details.get("view_key"),
+        "view_name": usage.details.get("view_name"),
+        "scene_key": usage.details.get("scene_key"),
+    }
+
+
 class _ReferenceOwner(NamedTuple):
     """Where an indexed field reference lives, for building its Usage."""
 
@@ -800,7 +847,7 @@ class KnackSleuth:
 
         return analysis
 
-    def _analyze_object_impact(  # noqa: C901, PLR0912, PLR0915
+    def _analyze_object_impact(
         self, object_key: str, analysis: dict[str, Any]
     ) -> dict[str, Any]:
         """Analyze impact of changes to an object."""
@@ -809,22 +856,18 @@ class KnackSleuth:
             analysis["error"] = f"Object {object_key} not found"
             return analysis
 
-        # Update target info
         analysis["target"]["name"] = obj.name
         analysis["target"]["description"] = f"{len(obj.fields)} fields"
 
-        # Get all usages
         results = self.search_object(object_key)
-        object_usages = results.get("object_usages", [])
-
-        # Categorize direct impacts
+        direct = analysis["direct_impacts"]
         # dict, not set: keeps first-seen order so output is stable across
         # processes (str hashing is randomized per PYTHONHASHSEED).
         scenes_seen: dict[str, None] = {}
 
-        for usage in object_usages:
+        for usage in results.get("object_usages", []):
             if "connection" in usage.location_type:
-                analysis["direct_impacts"]["connections"].append(
+                direct["connections"].append(
                     {
                         "type": usage.location_type,
                         "description": usage.context,
@@ -833,122 +876,63 @@ class KnackSleuth:
                     }
                 )
             elif "view" in usage.location_type:
-                view_key = usage.details.get("view_key")
-                scene_key = usage.details.get("scene_key")
-                if scene_key:
-                    scenes_seen[scene_key] = None
-                analysis["direct_impacts"]["views"].append(
-                    {
-                        "view_key": view_key,
-                        "view_name": usage.details.get("view_name"),
-                        "view_type": usage.details.get("view_type"),
-                        "scene_key": scene_key,
-                        "scene_name": usage.details.get("scene_name"),
-                    }
+                self._record_view_impact(analysis, usage, scenes_seen)
+
+        for field_key, usages in results.items():
+            if field_key.startswith("field_"):
+                field_impact = self._field_cascade(
+                    field_key, usages, analysis, scenes_seen
                 )
+                if field_impact:
+                    analysis["cascade_impacts"]["affected_fields"].append(field_impact)
 
-        # Process field-level cascades
-        field_results = {k: v for k, v in results.items() if k.startswith("field_")}
-        for field_key, usages in field_results.items():
-            _, field_info = self.get_field_info(field_key)
-            if field_info:
-                field_impact = {
-                    "field_key": field_key,
-                    "field_name": field_info.name,
-                    "field_type": field_info.type,
-                    "usage_count": len(usages),
-                    "usages": [],
-                }
+        self._record_scenes(analysis, scenes_seen)
 
-                for usage in usages:
-                    if usage.location_type == "field_equation":
-                        analysis["direct_impacts"]["formulas"].append(
-                            {
-                                "field_key": usage.details.get("field_key"),
-                                "field_name": usage.details.get("field_name"),
-                                "object_key": usage.details.get("object_key"),
-                                "equation": usage.details.get("equation"),
-                            }
-                        )
-                    elif usage.location_type == "form_input":
-                        analysis["direct_impacts"]["forms"].append(
-                            {
-                                "view_key": usage.details.get("view_key"),
-                                "view_name": usage.details.get("view_name"),
-                                "scene_key": usage.details.get("scene_key"),
-                            }
-                        )
-
-                    if "scene_key" in usage.details:
-                        scenes_seen[usage.details["scene_key"]] = None
-
-                    field_impact["usages"].append(
-                        {
-                            "type": usage.location_type,
-                            "context": usage.context,
-                        }
-                    )
-
-                analysis["cascade_impacts"]["affected_fields"].append(field_impact)
-
-        # Populate scene info
-        for scene_key in scenes_seen:
-            for scene in self.app.scenes:
-                if scene.key == scene_key:
-                    analysis["direct_impacts"]["scenes"].append(
-                        {
-                            "scene_key": scene_key,
-                            "scene_name": scene.name,
-                            "scene_slug": scene.slug,
-                        }
-                    )
-                    analysis["cascade_impacts"]["affected_scenes"].append(scene_key)
-                    break
-
-        # Calculate impact score and risk
-        total_impacts = (
-            len(analysis["direct_impacts"]["connections"])
-            + len(analysis["direct_impacts"]["views"])
-            + len(analysis["direct_impacts"]["formulas"])
-            + len(analysis["direct_impacts"]["forms"])
-        )
-
+        affected_fields = len(analysis["cascade_impacts"]["affected_fields"])
+        total_impacts = _count_direct_impacts(direct)
         analysis["metadata"]["total_direct_impacts"] = total_impacts
-        analysis["metadata"]["total_cascade_impacts"] = len(
-            analysis["cascade_impacts"]["affected_fields"]
+        analysis["metadata"]["total_cascade_impacts"] = affected_fields
+        impact_score = total_impacts + affected_fields
+        analysis["risk_assessment"]["impact_score"] = impact_score
+        analysis["risk_assessment"]["breaking_change_likelihood"] = _risk_level(
+            impact_score, OBJECT_RISK_LOW_MAX, OBJECT_RISK_MEDIUM_MAX
         )
-        analysis["risk_assessment"]["impact_score"] = total_impacts + len(
-            analysis["cascade_impacts"]["affected_fields"]
+        analysis["risk_assessment"]["affected_user_workflows"] += _workflow_hints(
+            direct, ("forms", "views", "connections")
         )
-
-        # Determine risk level
-        impact_score = analysis["risk_assessment"]["impact_score"]
-        if impact_score == 0:
-            analysis["risk_assessment"]["breaking_change_likelihood"] = "none"
-        elif impact_score <= OBJECT_RISK_LOW_MAX:
-            analysis["risk_assessment"]["breaking_change_likelihood"] = "low"
-        elif impact_score <= OBJECT_RISK_MEDIUM_MAX:
-            analysis["risk_assessment"]["breaking_change_likelihood"] = "medium"
-        else:
-            analysis["risk_assessment"]["breaking_change_likelihood"] = "high"
-
-        # Add user-facing workflow hints
-        if analysis["direct_impacts"]["forms"]:
-            analysis["risk_assessment"]["affected_user_workflows"].append(
-                "User data entry forms"
-            )
-        if analysis["direct_impacts"]["views"]:
-            analysis["risk_assessment"]["affected_user_workflows"].append(
-                "Data display views"
-            )
-        if analysis["direct_impacts"]["connections"]:
-            analysis["risk_assessment"]["affected_user_workflows"].append(
-                "Related data relationships"
-            )
-
         return analysis
 
-    def _analyze_field_impact(  # noqa: C901, PLR0912
+    def _field_cascade(
+        self,
+        field_key: str,
+        usages: list[Usage],
+        analysis: dict[str, Any],
+        scenes_seen: dict[str, None],
+    ) -> dict[str, Any] | None:
+        """One of an object's fields: its usages, plus the formulas and forms
+        they put in the object's direct impacts."""
+        _, field_info = self.get_field_info(field_key)
+        if not field_info:
+            return None
+        for usage in usages:
+            if usage.location_type == "field_equation":
+                analysis["direct_impacts"]["formulas"].append(_formula_impact(usage))
+            elif usage.location_type == "form_input":
+                analysis["direct_impacts"]["forms"].append(_form_impact(usage))
+            if "scene_key" in usage.details:
+                scenes_seen[usage.details["scene_key"]] = None
+        return {
+            "field_key": field_key,
+            "field_name": field_info.name,
+            "field_type": field_info.type,
+            "usage_count": len(usages),
+            "usages": [
+                {"type": usage.location_type, "context": usage.context}
+                for usage in usages
+            ],
+        }
+
+    def _analyze_field_impact(
         self, field_key: str, analysis: dict[str, Any]
     ) -> dict[str, Any]:
         """Analyze impact of changes to a field."""
@@ -957,20 +941,17 @@ class KnackSleuth:
             analysis["error"] = f"Field {field_key} not found"
             return analysis
 
-        # Update target info
         analysis["target"]["name"] = f"{obj_info.name}.{field_info.name}"
         analysis["target"]["description"] = f"{field_info.type} field"
 
-        # Get all usages
-        usages = self.search_field(field_key)
-
+        direct = analysis["direct_impacts"]
         # dict, not set: keeps first-seen order so output is stable across
         # processes (str hashing is randomized per PYTHONHASHSEED).
         scenes_seen: dict[str, None] = {}
 
-        for usage in usages:
+        for usage in self.search_field(field_key):
             if usage.location_type == "connection_field":
-                analysis["direct_impacts"]["connections"].append(
+                direct["connections"].append(
                     {
                         "type": "connection",
                         "description": usage.context,
@@ -978,87 +959,61 @@ class KnackSleuth:
                     }
                 )
             elif usage.location_type == "field_equation":
-                analysis["direct_impacts"]["formulas"].append(
-                    {
-                        "field_key": usage.details.get("field_key"),
-                        "field_name": usage.details.get("field_name"),
-                        "object_key": usage.details.get("object_key"),
-                        "equation": usage.details.get("equation"),
-                    }
-                )
+                direct["formulas"].append(_formula_impact(usage))
             elif "view" in usage.location_type:
-                view_key = usage.details.get("view_key")
-                scene_key = usage.details.get("scene_key")
-                if scene_key:
-                    scenes_seen[scene_key] = None
-                analysis["direct_impacts"]["views"].append(
-                    {
-                        "view_key": view_key,
-                        "view_name": usage.details.get("view_name"),
-                        "view_type": usage.details.get("view_type"),
-                        "scene_key": scene_key,
-                        "scene_name": usage.details.get("scene_name"),
-                    }
-                )
+                self._record_view_impact(analysis, usage, scenes_seen)
             elif usage.location_type == "form_input":
-                analysis["direct_impacts"]["forms"].append(
-                    {
-                        "view_key": usage.details.get("view_key"),
-                        "view_name": usage.details.get("view_name"),
-                        "scene_key": usage.details.get("scene_key"),
-                    }
-                )
+                direct["forms"].append(_form_impact(usage))
 
-        # Populate scene info
-        for scene_key in scenes_seen:
-            for scene in self.app.scenes:
-                if scene.key == scene_key:
-                    analysis["direct_impacts"]["scenes"].append(
-                        {
-                            "scene_key": scene_key,
-                            "scene_name": scene.name,
-                            "scene_slug": scene.slug,
-                        }
-                    )
-                    analysis["cascade_impacts"]["affected_scenes"].append(scene_key)
-                    break
+        self._record_scenes(analysis, scenes_seen)
 
-        # Calculate impact score
-        total_impacts = (
-            len(analysis["direct_impacts"]["connections"])
-            + len(analysis["direct_impacts"]["views"])
-            + len(analysis["direct_impacts"]["formulas"])
-            + len(analysis["direct_impacts"]["forms"])
-        )
-
+        total_impacts = _count_direct_impacts(direct)
         analysis["metadata"]["total_direct_impacts"] = total_impacts
         analysis["risk_assessment"]["impact_score"] = total_impacts
-
-        # Determine risk level
-        if total_impacts == 0:
-            analysis["risk_assessment"]["breaking_change_likelihood"] = "none"
-        elif total_impacts <= FIELD_RISK_LOW_MAX:
-            analysis["risk_assessment"]["breaking_change_likelihood"] = "low"
-        elif total_impacts <= FIELD_RISK_MEDIUM_MAX:
-            analysis["risk_assessment"]["breaking_change_likelihood"] = "medium"
-        else:
-            analysis["risk_assessment"]["breaking_change_likelihood"] = "high"
-
-        # Add user-facing workflow hints
-        if analysis["direct_impacts"]["forms"]:
-            analysis["risk_assessment"]["affected_user_workflows"].append(
-                "User data entry forms"
-            )
-        if analysis["direct_impacts"]["views"]:
-            analysis["risk_assessment"]["affected_user_workflows"].append(
-                "Data display views"
-            )
-        if analysis["direct_impacts"]["formulas"]:
-            analysis["risk_assessment"]["affected_user_workflows"].append(
-                "Calculated fields and formulas"
-            )
-
+        analysis["risk_assessment"]["breaking_change_likelihood"] = _risk_level(
+            total_impacts, FIELD_RISK_LOW_MAX, FIELD_RISK_MEDIUM_MAX
+        )
+        analysis["risk_assessment"]["affected_user_workflows"] += _workflow_hints(
+            direct, ("forms", "views", "formulas")
+        )
         return analysis
+
+    @staticmethod
+    def _record_view_impact(
+        analysis: dict[str, Any], usage: Usage, scenes_seen: dict[str, None]
+    ) -> None:
+        scene_key = usage.details.get("scene_key")
+        if scene_key:
+            scenes_seen[scene_key] = None
+        analysis["direct_impacts"]["views"].append(
+            {
+                "view_key": usage.details.get("view_key"),
+                "view_name": usage.details.get("view_name"),
+                "view_type": usage.details.get("view_type"),
+                "scene_key": scene_key,
+                "scene_name": usage.details.get("scene_name"),
+            }
+        )
+
+    def _record_scenes(
+        self, analysis: dict[str, Any], scenes_seen: dict[str, None]
+    ) -> None:
+        """Add the scenes seen, in first-seen order, skipping unknown keys."""
+        scenes_by_key: dict[str, Scene] = {}
+        for scene in self.app.scenes:
+            scenes_by_key.setdefault(scene.key, scene)
+        for scene_key in scenes_seen:
+            scene = scenes_by_key.get(scene_key)
+            if scene is None:
+                continue
+            analysis["direct_impacts"]["scenes"].append(
+                {
+                    "scene_key": scene_key,
+                    "scene_name": scene.name,
+                    "scene_slug": scene.slug,
+                }
+            )
+            analysis["cascade_impacts"]["affected_scenes"].append(scene_key)
 
     def generate_app_summary(self) -> dict[str, Any]:
         """
