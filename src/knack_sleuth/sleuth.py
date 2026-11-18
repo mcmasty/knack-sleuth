@@ -750,8 +750,9 @@ class KnackSleuth:
         object_usages = results.get("object_usages", [])
 
         # Categorize direct impacts
-        scenes_set = set()
-        views_set = set()
+        # dict, not set: keeps first-seen order so output is stable across
+        # processes (str hashing is randomized per PYTHONHASHSEED).
+        scenes_seen: dict[str, None] = {}
 
         for usage in object_usages:
             if "connection" in usage.location_type:
@@ -766,10 +767,8 @@ class KnackSleuth:
             elif "view" in usage.location_type:
                 view_key = usage.details.get("view_key")
                 scene_key = usage.details.get("scene_key")
-                if view_key:
-                    views_set.add(view_key)
                 if scene_key:
-                    scenes_set.add(scene_key)
+                    scenes_seen[scene_key] = None
                 analysis["direct_impacts"]["views"].append(
                     {
                         "view_key": view_key,
@@ -813,9 +812,7 @@ class KnackSleuth:
                         )
 
                     if "scene_key" in usage.details:
-                        scenes_set.add(usage.details["scene_key"])
-                    if "view_key" in usage.details:
-                        views_set.add(usage.details["view_key"])
+                        scenes_seen[usage.details["scene_key"]] = None
 
                     field_impact["usages"].append(
                         {
@@ -827,7 +824,7 @@ class KnackSleuth:
                 analysis["cascade_impacts"]["affected_fields"].append(field_impact)
 
         # Populate scene info
-        for scene_key in scenes_set:
+        for scene_key in scenes_seen:
             for scene in self.app.scenes:
                 if scene.key == scene_key:
                     analysis["direct_impacts"]["scenes"].append(
@@ -899,8 +896,9 @@ class KnackSleuth:
         # Get all usages
         usages = self.search_field(field_key)
 
-        scenes_set = set()
-        views_set = set()
+        # dict, not set: keeps first-seen order so output is stable across
+        # processes (str hashing is randomized per PYTHONHASHSEED).
+        scenes_seen: dict[str, None] = {}
 
         for usage in usages:
             if usage.location_type == "connection_field":
@@ -923,10 +921,8 @@ class KnackSleuth:
             elif "view" in usage.location_type:
                 view_key = usage.details.get("view_key")
                 scene_key = usage.details.get("scene_key")
-                if view_key:
-                    views_set.add(view_key)
                 if scene_key:
-                    scenes_set.add(scene_key)
+                    scenes_seen[scene_key] = None
                 analysis["direct_impacts"]["views"].append(
                     {
                         "view_key": view_key,
@@ -946,7 +942,7 @@ class KnackSleuth:
                 )
 
         # Populate scene info
-        for scene_key in scenes_set:
+        for scene_key in scenes_seen:
             for scene in self.app.scenes:
                 if scene.key == scene_key:
                     analysis["direct_impacts"]["scenes"].append(
@@ -1356,7 +1352,9 @@ class KnackSleuth:
                 continue
 
             # Find closely related objects (share 2+ connections)
-            cluster_members = {obj.key}
+            # dict, not set: members stay in app object order, so the
+            # emitted object/object_keys lists are stable across processes.
+            cluster_members: dict[str, None] = {obj.key: None}
             obj_neighbors = adjacency[obj.key]
 
             if len(obj_neighbors) >= CLUSTER_MIN_SHARED_NEIGHBORS:
@@ -1372,7 +1370,7 @@ class KnackSleuth:
                         len(shared) >= CLUSTER_MIN_SHARED_NEIGHBORS
                         or other_obj.key in obj_neighbors
                     ):
-                        cluster_members.add(other_obj.key)
+                        cluster_members[other_obj.key] = None
 
             if len(cluster_members) > 1:
                 # Count internal vs external connections
