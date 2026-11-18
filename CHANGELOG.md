@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Fixed
+
+- `find-orphans` reported fields as unused when only other metadata named them: a
+  connected-field formula (`{field_2.field_1}`), an equation stored as a list, a sum/count
+  field or its filters, a conditional rule, validation, a scheduled task, or a page rule.
+  These now count as usages (`field_reference`, `object_reference`, `scene_reference`), so
+  `search-field`, `search-object`, `impact-analysis` and `app-summary` report them too. On a
+  real app, 12 of 203 reported orphans were in use.
+- `impact-analysis` and `app-summary` list scenes and clusters in the same order on every run;
+  they used to depend on Python's per-process string hashing.
+
 ### Changed
 
 - `download-metadata` now goes through the same cache-then-API loader as every other

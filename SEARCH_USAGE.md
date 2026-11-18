@@ -92,6 +92,10 @@ class Usage:
 - `view_parent_connection` - Field is used as a parent connection in a view
 - `view_connection_key` - Field is a connection key in a view
 - `form_input` - Field appears as an input in a form view
+- `view_field_reference` - Field is named elsewhere in a view (form groups, view rules, filters, totals)
+- `field_reference` - Field is named in another field's definition (connected-field formula, sum/count field or filter, conditional rule, validation)
+- `object_reference` - Field is named in an object's scheduled task
+- `scene_reference` - Field is named in a page rule
 
 ## Helper Methods
 
