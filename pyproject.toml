@@ -40,6 +40,13 @@ dev = [
 current_version = "0.9.2"
 commit = true
 tag = true
+# Lock in lint debt paid off since the last release: lower lint-baseline.json to
+# the code and include it in the bump commit. A failing hook aborts the bump
+# before the commit and tag (restore the edited files with `git checkout .`).
+pre_commit_hooks = [
+    "uv run --locked python scripts/lint_ratchet.py --tighten",
+    "git add lint-baseline.json",
+]
 
 [[tool.bumpversion.files]]
 filename = "pyproject.toml"

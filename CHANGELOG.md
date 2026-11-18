@@ -12,8 +12,9 @@
   package, one module per command group, with no suppressions. `knack-sleuth` and
   `from knack_sleuth.cli import cli` work as before; `python -m knack_sleuth.cli` also works.
 - Development: a lint ratchet (`scripts/lint_ratchet.py`, run in CI and pre-commit) fails
-  when `# noqa`-suppressed findings or config-level ignores increase. Coverage floor raised
-  from 72% to 90%.
+  when `# noqa`-suppressed findings or config-level ignores increase. Decreases pass;
+  `bump-my-version` lowers `lint-baseline.json` in the release commit, and CI on a release
+  tag fails if the baseline is looser than the code. Coverage floor raised from 72% to 90%.
 
 ## 0.9.2
 
