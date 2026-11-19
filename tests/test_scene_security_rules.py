@@ -50,6 +50,30 @@ def test_top_level_login_page_without_roles_is_unrestricted():
     )
 
 
+def test_dropdown_menu_is_not_an_unrestricted_page():
+    # A menu holds links, not content. Every real page in it sets its own
+    # access, so flagging the menu itself only buries the pages that matter.
+    result = analyze(
+        scene("menu", type="menu", authenticated=True),
+        scene("page", authenticated=True, menu="menu"),
+    )
+    assert result["menu"].requires_login is True
+    assert result["menu"].security_concern == "OK"
+    assert "UNRESTRICTED" in result["page"].security_concern
+
+
+def test_menu_scene_with_views_of_its_own_is_still_a_page():
+    result = analyze(
+        scene(
+            "menu",
+            type="menu",
+            authenticated=True,
+            views=[{"key": "view_1", "name": "Notice", "type": "rich_text"}],
+        )
+    )
+    assert "UNRESTRICTED" in result["menu"].security_concern
+
+
 def test_utility_page_is_flagged_but_not_unrestricted():
     result = analyze(scene("account", type="user", authenticated=True))
     assert result["account"].security_concern == (

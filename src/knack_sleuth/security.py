@@ -588,6 +588,11 @@ def _effective_access(scene: Scene, hierarchy: dict[str, Any]) -> _Access:
     return _Access(allowed, authenticated, False, None, ambiguous, weakest == 0)
 
 
+def _is_dropdown_menu(scene_type: str | None, views: list[Any]) -> bool:
+    """A menu scene with no views of its own: a list of links to other pages."""
+    return scene_type == "menu" and not views
+
+
 def _security_concerns(
     scene: Scene, access: _Access, requires_login: bool, role_count: int
 ) -> list[str]:
@@ -612,7 +617,14 @@ def _security_concerns(
         concerns.append(f"PUBLIC: Accessible without login ({where})")
     # A login with no role list, at the point where the login starts. A page
     # below a login-only page is covered by the flag on that page.
-    elif not access.profile_keys and access.ancestors_public and not is_utility_page:
+    # A dropdown menu is navigation, not a page: there is nothing on it to
+    # open, and each page in it sets its own access.
+    elif (
+        not access.profile_keys
+        and access.ancestors_public
+        and not is_utility_page
+        and not _is_dropdown_menu(scene.type, scene.views)
+    ):
         concerns.append(
             "UNRESTRICTED: Requires login but no specific profiles restricted"
         )
@@ -763,7 +775,11 @@ def generate_security_report(app: Application) -> SecurityReport:
     public_scenes = sum(1 for s in scene_analyses if not s.requires_login)
     login_required = sum(1 for s in scene_analyses if s.requires_login)
     unrestricted_auth = sum(
-        1 for s in scene_analyses if s.requires_login and s.allowed_profile_count == 0
+        1
+        for s in scene_analyses
+        if s.requires_login
+        and s.allowed_profile_count == 0
+        and not _is_dropdown_menu(s.scene_type, s.view_keys)
     )
     scenes_with_parents = sum(1 for s in scene_analyses if s.nav_level == "Child")
     scenes_inheriting_security = sum(1 for s in scene_analyses if s.inherits_security)
