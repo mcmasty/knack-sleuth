@@ -12,6 +12,10 @@
 
 ### Fixed
 
+- `role-access-review` gave a page the concern `OK` when it adds its own login, with no role
+  limit, below a public page. The summary counted it as unrestricted but its row did not
+  say so. Such a page is now flagged `UNRESTRICTED`, like a top-level one. A page below a
+  login-only page is still covered by the flag on that page.
 - Table cells in `list-objects`, `find-orphans` and `cache list` printed a name ending in a
   backslash with two, and crashed on a key containing a closing tag such as `[/x]`. Cells
   now hold the text exactly as written.

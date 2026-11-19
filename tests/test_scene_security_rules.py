@@ -66,6 +66,27 @@ def test_child_login_page_without_roles_is_not_unrestricted():
     assert result["child"].inherits_security is False
 
 
+def test_login_page_below_a_public_page_is_unrestricted():
+    # The login starts here, not above, so this is the page to flag. Left as
+    # "OK", the row disagreed with the report's own unrestricted count.
+    result = analyze(
+        scene("root", authenticated=False),
+        scene("gate", parent="root", authenticated=True),
+        scene(
+            "form",
+            parent="root",
+            authenticated=False,
+            views=[{"key": "view_1", "name": "Login", "type": "login"}],
+        ),
+    )
+    for key in ("gate", "form"):
+        assert result[key].requires_login is True
+        assert result[key].inherits_security is False
+        assert result[key].security_concern == (
+            "UNRESTRICTED: Requires login but no specific profiles restricted"
+        )
+
+
 def test_public_page_says_whether_it_has_a_parent():
     result = analyze(scene("root"), scene("child", parent="root"))
     assert result["root"].security_concern == (

@@ -509,6 +509,9 @@ class _Access(NamedTuple):
     inherits: bool
     inherited_from: str | None
     ambiguous_parents: str | None  # labels of disagreeing ancestors, if any
+    # Nothing above asks for a login: a top-level page, or one whose least
+    # restricted route up is public. A login here is where the gate starts.
+    ancestors_public: bool = True
 
 
 def _effective_access(scene: Scene, hierarchy: dict[str, Any]) -> _Access:
@@ -546,9 +549,9 @@ def _effective_access(scene: Scene, hierarchy: dict[str, Any]) -> _Access:
             or None
         )
         return _Access(
-            inherited_profiles, authenticated, True, inherited_from, ambiguous
+            inherited_profiles, authenticated, True, inherited_from, ambiguous, False
         )
-    return _Access(allowed, authenticated, False, None, ambiguous)
+    return _Access(allowed, authenticated, False, None, ambiguous, weakest == 0)
 
 
 def _security_concerns(
@@ -573,7 +576,9 @@ def _security_concerns(
     if not requires_login:
         where = "parent also public" if has_parent else "no parent"
         concerns.append(f"PUBLIC: Accessible without login ({where})")
-    elif not access.profile_keys and not has_parent and not is_utility_page:
+    # A login with no role list, at the point where the login starts. A page
+    # below a login-only page is covered by the flag on that page.
+    elif not access.profile_keys and access.ancestors_public and not is_utility_page:
         concerns.append(
             "UNRESTRICTED: Requires login but no specific profiles restricted"
         )
