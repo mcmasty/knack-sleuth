@@ -5,6 +5,7 @@ access which scenes (pages) in a Knack application.
 """
 
 from collections import Counter, defaultdict
+from dataclasses import dataclass, field
 from typing import Any, NamedTuple
 
 from pydantic import BaseModel
@@ -143,35 +144,14 @@ _Found = dict[tuple[tuple[str, ...], bool], dict[str, None]]
 _TOP_OF_CHAIN: _Found = {((), False): {}}
 
 
-def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:  # noqa: C901, PLR0915
-    """Restrictions for every slug, solved once per hierarchy and cached.
+def _parents_first_order(
+    scenes_by_slug: dict[str, list[Scene]],
+) -> tuple[list[str], bool]:
+    """Every slug with its parents before it, and whether the graph has a cycle.
 
-    Resolving parents by slug alone can close a cycle (a duplicate slug that
-    hangs below its namesake). A recursive walk then has to choose between
-    route-dependent memo entries and re-exploring every fork, which doubles per
-    level. Instead, solve the slug equations as a fixpoint: each slug's
-    restrictions are the union over its scenes, every sweep only adds, so it
-    terminates, and a route that only loops contributes nothing. Slugs are
-    swept parents-first, so an acyclic graph is exact after one sweep.
-
-    Solving for the whole app at once (rather than per scene) keeps a report
-    linear in the number of scenes even when one slug feeds hundreds of labels
-    to every descendant.
+    A parent that is still open on the DFS path is a back edge: the slug graph
+    has a cycle, and one sweep in this order is not enough.
     """
-    cached = hierarchy.get("_inherited_restrictions")
-    if cached is not None:
-        return cached
-
-    scenes_by_slug: dict[str, list[Scene]] = hierarchy["scenes_by_slug"]
-    own_profiles = {
-        candidate.key: tuple(_get_allowed_profile_keys(candidate))
-        for candidates in scenes_by_slug.values()
-        for candidate in candidates
-    }
-
-    # Every slug, parents before children. A parent that is still open on the
-    # DFS path is a back edge: the slug graph has a cycle, and one sweep is
-    # not enough.
     order: list[str] = []
     seen: set[str] = set()
     finished: set[str] = set()
@@ -196,17 +176,33 @@ def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:  # noqa:
                     stack.append((parent, False))
                 elif parent not in finished:
                     cyclic = True
+    return order, cyclic
 
-    values: dict[str, _Found] = {slug: {} for slug in order}
+
+@dataclass
+class _InheritanceSolver:
+    """The slug equations of one hierarchy, and the solution so far.
+
+    ``values`` and ``looping_logins`` are updated in place: a slug solved
+    earlier in a sweep is what the slugs after it read.
+    """
+
+    scenes_by_slug: dict[str, list[Scene]]
+    # Every slug, parents before children.
+    order: list[str]
+    # Scene key -> the profiles the scene itself is limited to.
+    own_profiles: dict[str, tuple[str, ...]]
+    values: dict[str, _Found]
     # Login-only scenes whose every route upward only loops: their own login
     # stands, as it would at the top of a chain.
-    looping_logins: set[str] = set()
+    looping_logins: set[str] = field(default_factory=set)
 
-    def solve(slug: str) -> _Found:
+    def solve(self, slug: str) -> _Found:
+        """One slug's restrictions, from what its parents hold right now."""
         found: _Found = {}
-        for candidate in scenes_by_slug[slug]:
+        for candidate in self.scenes_by_slug[slug]:
             label = _scene_label(candidate)
-            profiles = own_profiles[candidate.key]
+            profiles = self.own_profiles[candidate.key]
             if profiles:
                 found.setdefault((profiles, False), {}).setdefault(label)
                 continue
@@ -214,12 +210,12 @@ def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:  # noqa:
             # sits behind every ancestor, so a login page above it that limits
             # profiles still decides which roles get in (issue #27).
             bare_auth = candidate.authenticated is True
-            if candidate.key in looping_logins:
+            if candidate.key in self.looping_logins:
                 found.setdefault(((), True), {}).setdefault(label)
             # An unsolved parent (only possible inside a cycle) is an empty
             # dict here and contributes nothing on this sweep.
             inherited = (
-                values.get(candidate.parent, _TOP_OF_CHAIN)
+                self.values.get(candidate.parent, _TOP_OF_CHAIN)
                 if candidate.parent
                 else _TOP_OF_CHAIN
             )
@@ -239,38 +235,76 @@ def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:  # noqa:
                     bucket.setdefault(inherited_label)
         return found
 
-    def sweep() -> bool:
+    def sweep(self) -> bool:
+        """Re-solve every slug in order; report whether anything changed."""
         changed = False
-        for slug in order:
-            solved = solve(slug)
-            if solved != values[slug]:
+        for slug in self.order:
+            solved = self.solve(slug)
+            if solved != self.values[slug]:
                 changed = True
             # Store even when equal: dict equality ignores label order, and
             # the report uses the order of the last sweep.
-            values[slug] = solved
+            self.values[slug] = solved
         return changed
 
-    sweep()
+    def stranded_logins(self) -> set[str]:
+        """Login-only scenes, not yet counted, whose parent solved to nothing."""
+        return {
+            candidate.key
+            for slug in self.order
+            for candidate in self.scenes_by_slug[slug]
+            if candidate.authenticated is True
+            and not self.own_profiles[candidate.key]
+            and candidate.parent in self.values
+            and not self.values[candidate.parent]
+        } - self.looping_logins
+
+
+def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:
+    """Restrictions for every slug, solved once per hierarchy and cached.
+
+    Resolving parents by slug alone can close a cycle (a duplicate slug that
+    hangs below its namesake). A recursive walk then has to choose between
+    route-dependent memo entries and re-exploring every fork, which doubles per
+    level. Instead, solve the slug equations as a fixpoint: each slug's
+    restrictions are the union over its scenes, every sweep only adds, so it
+    terminates, and a route that only loops contributes nothing. Slugs are
+    swept parents-first, so an acyclic graph is exact after one sweep.
+
+    Solving for the whole app at once (rather than per scene) keeps a report
+    linear in the number of scenes even when one slug feeds hundreds of labels
+    to every descendant.
+    """
+    cached = hierarchy.get("_inherited_restrictions")
+    if cached is not None:
+        return cached
+
+    scenes_by_slug: dict[str, list[Scene]] = hierarchy["scenes_by_slug"]
+    order, cyclic = _parents_first_order(scenes_by_slug)
+    solver = _InheritanceSolver(
+        scenes_by_slug=scenes_by_slug,
+        order=order,
+        own_profiles={
+            candidate.key: tuple(_get_allowed_profile_keys(candidate))
+            for candidates in scenes_by_slug.values()
+            for candidate in candidates
+        },
+        values={slug: {} for slug in order},
+    )
+
+    solver.sweep()
     # Parents-first order makes one sweep exact on an acyclic graph, and no
     # route can loop there, so the fixpoint iteration only runs for cycles.
     while cyclic:
-        while sweep():
+        while solver.sweep():
             pass
-        newly_looping = {
-            candidate.key
-            for slug in order
-            for candidate in scenes_by_slug[slug]
-            if candidate.authenticated is True
-            and not own_profiles[candidate.key]
-            and candidate.parent in values
-            and not values[candidate.parent]
-        } - looping_logins
+        newly_looping = solver.stranded_logins()
         if not newly_looping:
             break
-        looping_logins |= newly_looping
+        solver.looping_logins |= newly_looping
 
-    hierarchy["_inherited_restrictions"] = values
-    return values
+    hierarchy["_inherited_restrictions"] = solver.values
+    return solver.values
 
 
 def _inherited_restrictions(
