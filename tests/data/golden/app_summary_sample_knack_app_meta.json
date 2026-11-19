@@ -217,6 +217,24 @@
   ],
   "supporting_entities": [
    {
+    "centrality_score": 0.159,
+    "field_count": 7,
+    "field_types": {
+     "concatenation": 1,
+     "connection": 3,
+     "date_time": 1,
+     "multiple_choice": 1,
+     "paragraph_text": 1
+    },
+    "importance_score": 0.22678571428571426,
+    "is_core_entity": false,
+    "name": "Object Name 20",
+    "object_key": "object_20",
+    "primary_role": "supporting",
+    "record_count": 3,
+    "total_connections": 4
+   },
+   {
     "centrality_score": 0.178,
     "field_count": 6,
     "field_types": {
@@ -287,6 +305,21 @@
     "total_connections": 5
    },
    {
+    "centrality_score": 0.089,
+    "field_count": 3,
+    "field_types": {
+     "connection": 1,
+     "short_text": 2
+    },
+    "importance_score": 0.09464285714285714,
+    "is_core_entity": false,
+    "name": "Object Name 24",
+    "object_key": "object_24",
+    "primary_role": "supporting",
+    "record_count": 1,
+    "total_connections": 2
+   },
+   {
     "centrality_score": 0.0,
     "field_count": 3,
     "field_types": {
@@ -302,24 +335,6 @@
     "total_connections": 0
    },
    {
-    "centrality_score": 0.159,
-    "field_count": 7,
-    "field_types": {
-     "concatenation": 1,
-     "connection": 3,
-     "date_time": 1,
-     "multiple_choice": 1,
-     "paragraph_text": 1
-    },
-    "importance_score": 0.22678571428571426,
-    "is_core_entity": false,
-    "name": "Object Name 20",
-    "object_key": "object_20",
-    "primary_role": "supporting",
-    "record_count": 3,
-    "total_connections": 4
-   },
-   {
     "centrality_score": 0.0,
     "field_count": 1,
     "field_types": {
@@ -332,21 +347,6 @@
     "primary_role": "supporting",
     "record_count": 0,
     "total_connections": 0
-   },
-   {
-    "centrality_score": 0.089,
-    "field_count": 3,
-    "field_types": {
-     "connection": 1,
-     "short_text": 2
-    },
-    "importance_score": 0.09464285714285714,
-    "is_core_entity": false,
-    "name": "Object Name 24",
-    "object_key": "object_24",
-    "primary_role": "supporting",
-    "record_count": 1,
-    "total_connections": 2
    }
   ],
   "transactional_entities": [],

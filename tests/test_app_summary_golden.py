@@ -257,3 +257,16 @@ def test_navigation_depth_counts_a_namesake_parent():
     )
 
     assert sleuth._scene_depths() == [1, 2, 2]
+
+
+def test_supporting_entities_are_listed_largest_first(sample_metadata_dict):
+    # The markdown shows the first five as "top 5"; left in export order, the
+    # largest could be the one cut off.
+    summary = KnackSleuth(
+        KnackAppMetadata(**sample_metadata_dict)
+    ).generate_app_summary()
+    counts = [e["record_count"] for e in summary["domain_model"]["supporting_entities"]]
+
+    assert len(counts) == 8
+    assert counts == sorted(counts, reverse=True)
+    assert counts[0] == 3
