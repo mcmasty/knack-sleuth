@@ -42,22 +42,40 @@ def _fmt_field(entry: Mapping[str, Any]) -> str:
     return f"{key} ({name})" if name else str(key)
 
 
+_DATE_KEYS = ("date", "time", "hours", "minutes", "am_pm")
+
+
+def _fmt_date(value: dict) -> str:
+    """A stored date value as a person would write it, or "" when it is empty.
+
+    Knack stores a date as a dict, with the time either as one string or as
+    hours, minutes and am/pm, and leaves an empty one behind on operators
+    that take no date ("is blank", "is today").
+    """
+    clock = value.get("time")
+    if not clock and value.get("hours") not in (None, ""):
+        minutes = value.get("minutes")
+        clock = f"{value['hours']}:{int(minutes or 0):02d}{value.get('am_pm') or ''}"
+    return " ".join(str(part) for part in (value.get("date"), clock) if part)
+
+
 def _fmt_value(criterion: Criterion) -> str:
     """What a criterion compares against, or "" when it compares to nothing."""
     if criterion.get("range"):
         return criterion["range"]
     value = criterion.get("value")
-    if isinstance(value, dict) and "date" in value:
-        # Knack stores a date as a dict and leaves an empty one behind on
-        # operators that take no date ("is blank", "is today").
-        value = value.get("date")
+    if isinstance(value, dict) and any(key in value for key in _DATE_KEYS):
+        value = _fmt_date(value)
     if value in (None, "", [], {}):
         return ""
     names = criterion.get("value_names") or {}
     if names:
         keys = value if isinstance(value, list) else [value]
         return ", ".join(
-            f"{names[key]} ({key})" if key in names else repr(key) for key in keys
+            f"{names[key]} ({key})"
+            if isinstance(key, str) and key in names
+            else repr(key)
+            for key in keys
         )
     return repr(value)
 
