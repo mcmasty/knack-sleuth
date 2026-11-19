@@ -4,11 +4,17 @@
 
 ### Fixed
 
+- `show-rules` printed some rule conditions as stored rather than as read. A condition on
+  the logged-in user's roles now names the role ("does not contain Admin (profile_113)"
+  instead of `'profile_113'`), and a date condition that compares to nothing ("is blank",
+  "is today") no longer prints the empty date value Knack leaves on it. In the JSON output
+  the stored `value` is unchanged and role names are added as `value_names`.
 - `role-access-review` flagged dropdown menus as `UNRESTRICTED` and counted them among the
   unrestricted pages. A menu is a list of links with nothing of its own to open, and each
   page in it sets its own access, so the flag buried the pages that matter: on a real app 7
   of the 8 flags were menus. A menu with no views of its own now reads `OK` and is left out
   of the unrestricted count.
+
 ## 0.11.0
 
 ### Added

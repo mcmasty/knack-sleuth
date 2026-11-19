@@ -442,6 +442,55 @@ class TestReviewRegressions:
         assert "is today and" in result.output
         assert "is 'Approved'" in result.output
 
+    def test_criteria_values_read_as_a_person_would_say_them(self, tmp_path):
+        # An "is blank" on a date field keeps an empty date dict; a criterion
+        # on the user's roles holds role keys. Neither should print raw.
+        def mutate(app):
+            app["objects"][1]["profile_key"] = "profile_7"
+            app["objects"][0]["tasks"][0]["action"]["criteria"] = [
+                {
+                    "field": "field_1",
+                    "operator": "is blank",
+                    "value": {"all_day": False, "date": ""},
+                },
+                {
+                    "field": "field_1",
+                    "operator": "is",
+                    "value": {"all_day": False, "date": "01/02/2026"},
+                },
+                {
+                    "field": "field_3",
+                    "operator": "does not contain",
+                    "value": "profile_7",
+                },
+                {
+                    "field": "field_3",
+                    "operator": "contains",
+                    "value": ["profile_7", "profile_404"],
+                },
+            ]
+
+        data = _mutated(mutate)
+        (task,) = collect_rules(KnackAppMetadata(**data), "object_1")["tasks"]
+        criteria = task["emails"][0]["criteria"]
+        assert [c.get("value_names") for c in criteria] == [
+            None,
+            None,
+            {"profile_7": "Programs"},
+            {"profile_7": "Programs"},
+        ]
+        # The JSON keeps the stored value untouched.
+        assert criteria[0]["value"] == {"all_day": False, "date": ""}
+
+        result = _run_on(tmp_path, data, "--object", "object_1")
+        assert result.exit_code == 0, result.output
+        text = " ".join(result.output.split())
+        assert "(Name) is blank and" in text
+        assert "(Name) is '01/02/2026' and" in text
+        assert "does not contain Programs (profile_7) and" in text
+        assert "contains Programs (profile_7), 'profile_404'" in text
+        assert "all_day" not in text
+
     def test_notification_recipient_is_a_masked_address(self, tmp_path):
         # A form's "email notification" lists bare addresses: no recipient
         # type or mode. It used to print as "None: None ?".
