@@ -550,6 +550,37 @@ class TestReviewRegressions:
         result = _run_on(tmp_path, data, "--object", "object_1")
         assert f"INACTIVE: {reason}" in result.output
 
+    @pytest.mark.parametrize(
+        ("change", "reason"),
+        [
+            (lambda t: t.update(type="details"), "only tables can be edited inline"),
+            (
+                lambda t: t["columns"][0].update(type="link", field=None),
+                "this column is not an editable field",
+            ),
+            (
+                lambda t: t["columns"][0].pop("field"),
+                "this column is not an editable field",
+            ),
+        ],
+        ids=["details-view", "link-column", "no-field"],
+    )
+    def test_inline_edit_rules_where_nothing_can_be_edited_are_inactive(
+        self, change, reason
+    ):
+        # cell_editor is on, but the rules sit where no cell can be edited.
+        rule = {"key": "1", "action": "record", "values": []}
+
+        def mutate(app):
+            table = self._editable_table("view_20", "object_1", rule)
+            change(table)
+            app["scenes"][0]["views"].append(table)
+
+        (edit,) = _by_view(
+            collect_rules(KnackAppMetadata(**_mutated(mutate)), "object_1"), "view_20"
+        )
+        assert (edit["active"], edit["inactive_reason"]) == (False, reason)
+
     def test_inline_edit_on_another_object_reaches_this_one_by_connection(self):
         rule = {
             "key": "1",

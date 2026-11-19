@@ -474,9 +474,9 @@ def _inline_edit_triggers(
     """Record rules that run when a table cell is edited in place.
 
     A column's ``edit_rules`` fire on an inline edit of that column. Knack
-    keeps them when inline editing is switched off for the table
-    (``options.cell_editor``) or the column (``ignore_edit``), so those are
-    reported as inactive rather than dropped.
+    keeps them when the column can no longer be edited in place (see
+    ``_inline_edit_blocker``), so those are reported as inactive rather than
+    dropped.
     """
     options = _dict(view_data.get("options"))
     triggers = []
@@ -496,14 +496,33 @@ def _inline_edit_triggers(
                 emails, records, _body_field_refs(raw_rules)
             ),
         }
-        if options.get("cell_editor") is not True:
+        reason = _inline_edit_blocker(view_data, options, column)
+        if reason:
             trigger["active"] = False
-            trigger["inactive_reason"] = "inline editing is off for this table"
-        elif column.get("ignore_edit"):
-            trigger["active"] = False
-            trigger["inactive_reason"] = "inline editing is off for this column"
+            trigger["inactive_reason"] = reason
         triggers.append(trigger)
     return triggers
+
+
+def _inline_edit_blocker(
+    view_data: dict[str, Any], options: dict[str, Any], column: dict[str, Any]
+) -> str | None:
+    """Why a column's edit rules cannot fire, or None when they can.
+
+    Only a field column of a table can be edited in place. Knack leaves
+    ``edit_rules`` behind when a view or column stops being one.
+    """
+    if view_data.get("type") != "table":
+        return "only tables can be edited inline"
+    if options.get("cell_editor") is not True:
+        return "inline editing is off for this table"
+    if column.get("type") != "field" or not isinstance(
+        _dict(column.get("field")).get("key"), str
+    ):
+        return "this column is not an editable field"
+    if column.get("ignore_edit"):
+        return "inline editing is off for this column"
+    return None
 
 
 def _task(task: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
