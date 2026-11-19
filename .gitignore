@@ -221,3 +221,6 @@ __marimo__/
 
 # Knack app metadata dumps (client schema — never commit)
 *_app_metadata_*.json
+
+# Agent worktrees are whole copies of the repo; keep them out of git and ruff.
+.claude/worktrees/
