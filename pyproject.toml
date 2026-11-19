@@ -143,7 +143,10 @@ ignore_decorators = [
 ignore_names = ["model_config", "cls"]
 # TypedDict declarations: their keys are read as dict subscripts, which vulture
 # cannot connect to the declaration. The type checker covers them instead.
-exclude = ["src/knack_sleuth/rules_report.py"]
+exclude = [
+    "src/knack_sleuth/impact_report.py",
+    "src/knack_sleuth/rules_report.py",
+]
 
 [tool.deptry]
 known_first_party = ["knack_sleuth"]

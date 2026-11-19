@@ -3,6 +3,16 @@
 from collections.abc import Callable, Iterable
 from typing import Any
 
+from knack_sleuth.impact_report import (
+    CascadeImpacts,
+    DirectImpacts,
+    FormImpact,
+    FormulaImpact,
+    ImpactAnalysis,
+    SceneImpact,
+    ViewImpact,
+)
+
 
 def _section(
     heading: str,
@@ -21,7 +31,7 @@ def _section(
 # --- impact-analysis ------------------------------------------------------------
 
 
-def _impact_header(analysis: dict) -> list[str]:
+def _impact_header(analysis: ImpactAnalysis) -> list[str]:
     target = analysis["target"]
     risk = analysis["risk_assessment"]
     return [
@@ -40,7 +50,7 @@ def _impact_header(analysis: dict) -> list[str]:
     ]
 
 
-def _direct_impacts(direct: dict) -> list[str]:
+def _direct_impacts(direct: DirectImpacts) -> list[str]:
     return [
         "## Direct Impacts",
         "",
@@ -84,18 +94,20 @@ def _direct_impacts(direct: dict) -> list[str]:
     ]
 
 
-def _orphan_note(impact: dict) -> str:
-    return " *(on no page; not scored)*" if impact.get("orphaned_view") else ""
+def _orphan_note(impact: ViewImpact | FormImpact) -> str:
+    return " *(on no page; not scored)*" if impact["orphaned_view"] else ""
 
 
-def _formula_line(formula: dict) -> str:
+def _formula_line(formula: FormulaImpact) -> str:
     head = f"- **{formula['field_name']}** (`{formula['field_key']}`)"
-    if formula.get("equation") is None:
+    if formula["equation"] is None:
         return f"{head}: its settings name the target"
     return f"{head}: `{formula['equation']}`"
 
 
-def _cascade_impacts(cascade: dict, scenes_by_key: dict[str, dict]) -> list[str]:
+def _cascade_impacts(
+    cascade: CascadeImpacts, scenes_by_key: dict[str, SceneImpact]
+) -> list[str]:
     def render_scene(scene_key: str) -> str | None:
         scene = scenes_by_key.get(scene_key)
         if not scene:
@@ -134,7 +146,7 @@ def _cascade_impacts(cascade: dict, scenes_by_key: dict[str, dict]) -> list[str]
 
 def _builder_pages(
     scene_keys: Iterable[str],
-    scenes_by_key: dict[str, dict],
+    scenes_by_key: dict[str, SceneImpact],
     scene_url: Callable[[str], str],
 ) -> list[str]:
     scene_keys = sorted(set(scene_keys))
@@ -153,12 +165,12 @@ def _builder_pages(
     return lines
 
 
-def impact_markdown(analysis: dict, scene_url: Callable[[str], str]) -> str:
+def impact_markdown(analysis: ImpactAnalysis, scene_url: Callable[[str], str]) -> str:
     """Render an impact analysis; scene_url maps a scene key to a builder link."""
     direct = analysis["direct_impacts"]
     cascade = analysis["cascade_impacts"]
     # First entry wins, as with a linear search.
-    scenes_by_key: dict[str, dict] = {}
+    scenes_by_key: dict[str, SceneImpact] = {}
     for scene in direct["scenes"]:
         scenes_by_key.setdefault(scene["scene_key"], scene)
     metadata = analysis["metadata"]

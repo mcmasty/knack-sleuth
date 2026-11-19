@@ -8112,7 +8112,35 @@
   }
  },
  "nonsense": {
-  "error": "Could not detect target type from key"
+  "cascade_impacts": {
+   "affected_fields": [],
+   "affected_objects": [],
+   "affected_scenes": []
+  },
+  "direct_impacts": {
+   "connections": [],
+   "forms": [],
+   "formulas": [],
+   "rules": [],
+   "scenes": [],
+   "views": []
+  },
+  "error": "Could not detect target type from key",
+  "metadata": {
+   "total_cascade_impacts": 0,
+   "total_direct_impacts": 0
+  },
+  "risk_assessment": {
+   "affected_user_workflows": [],
+   "breaking_change_likelihood": "unknown",
+   "impact_score": 0
+  },
+  "target": {
+   "description": null,
+   "key": "nonsense",
+   "name": null,
+   "type": "auto"
+  }
  },
  "object_1": {
   "cascade_impacts": {
