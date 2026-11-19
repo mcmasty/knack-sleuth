@@ -23,6 +23,8 @@ from knack_sleuth.sleuth import FIELD_KEY_PATTERN, KnackSleuth
 
 FORM_RULE_LISTS = ("emails", "records", "submits", "fields")
 EMAIL_ACTIONS = {"email", "email_notification"}
+# Date operators that are followed by a span: "is during the next 7 days".
+RELATIVE_RANGE_ENDINGS = (" next", " previous")
 KNOWN_ACTION_RULE_KEYS = {
     "key",
     "criteria",
@@ -106,14 +108,31 @@ def _criteria(rules: Any, names: _FieldNames) -> list[dict[str, Any]]:
     for rule in _list(rules):
         if not isinstance(rule, dict):
             continue
-        out.append(
-            {
-                **names.label(rule.get("field")),
-                "operator": rule.get("operator"),
-                "value": rule.get("value"),
-            }
-        )
+        entry = {
+            **names.label(rule.get("field")),
+            "operator": rule.get("operator"),
+            "value": rule.get("value"),
+        }
+        span = _relative_range(rule)
+        if span:
+            entry["range"] = span
+        out.append(entry)
     return out
+
+
+def _relative_range(rule: dict[str, Any]) -> str | None:
+    """The "7 days" of "is during the next 7 days".
+
+    Knack leaves ``range`` and ``type`` on a criterion after its operator is
+    changed, so they only mean something on the operators that take them.
+    """
+    operator = rule.get("operator")
+    if not isinstance(operator, str) or not operator.endswith(RELATIVE_RANGE_ENDINGS):
+        return None
+    span, unit = rule.get("range"), rule.get("type")
+    if _is_blank(span) or isinstance(span, (dict, list)):
+        return None
+    return f"{span} {unit}" if isinstance(unit, str) and unit else str(span)
 
 
 def _value(value: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
@@ -149,7 +168,11 @@ def _email(rule: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
         if not isinstance(recipient, dict):
             continue
         kind = recipient.get("recipient_type")
-        entry: dict[str, Any] = {"mode": recipient.get("recipient_mode"), "type": kind}
+        mode = recipient.get("recipient_mode")
+        if not kind and isinstance(recipient.get("email"), str):
+            # A notification's recipient is a bare address: no type, no mode.
+            kind, mode = "custom", mode or "to"
+        entry: dict[str, Any] = {"mode": mode, "type": kind}
         if kind == "custom":
             entry["address"] = mask_address(recipient.get("email"))
         else:

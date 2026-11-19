@@ -32,7 +32,9 @@ def _fmt_criteria(criteria: list) -> str:
     if not criteria:
         return ""
     parts = [
-        f"{_fmt_field(c)} {c.get('operator')} {c.get('value')!r}"
+        f"{_fmt_field(c)} {c.get('operator')} {c['range']}"
+        if c.get("range")
+        else f"{_fmt_field(c)} {c.get('operator')} {c.get('value')!r}"
         if c.get("value") not in (None, "", [])
         else f"{_fmt_field(c)} {c.get('operator')}"
         for c in criteria
@@ -54,8 +56,14 @@ def _print_emails(emails: list, indent: str) -> None:
             )
             or "no recipients"
         )
+        # A notification has no subject of its own; Knack sends a stock message.
+        subject = (
+            "notification"
+            if email.get("action") == "email_notification" and not email.get("subject")
+            else repr(email.get("subject") or "")
+        )
         console.print(
-            f"{indent}[magenta]Email[/magenta] {escape(repr(email.get('subject') or ''))} "
+            f"{indent}[magenta]Email[/magenta] {escape(subject)} "
             f"→ {escape(recipients)}{_fmt_criteria(email['criteria'])}"
         )
 

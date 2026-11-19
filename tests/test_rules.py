@@ -390,6 +390,84 @@ class TestReviewRegressions:
         assert submit["target_page"] == "review"
         assert "url" not in submit
 
+    def test_relative_date_criteria_keep_their_range(self, tmp_path):
+        # "is during the next" means nothing without "7 days". Knack also
+        # leaves range/type behind on operators that take no range.
+        def mutate(app):
+            app["objects"][0]["tasks"][0]["action"]["criteria"] = [
+                {
+                    "field": "field_1",
+                    "operator": "is during the next",
+                    "range": "7",
+                    "type": "days",
+                    "value": "",
+                },
+                {
+                    "field": "field_1",
+                    "operator": "is before the previous",
+                    "range": 3,
+                    "type": "rolling weeks",
+                    "value": "",
+                },
+                {
+                    "field": "field_1",
+                    "operator": "is today",
+                    "range": "7",
+                    "type": "days",
+                    "value": "",
+                },
+                {
+                    "field": "field_3",
+                    "operator": "is",
+                    "range": 1,
+                    "type": "days",
+                    "value": "Approved",
+                },
+            ]
+
+        data = _mutated(mutate)
+        (task,) = collect_rules(KnackAppMetadata(**data), "object_1")["tasks"]
+        criteria = task["emails"][0]["criteria"]
+        assert [c.get("range") for c in criteria] == [
+            "7 days",
+            "3 rolling weeks",
+            None,
+            None,
+        ]
+
+        result = _run_on(tmp_path, data, "--object", "object_1")
+        assert result.exit_code == 0, result.output
+        assert "is during the next 7 days" in result.output
+        assert "is before the previous 3 rolling weeks" in result.output
+        assert "is today and" in result.output
+        assert "is 'Approved'" in result.output
+
+    def test_notification_recipient_is_a_masked_address(self, tmp_path):
+        # A form's "email notification" lists bare addresses: no recipient
+        # type or mode. It used to print as "None: None ?".
+        def mutate(app):
+            app["scenes"][0]["views"][0]["rules"]["emails"] = [
+                {
+                    "key": "9",
+                    "action": "email_notification",
+                    "criteria": [],
+                    "email": {"recipients": [{"email": "staff.inbox@notify.example"}]},
+                }
+            ]
+
+        data = _mutated(mutate)
+        report = collect_rules(KnackAppMetadata(**data), "object_1")
+        (email,) = _by_view(report, "view_1")[0]["emails"]
+        assert email["recipients"] == [
+            {"mode": "to", "type": "custom", "address": "***@notify.example"}
+        ]
+
+        result = _run_on(tmp_path, data, "--object", "object_1")
+        assert result.exit_code == 0, result.output
+        assert "Email notification → to: ***@notify.example" in result.output
+        assert "None" not in result.output
+        assert "staff.inbox" not in result.output
+
     def test_conditional_field_rules_are_reported(self, report):
         (entry,) = report["conditional_field_rules"]
         assert entry["field_name"] == "Status"
