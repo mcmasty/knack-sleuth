@@ -1402,6 +1402,46 @@ class TestRoleListAllUsers:
         assert lines["Staff"].endswith("Access to 1 scenes")
 
 
+class TestWarningMatchesFlaggedRows:
+    def test_utility_page_is_counted_but_not_warned_about(self, tmp_path):
+        # A utility page open to all logged-in users is by design. It is one
+        # of the pages any login can open, but no row flags it, so the
+        # warning line must not announce a finding the CSV does not contain.
+        app = {
+            "application": {
+                "id": "app_w",
+                "name": "W",
+                "slug": "w",
+                "home_scene": {"key": "scene_1", "slug": "account"},
+                "objects": [],
+                "scenes": [
+                    {
+                        "key": "scene_1",
+                        "name": "Account Settings",
+                        "slug": "account",
+                        "type": "user",
+                        "views": [],
+                    },
+                ],
+            }
+        }
+        path = tmp_path / "app.json"
+        path.write_text(json.dumps(app))
+        out = tmp_path / "out.csv"
+
+        result = runner.invoke(
+            cli, ["role-access-review", str(path), "-o", str(out)], env=WIDE
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "Unrestricted Authenticated Scenes: 1" in result.output
+        assert "require login but have no profile restrictions" not in result.output
+        assert "No obvious security concerns" in result.output
+        with out.open(newline="") as f:
+            (row,) = list(csv.DictReader(f))
+        assert "UNRESTRICTED" not in row["security_concern"]
+
+
 class TestRoleAccessSummaryCli:
     def test_valid_role_writes_csv(self, tmp_path):
         out = tmp_path / "role_summary.csv"
@@ -1477,7 +1517,7 @@ class TestRoleAccessSummaryCli:
         assert f"Profile: Job Admin ({roles[1]['profile_key']})" in result.output
         assert "Multiple profiles match" not in result.output
 
-    def test_rows_say_why_the_role_can_open_the_scene(self, tmp_path, report):
+    def test_rows_say_why_the_role_can_open_the_scene(self, tmp_path, raw_scenes):
         # Issue #27: a blank profile list used to read as "this role can open
         # it" with no way to tell a genuine login-only page from a resolver
         # gap. Every row now carries the basis for its access.
@@ -1498,22 +1538,38 @@ class TestRoleAccessSummaryCli:
         with out.open(newline="") as f:
             rows = list(csv.DictReader(f))
 
-        analyses = {a.scene_key: a for a in report.scene_analyses}
-        expected = {}
-        for key, a in analyses.items():
-            if "Object Name 3" in a.allowed_profiles:
-                expected[key] = "role"
-            elif not a.requires_login:
-                expected[key] = "public"
-            elif not a.allowed_profiles:
-                expected[key] = "any_login"
-            if key in expected and a.scene_type == "user":
-                expected[key] = "utility"
+        # Expected rows, worked out from the raw JSON alone. Every scene in the
+        # sample that is not a menu hangs, through its parent slugs, from a
+        # login page whose login view names the roles allowed in. So the role
+        # "Object Name 3" (profile_3) can open exactly the scenes under a
+        # login page that lists profile_3, each on the basis "role". The two
+        # menus hold no views and are not pages, so they have no row.
+        by_slug = {s["slug"]: s for s in raw_scenes}
+
+        def root_of(scene):
+            while scene.get("parent"):
+                scene = by_slug[scene["parent"]]
+            return scene
+
+        def login_roles(scene):
+            return [
+                role
+                for view in scene["views"]
+                if view["type"] == "login" and view.get("limit_profile_access")
+                for role in view["allowed_profiles"]
+            ]
+
+        pages = [s for s in raw_scenes if s.get("type") != "menu"]
+        assert all(login_roles(root_of(s)) for s in pages)
+        expected = {
+            s["key"]: "role" for s in pages if "profile_3" in login_roles(root_of(s))
+        }
+        assert len(expected) == 6
+
         assert {row["scene_key"]: row["access_basis"] for row in rows} == expected
-        assert "role" in expected.values()
-        for basis in ("role", "any_login", "public"):
-            count = sum(1 for v in expected.values() if v == basis)
-            assert f"{basis}: {count}" in result.output
+        for line in ("role: 6", "any_login: 0", "public: 0"):
+            assert line in result.output
+        assert "utility:" not in result.output
 
     @pytest.mark.parametrize("authenticated", [None, True])
     def test_utility_page_without_roles_is_open_to_any_login(

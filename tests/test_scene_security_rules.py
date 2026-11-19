@@ -62,6 +62,22 @@ def test_dropdown_menu_is_not_an_unrestricted_page():
     assert "UNRESTRICTED" in result["page"].security_concern
 
 
+def test_page_that_names_a_dropdown_menu_as_parent_is_not_behind_its_login():
+    # The menu's login decides who sees the menu, not who opens the page. A
+    # login-only page under it is where the login starts, so it is flagged;
+    # a page with no login of its own is public.
+    result = analyze(
+        scene("menu", type="menu", authenticated=True),
+        scene("members", parent="menu", authenticated=True),
+        scene("leaflet", parent="menu"),
+    )
+    assert result["menu"].security_concern == "OK"
+    assert "UNRESTRICTED" in result["members"].security_concern
+    assert result["members"].inherits_security is False
+    assert result["leaflet"].requires_login is False
+    assert "PUBLIC" in result["leaflet"].security_concern
+
+
 def test_menu_scene_with_views_of_its_own_is_still_a_page():
     result = analyze(
         scene(
