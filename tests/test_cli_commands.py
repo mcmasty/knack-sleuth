@@ -321,6 +321,31 @@ class TestAppSummary:
         assert "Failed to save file" in result.stderr
 
 
+class TestListObjects:
+    def test_connection_total_counts_each_connection_once(
+        self, env, sample_metadata_dict
+    ):
+        # Each connection is listed once as outbound, on the object that owns
+        # the connection field, and once as inbound on the other object.
+        # Summing each object's Ca + Ce counted it at both ends: 228 for 114.
+        objects = sample_metadata_dict["application"]["objects"]
+        outbound = sum(len(o["connections"]["outbound"]) for o in objects)
+        inbound = sum(len(o["connections"]["inbound"]) for o in objects)
+        assert outbound == inbound == 31
+
+        result = runner.invoke(
+            cli, ["list-objects", SAMPLE, "--format", "json"], env=env
+        )
+        assert result.exit_code == 0, result.output
+        totals = json.loads(result.stdout)["totals"]
+
+        assert totals["connections"] == outbound
+        assert (totals["ca"], totals["ce"]) == (inbound, outbound)
+
+        text = runner.invoke(cli, ["list-objects", SAMPLE], env=env)
+        assert "31 connections" in text.output
+
+
 class TestInstallSkill:
     def test_install_then_refuse_then_force(self, tmp_path):
         target = tmp_path / "skill"

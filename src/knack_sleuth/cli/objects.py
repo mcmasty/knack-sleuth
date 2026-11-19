@@ -149,7 +149,9 @@ def list_objects(
         "fields": sum(e["fields"] for e in entries),
         "ca": sum(e["ca"] for e in entries),
         "ce": sum(e["ce"] for e in entries),
-        "connections": sum(e["total_connections"] for e in entries),
+        # Each connection is outbound from exactly one object. Adding Ca to
+        # Ce would count it at both ends.
+        "connections": sum(e["ce"] for e in entries),
     }
 
     if output_format == "json":

@@ -1188,6 +1188,33 @@ class TestRoleAccessSummaryCli:
             header = next(csv.reader(f))
         assert "scene_key" in header
 
+    def test_role_name_saved_with_a_stray_space_is_found(self, tmp_path):
+        # Knack keeps a trailing space typed into a role's name; nobody can
+        # see it to type it back.
+        data = json.loads(SAMPLE_FILE.read_text())
+        role = next(
+            o for o in data["application"]["objects"] if o["name"] == "Object Name 3"
+        )
+        role["name"] = "Object Name 3 "
+        meta = tmp_path / "app.json"
+        meta.write_text(json.dumps(data))
+
+        result = runner.invoke(
+            cli,
+            [
+                "role-access-summary",
+                "--role",
+                "object  name 3",
+                str(meta),
+                "-o",
+                str(tmp_path / "out.csv"),
+            ],
+            env=WIDE,
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "not found" not in result.output
+
     def test_rows_say_why_the_role_can_open_the_scene(self, tmp_path, report):
         # Issue #27: a blank profile list used to read as "this role can open
         # it" with no way to tell a genuine login-only page from a resolver

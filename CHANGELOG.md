@@ -12,6 +12,13 @@
 
 ### Fixed
 
+- `list-objects` reported twice the number of connections in its total line and in
+  `totals.connections` of the JSON output (228 for an app with 114), because it added each
+  object's inbound and outbound counts. Each connection is now counted once. The per-object
+  `Total` column is unchanged.
+- `role-access-summary --role` did not find a role whose name was saved with a stray space.
+  Role names are now matched like object and field names, ignoring case and extra
+  whitespace.
 - `show-rules` named no field for a condition on the logged-in user (`profile_3-field_9`,
   `all_users-field_9`) or on a connected record (`field_4-field_9`). These now read
   "logged-in user's Email" and "Program > Title".

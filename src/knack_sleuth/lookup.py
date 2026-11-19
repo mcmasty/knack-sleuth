@@ -14,7 +14,7 @@ from difflib import get_close_matches
 from knack_sleuth.models import Application, KnackField, KnackObject
 
 
-def _normalise(text: str) -> str:
+def normalise_name(text: str) -> str:
     """Lower-case, with whitespace trimmed and runs of it collapsed."""
     return " ".join(text.split()).lower()
 
@@ -24,7 +24,7 @@ def resolve_object(app: Application, identifier: str) -> KnackObject | None:
 
     Returns None if nothing matches.
     """
-    ident = _normalise(identifier)
+    ident = normalise_name(identifier)
 
     if ident.startswith("object_"):
         for obj in app.objects:
@@ -32,7 +32,7 @@ def resolve_object(app: Application, identifier: str) -> KnackObject | None:
                 return obj
 
     for obj in app.objects:
-        if _normalise(obj.name) == ident:
+        if normalise_name(obj.name) == ident:
             return obj
 
     # People say "Applicant" for an object named "Applicants". Fall back to the
@@ -43,8 +43,8 @@ def resolve_object(app: Application, identifier: str) -> KnackObject | None:
         if obj.inflections
         and ident
         in (
-            _normalise(obj.inflections.singular),
-            _normalise(obj.inflections.plural),
+            normalise_name(obj.inflections.singular),
+            normalise_name(obj.inflections.plural),
         )
     ]
     if len(inflected) == 1:
@@ -62,7 +62,7 @@ def resolve_fields(
     legitimately be ambiguous — field names repeat across objects — so all
     matches are returned and the caller decides how to disambiguate.
     """
-    ident = _normalise(identifier)
+    ident = normalise_name(identifier)
 
     if ident.startswith("field_"):
         for obj in app.objects:
@@ -74,7 +74,7 @@ def resolve_fields(
     matches: list[tuple[KnackObject, KnackField]] = []
     for obj in app.objects:
         for field in obj.fields:
-            if _normalise(field.name) == ident:
+            if normalise_name(field.name) == ident:
                 matches.append((obj, field))
     return matches
 

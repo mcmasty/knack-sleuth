@@ -6,6 +6,7 @@ from typing import Annotated, Any, NoReturn
 import typer
 from rich.markup import escape
 
+from knack_sleuth.lookup import normalise_name
 from knack_sleuth.models import Scene, SceneSecurity, SecurityReport
 from knack_sleuth.security import (
     count_children,
@@ -234,8 +235,9 @@ def _resolve_profile(
             )
         return profile_key, name
 
+    wanted = normalise_name(role or "")
     matches = [(k, v) for k, v in report.profiles.items() if v == role] or [
-        (k, v) for k, v in report.profiles.items() if v.lower() == (role or "").lower()
+        (k, v) for k, v in report.profiles.items() if normalise_name(v) == wanted
     ]
     if not matches:
         _exit_unknown_profile(f"Role '{role}' not found in application", report, False)
