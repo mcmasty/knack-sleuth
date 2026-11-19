@@ -450,6 +450,44 @@ def _action_link_trigger(
     }
 
 
+def _inline_edit_triggers(
+    header: dict[str, Any], view_data: dict[str, Any], names: _FieldNames
+) -> list[dict[str, Any]]:
+    """Record rules that run when a table cell is edited in place.
+
+    A column's ``edit_rules`` fire on an inline edit of that column. Knack
+    keeps them when inline editing is switched off for the table
+    (``options.cell_editor``) or the column (``ignore_edit``), so those are
+    reported as inactive rather than dropped.
+    """
+    options = _dict(view_data.get("options"))
+    triggers = []
+    for column in _list(view_data.get("columns")):
+        if not isinstance(column, dict) or not _list(column.get("edit_rules")):
+            continue
+        raw_rules = _list(column.get("edit_rules"))
+        emails, records = _split_email_rules(raw_rules, names)
+        trigger = {
+            "trigger": "inline_edit",
+            **header,
+            "edited_field": names.label(_dict(column.get("field")).get("key")),
+            "active": True,
+            "emails": emails,
+            "records": records,
+            "warnings": _blanking_warnings(
+                emails, records, _body_field_refs(raw_rules)
+            ),
+        }
+        if options.get("cell_editor") is not True:
+            trigger["active"] = False
+            trigger["inactive_reason"] = "inline editing is off for this table"
+        elif column.get("ignore_edit"):
+            trigger["active"] = False
+            trigger["inactive_reason"] = "inline editing is off for this column"
+        triggers.append(trigger)
+    return triggers
+
+
 def _task(task: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
     action = _dict(task.get("action"))
     entry: dict[str, Any] = {
@@ -516,7 +554,7 @@ def _view_triggers(
     names: _FieldNames,
     orphaned: set[str],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Form and action-link triggers on the selected views, and the selected
+    """Form, action-link and inline-edit triggers on the selected views, and the selected
     views that have none (listed so "no rules here" is visible, not inferred
     from silence)."""
     triggers: list[dict[str, Any]] = []
@@ -532,11 +570,13 @@ def _view_triggers(
             _action_link_trigger(header, column, names)
             for column in _iter_action_links(view_data)
         ]
+        triggers += _inline_edit_triggers(header, view_data, names)
         if len(triggers) == found:
             quiet_views.append({k: header[k] for k in _QUIET_VIEW_KEYS})
     return triggers, quiet_views
 
 
+_INLINE_EDIT_KEYS = ("edited_field", "active", "inactive_reason")
 _QUIET_VIEW_KEYS = ("scene_key", "view_key", "view_name", "view_type", "reachable")
 
 
@@ -590,7 +630,8 @@ def _targets_object(record: dict[str, Any], object_key: str) -> bool:
 def _view_trigger_candidates(
     header: dict[str, Any], view_data: dict[str, Any], names: _FieldNames
 ) -> list[tuple[str, str | None, list, dict[str, Any]]]:
-    """A view's form submit and action-link rules, each with its own trigger.
+    """A view's form submit, action-link and inline-edit rules, each with its
+    own trigger.
 
     Each candidate is ``(trigger, link_text, conditions, rules)``: the
     conditions on the action link, and the emails the same click or submit
@@ -611,6 +652,10 @@ def _view_trigger_candidates(
             )
             for action_rule in link["action_rules"]
         )
+    candidates.extend(
+        ("inline_edit", None, [], edit)
+        for edit in _inline_edit_triggers(header, view_data, names)
+    )
     return candidates
 
 
@@ -650,5 +695,9 @@ def _connected_record_rules(
                     }
                     if link_text is not None:
                         entry["link_text"] = link_text
+                    if trigger == "inline_edit":
+                        entry.update(
+                            {k: rules[k] for k in _INLINE_EDIT_KEYS if k in rules}
+                        )
                     out.append(entry)
     return out

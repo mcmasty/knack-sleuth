@@ -137,7 +137,18 @@ def _link_label(entry: dict) -> str:
     return f"Action link {escape(repr(entry.get('link_text') or ''))}:"
 
 
+def _inline_edit_label(entry: dict) -> str:
+    label = f"Inline edit of {escape(_fmt_field(entry['edited_field']))}:"
+    if not entry.get("active", True):
+        label += f" [yellow]INACTIVE: {escape(entry['inactive_reason'])}[/yellow]"
+    return label
+
+
 def _print_trigger(trigger: dict) -> None:
+    if trigger["trigger"] == "inline_edit":
+        _print_view_heading(trigger, _inline_edit_label(trigger))
+        _print_rule_lists(trigger, "  ")
+        return
     if trigger["trigger"] != "form_submit":
         _print_view_heading(trigger, _link_label(trigger))
         for action_rule in trigger["action_rules"]:
@@ -169,9 +180,12 @@ def _print_connected(connected: list) -> None:
         "\n[bold cyan]Changed from other objects' views (via connection):[/bold cyan]"
     )
     for entry in connected:
-        label = (
-            _link_label(entry) if entry["trigger"] == "action_link" else "Form submit:"
-        )
+        if entry["trigger"] == "action_link":
+            label = _link_label(entry)
+        elif entry["trigger"] == "inline_edit":
+            label = _inline_edit_label(entry)
+        else:
+            label = "Form submit:"
         _print_view_heading(entry, label + _fmt_criteria(entry["trigger_criteria"]))
         _print_rule_lists(
             {
