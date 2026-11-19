@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- `app-summary` reported `connection_density`, `avg_depth` and `modularity_score` as the
+  integer `0` when there was nothing to divide by (an app with no objects or no scenes).
+  They are ratios and are now `0.0`, as they are declared.
 - `show-rules` conditions, three corrections to how values are printed:
   - A list of roles holding anything that is not a role key crashed the command with a
     `TypeError`. The unexpected item is now printed as it is.

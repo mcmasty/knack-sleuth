@@ -11,7 +11,6 @@ and the diff of the golden file shows exactly what moved.
 import json
 import os
 from pathlib import Path
-from typing import cast
 
 import pytest
 
@@ -67,10 +66,28 @@ def test_band_thresholds():
 
 def test_workflow_hints_follow_the_requested_order():
     # Only whether each list is empty matters here.
-    direct = cast(
-        DirectImpacts,
-        {"forms": [{}], "views": [], "connections": [{}], "formulas": [{}]},
-    )
+    direct: DirectImpacts = {
+        "connections": [{"type": "connection", "description": "to another object"}],
+        "views": [],
+        "scenes": [],
+        "formulas": [
+            {
+                "field_key": "field_2",
+                "field_name": "Total",
+                "object_key": "object_1",
+                "equation": None,
+            }
+        ],
+        "forms": [
+            {
+                "view_key": "view_1",
+                "view_name": "Edit",
+                "scene_key": "scene_1",
+                "orphaned_view": False,
+            }
+        ],
+        "rules": [],
+    }
     assert _workflow_hints(direct, ("forms", "views", "connections")) == [
         "User data entry forms",
         "Related data relationships",
@@ -79,6 +96,7 @@ def test_workflow_hints_follow_the_requested_order():
         "Calculated fields and formulas",
         "User data entry forms",
     ]
+    assert _workflow_hints(direct, ("rules", "views")) == []
 
 
 def _all_impact_analyses(metadata: dict) -> dict:

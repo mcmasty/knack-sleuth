@@ -9,7 +9,6 @@ synthetic schema app. A deliberate output change regenerates them with
 import json
 import os
 from pathlib import Path
-from typing import cast
 
 import pytest
 
@@ -39,16 +38,18 @@ def test_matches_golden(fixture):
 
 def summaries(*pairs: tuple[int, int]) -> list[EntitySummary]:
     """One summary per (record_count, total_connections), keyed obj_0, obj_1..."""
-    # Only the three keys the ranking reads; the rest are not needed here.
     return [
-        cast(
-            EntitySummary,
-            {
-                "object_key": f"obj_{i}",
-                "record_count": records,
-                "total_connections": links,
-            },
-        )
+        {
+            "object_key": f"obj_{i}",
+            "name": f"Object {i}",
+            "record_count": records,
+            "field_count": 0,
+            "centrality_score": 0.0,
+            "field_types": {},
+            "total_connections": links,
+            "is_core_entity": False,
+            "primary_role": "supporting",
+        }
         for i, (records, links) in enumerate(pairs)
     ]
 
@@ -270,3 +271,17 @@ def test_supporting_entities_are_listed_largest_first(sample_metadata_dict):
     assert len(counts) == 8
     assert counts == sorted(counts, reverse=True)
     assert counts[0] == 3
+
+
+def test_an_empty_app_reports_its_ratios_as_floats():
+    # The report declares these three as floats; the "nothing to divide by"
+    # branches returned the integer 0, which serialises as 0 rather than 0.0.
+    summary = _access_app([]).generate_app_summary()
+
+    ratios = (
+        summary["application"]["complexity_metrics"]["connection_density"],
+        summary["ui_architecture"]["navigation_depth"]["avg_depth"],
+        summary["extensibility_assessment"]["modularity_score"],
+    )
+    assert [type(value) for value in ratios] == [float, float, float]
+    assert ratios == (0.0, 0.0, 0.0)
