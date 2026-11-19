@@ -100,7 +100,25 @@ class _FieldNames:
     def label(self, field_key: Any) -> dict[str, Any]:
         if not isinstance(field_key, str):
             return {"field": None, "field_name": None}
-        return {"field": field_key, "field_name": self.names.get(field_key)}
+        return {"field": field_key, "field_name": self._name(field_key)}
+
+    def _name(self, field_key: str) -> str | None:
+        """Name a field key, including the two compound forms criteria use.
+
+        ``profile_3-field_9`` and ``all_users-field_9`` test a field of the
+        logged-in user; ``field_4-field_9`` tests ``field_9`` of the record
+        connected through ``field_4``.
+        """
+        if field_key in self.names:
+            return self.names[field_key]
+        via, _, target = field_key.partition("-")
+        if target not in self.names:
+            return None
+        if via in self.names:
+            return f"{self.names[via]} > {self.names[target]}"
+        if via == "all_users" or via.startswith("profile_"):
+            return f"logged-in user's {self.names[target]}"
+        return None
 
 
 def _criteria(rules: Any, names: _FieldNames) -> list[dict[str, Any]]:
@@ -517,6 +535,7 @@ def collect_rules(
     With ``object_key``: every view sourced on that object that carries form
     rules or action links, plus the object's scheduled tasks. With
     ``view_key``: only that view (and no tasks unless an object is given).
+    Either way, the page rules of the pages those views sit on.
     """
     names = _FieldNames(app_export)
     orphaned = KnackSleuth(app_export).orphaned_view_keys
@@ -540,6 +559,7 @@ def collect_rules(
 
     return {
         "triggers": triggers,
+        "page_rules": _page_rules(app_export, object_key, view_key, names),
         "views_without_rules": quiet_views,
         "connected_record_rules": connected,
         "conditional_field_rules": field_rules,
@@ -592,6 +612,101 @@ def _selected_views(
             if object_key and not view_key and source != object_key:
                 continue
             yield scene, view
+
+
+def _page_rules(
+    app_export: KnackAppMetadata,
+    object_key: str | None,
+    view_key: str | None,
+    names: _FieldNames,
+) -> list[dict[str, Any]]:
+    """The page rules of every page that holds a selected view.
+
+    Page rules run when the page loads: they hide views, show a message or
+    redirect away, so a form can be unavailable (or never seen) for reasons
+    its own rules do not show. With one view selected, rules that only hide
+    *other* views are left out. With an object and no view, a page whose
+    rules test the object's fields is included even when none of its views is
+    sourced on the object (a page of menus and text can still redirect on a
+    record's status).
+    """
+    view_names = {
+        view.key: view.name
+        for scene in app_export.application.scenes
+        for view in scene.views
+    }
+    selected: dict[str, set[str]] = {}
+    for scene, view in _selected_views(app_export, object_key, view_key):
+        selected.setdefault(scene.key, set()).add(view.key)
+
+    object_fields: set[str] = set()
+    if object_key and not view_key:
+        object_fields = {
+            field.key
+            for obj in app_export.application.objects
+            if obj.key == object_key
+            for field in obj.fields
+        }
+
+    pages = []
+    for scene in app_export.application.scenes:
+        rules = [
+            _page_rule(rule, names, view_names, selected.get(scene.key, set()))
+            for rule in _list((scene.model_extra or {}).get("rules"))
+            if isinstance(rule, dict)
+        ]
+        if scene.key not in selected:
+            # No view of the object here: keep only rules that test its fields.
+            rules = [
+                rule
+                for rule in rules
+                if object_fields.intersection(_criteria_field_keys(rule["criteria"]))
+            ]
+        if view_key:
+            rules = [
+                rule
+                for rule in rules
+                if rule["action"] != "hide_views" or rule["hides_selected_view"]
+            ]
+        if rules:
+            pages.append(
+                {
+                    "scene_key": scene.key,
+                    "scene_name": scene.name,
+                    "scene_slug": scene.slug,
+                    "rules": rules,
+                }
+            )
+    return pages
+
+
+def _criteria_field_keys(criteria: list[dict[str, Any]]) -> set[str]:
+    """Every field key the criteria test, compound keys split into their parts."""
+    return {
+        key
+        for criterion in criteria
+        for key in FIELD_KEY_PATTERN.findall(criterion.get("field") or "")
+    }
+
+
+def _page_rule(
+    rule: dict[str, Any],
+    names: _FieldNames,
+    view_names: dict[str, str],
+    selected_views: set[str],
+) -> dict[str, Any]:
+    # A page rule has a submit rule's shape (message, redirect, criteria),
+    # plus the views it hides.
+    entry = _submit(rule, names)
+    if entry["action"] == "hide_views":
+        # Knack leaves an empty message and a stale page on a hide rule.
+        entry.pop("message", None)
+        hidden = [key for key in _list(rule.get("view_keys")) if isinstance(key, str)]
+        entry["hides"] = [
+            {"view_key": key, "view_name": view_names.get(key)} for key in hidden
+        ]
+        entry["hides_selected_view"] = bool(selected_views.intersection(hidden))
+    return entry
 
 
 def _conditional_field_rules(

@@ -573,6 +573,119 @@ class TestReviewRegressions:
         assert connected["active"] is True
         assert connected["record_rule"]["connection"] == "object_1.field_5"
 
+    @staticmethod
+    def _with_page_rules(app):
+        """Page rules on the Apply page (view_1), and on a page with no views."""
+        app["scenes"][0]["rules"] = [
+            {
+                "key": "1",
+                "action": "existing_page",
+                "existing_page": "closed",
+                "url": "https://stale.example",
+                "message": "",
+                "view_keys": [],
+                "criteria": [{"field": "field_3", "operator": "is", "value": "Closed"}],
+            },
+            {
+                "key": "2",
+                "action": "hide_views",
+                "existing_page": "leftover",
+                "message": "",
+                "view_keys": ["view_1"],
+                "criteria": [
+                    {
+                        "field": "all_users-field_2",
+                        "operator": "is blank",
+                        "value": "",
+                    }
+                ],
+            },
+            {
+                "key": "3",
+                "action": "hide_views",
+                "view_keys": ["view_99"],
+                "criteria": [{"field": "field_3", "operator": "is", "value": "Paused"}],
+            },
+            {
+                "key": "4",
+                "action": "message",
+                "type": "warning",
+                "message": "<b>Hi</b>",
+            },
+        ]
+        app["scenes"].append(
+            {
+                "key": "scene_50",
+                "name": "Landing",
+                "slug": "landing",
+                "views": [{"key": "view_50", "name": "Text", "type": "rich_text"}],
+                "rules": [
+                    {
+                        "key": "1",
+                        "action": "existing_page",
+                        "existing_page": "apply",
+                        "criteria": [
+                            {
+                                "field": "field_5-field_10",
+                                "operator": "is",
+                                "value": "Summer",
+                            }
+                        ],
+                    }
+                ],
+            }
+        )
+
+    def test_page_rules_of_the_objects_pages_are_reported(self, tmp_path):
+        # Page rules run when the page loads. A form can be hidden, or the
+        # visitor redirected away, without the form's own rules saying so.
+        data = _mutated(self._with_page_rules)
+        report = collect_rules(KnackAppMetadata(**data), "object_1")
+
+        pages = {page["scene_key"]: page["rules"] for page in report["page_rules"]}
+        redirect, hide_form, hide_other, message = pages["scene_1"]
+        assert (redirect["action"], redirect["target_page"]) == (
+            "existing_page",
+            "closed",
+        )
+        assert "url" not in redirect  # stale: only a url action redirects there
+        assert hide_form["hides"] == [
+            {"view_key": "view_1", "view_name": "Application Form"}
+        ]
+        assert hide_form["hides_selected_view"] is True
+        assert "target_page" not in hide_form
+        assert hide_form["criteria"][0]["field_name"] == "logged-in user's Email"
+        assert hide_other["hides_selected_view"] is False
+        assert hide_other["hides"] == [{"view_key": "view_99", "view_name": None}]
+        assert message["message"] == "Hi"
+
+        # The landing page has no view of this object, but its rule tests the
+        # object's Program field (through the connection).
+        (landing,) = pages["scene_50"]
+        assert landing["target_page"] == "apply"
+        assert landing["criteria"][0]["field_name"] == "Program > Title"
+
+        result = _run_on(tmp_path, data, "--object", "object_1")
+        assert result.exit_code == 0, result.output
+        assert (
+            "Redirect to page 'closed' when field_3 (Status) is 'Closed'"
+            in result.output
+        )
+        assert "Hide view_1 (Application Form) when" in result.output
+        assert "1 rule(s) hiding other views on this page" in result.output
+        assert "Message 'Hi'" in result.output
+
+    def test_page_rules_for_one_view_skip_rules_hiding_other_views(self):
+        data = _mutated(self._with_page_rules)
+        report = collect_rules(KnackAppMetadata(**data), view_key="view_1")
+
+        (page,) = report["page_rules"]
+        assert page["scene_key"] == "scene_1"
+        assert [rule["key"] for rule in page["rules"]] == ["1", "2", "4"]
+
+    def test_pages_without_page_rules_add_nothing(self, report):
+        assert report["page_rules"] == []
+
     def test_conditional_field_rules_are_reported(self, report):
         (entry,) = report["conditional_field_rules"]
         assert entry["field_name"] == "Status"

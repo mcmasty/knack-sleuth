@@ -2,8 +2,19 @@
 
 ## Unreleased
 
+### Added
+
+- `show-rules` lists page rules (`scenes[].rules`): the rules that hide a view, show a
+  message or redirect away when a page loads. They are reported for every page that holds
+  one of the object's views, and for pages whose rules test the object's fields. With
+  `--view`, rules that only hide other views are left out. In the JSON output they are under
+  `page_rules`.
+
 ### Fixed
 
+- `show-rules` named no field for a condition on the logged-in user (`profile_3-field_9`,
+  `all_users-field_9`) or on a connected record (`field_4-field_9`). These now read
+  "logged-in user's Email" and "Program > Title".
 - Names containing square brackets were read as Rich markup in terminal output: a field
   called "Amount [usd]" printed as "Amount", and a name containing a closing tag such as
   `[/internal]` crashed the command with a `MarkupError`. Every command now prints names,
