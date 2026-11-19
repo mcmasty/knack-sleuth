@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- Names containing square brackets were read as Rich markup in terminal output: a field
+  called "Amount [usd]" printed as "Amount", and a name containing a closing tag such as
+  `[/internal]` crashed the command with a `MarkupError`. Every command now prints names,
+  paths and identifiers exactly as written. JSON, CSV and Markdown output was never
+  affected.
 - `role-access-review --summary-only` inflated `child_count` for a page whose name is part
   of another page's name: "Jobs" was credited with everything under "Jobs Archive". Children
   are now counted by following parent pages, not by matching names. On a real app two rows

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from rich.markup import escape
 from rich.table import Table
 
 from knack_sleuth.config import Settings
@@ -39,12 +40,12 @@ def cache_list(
 
     files = _cache_files(app_id)
     if not files:
-        console.print(f"[dim]No cache files in {get_cache_dir()}[/dim]")
+        console.print(f"[dim]No cache files in {escape(str(get_cache_dir()))}[/dim]")
         return
 
     ttl = timedelta(hours=Settings().knack_cache_ttl_hours)
 
-    table = Table(title=f"Metadata Cache — {get_cache_dir()}")
+    table = Table(title=f"Metadata Cache — {escape(str(get_cache_dir()))}")
     table.add_column("File", style="bold cyan")
     table.add_column("App ID", style="dim")
     table.add_column("Age", justify="right", style="magenta")
@@ -54,8 +55,8 @@ def cache_list(
     for path in files:
         age = datetime.now() - datetime.fromtimestamp(path.stat().st_mtime)
         table.add_row(
-            path.name,
-            path.name.split("_app_metadata_")[0],
+            escape(path.name),
+            escape(path.name.split("_app_metadata_")[0]),
             f"{age.total_seconds() / 3600:.1f}h",
             f"{path.stat().st_size / 1024:.1f} KB",
             "fresh" if age < ttl else "[red]stale[/red]",
@@ -82,7 +83,9 @@ def cache_clear(
     """Delete cached metadata files (all apps, or one with --app-id)."""
     files = _cache_files(app_id)
     if not files:
-        console.print(f"[dim]No cache files to delete in {get_cache_dir()}[/dim]")
+        console.print(
+            f"[dim]No cache files to delete in {escape(str(get_cache_dir()))}[/dim]"
+        )
         return
 
     freed = 0
@@ -90,7 +93,7 @@ def cache_clear(
         freed += path.stat().st_size
         path.unlink()
 
-    scope = f"for app {app_id}" if app_id else "from cache"
+    scope = f"for app {escape(app_id)}" if app_id else "from cache"
     console.print(
         f"[green]✓[/green] Deleted {len(files)} cache files {scope} "
         f"({freed / 1024:.1f} KB freed)"
