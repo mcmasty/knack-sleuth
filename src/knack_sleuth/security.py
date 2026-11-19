@@ -21,9 +21,19 @@ def _extra(model: BaseModel) -> dict[str, Any]:
     return model.model_extra or {}
 
 
+def _menu_ref(scene: Scene) -> str | None:
+    """The key of the menu a scene says it belongs to, if it is a key at all.
+
+    ``menu`` is undeclared metadata, so it can hold anything; a list or dict
+    there must read as "no menu", not crash a dictionary lookup.
+    """
+    menu = _extra(scene).get("menu")
+    return menu if isinstance(menu, str) and menu else None
+
+
 def _menu_name(scene: Scene, scenes_by_key: dict[str, Scene]) -> str | None:
     """Name of the menu a scene belongs to, if its ``menu`` reference resolves."""
-    menu_scene = scenes_by_key.get(_extra(scene).get("menu") or "")
+    menu_scene = scenes_by_key.get(_menu_ref(scene) or "")
     return menu_scene.name if menu_scene else None
 
 
@@ -65,7 +75,7 @@ def build_navigation_hierarchy(scenes: list[Scene]) -> dict[str, Any]:
     # Group scenes by their menu (using extra attributes if they exist)
     scenes_by_menu = defaultdict(list)
     for scene in scenes:
-        menu_ref = _extra(scene).get("menu")
+        menu_ref = _menu_ref(scene)
         if menu_ref:
             scenes_by_menu[menu_ref].append(scene)
 
@@ -467,7 +477,7 @@ def _ancestor_keys(scene: Scene, hierarchy: dict[str, Any]) -> list[str]:
     """
     scenes_by_key = hierarchy["scenes_by_key"]
     keys: dict[str, None] = {}
-    menu_key = _extra(scene).get("menu")
+    menu_key = _menu_ref(scene)
     slug = scene.parent
     visited: set[str] = set()
     while slug and slug not in visited:
@@ -477,7 +487,7 @@ def _ancestor_keys(scene: Scene, hierarchy: dict[str, Any]) -> list[str]:
             break
         for candidate in candidates:
             keys.setdefault(candidate.key)
-        menu_key = menu_key or _extra(candidates[0]).get("menu")
+        menu_key = menu_key or _menu_ref(candidates[0])
         slug = candidates[0].parent
     if isinstance(menu_key, str) and menu_key in scenes_by_key:
         keys.setdefault(menu_key)
