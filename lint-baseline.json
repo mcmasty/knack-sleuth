@@ -32,24 +32,10 @@
     "src/knack_sleuth/core.py": {
       "S110": 1
     },
-    "src/knack_sleuth/db_schema.py": {
-      "C901": 4,
-      "PLR0912": 2,
-      "PLR0915": 2
-    },
-    "src/knack_sleuth/rules.py": {
-      "C901": 1,
-      "PLR0912": 1
-    },
     "src/knack_sleuth/security.py": {
-      "C901": 2,
-      "PLR0915": 2
-    },
-    "src/knack_sleuth/sleuth.py": {
-      "C901": 5,
-      "PLR0912": 5,
-      "PLR0915": 2
+      "C901": 1,
+      "PLR0915": 1
     }
   },
-  "total": 28
+  "total": 4
 }
