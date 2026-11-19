@@ -77,15 +77,33 @@ def build_navigation_hierarchy(scenes: list[Scene]) -> dict[str, Any]:
     }
 
 
+def _scene_profile_limit(scene: Scene) -> list[Any]:
+    """The profiles a scene itself is limited to, as Knack would enforce them.
+
+    Knack keeps the list when "limit access to roles" is switched off, so a
+    list beside ``limit_profile_access: false`` restricts nothing. Metadata
+    without the flag (and the older ``profile_keys``) is taken at its word.
+    """
+    extra = _extra(scene)
+    if extra.get("limit_profile_access") is False:
+        return []
+    return extra.get("allowed_profiles") or extra.get("profile_keys") or []
+
+
+def _view_profile_limit(view: BaseModel) -> list[Any]:
+    """The profiles a view is limited to; none unless the limit is switched on."""
+    extra = _extra(view)
+    if not extra.get("limit_profile_access"):
+        return []
+    return extra.get("allowed_profiles") or []
+
+
 def _get_allowed_profile_keys(scene: Scene) -> list[str]:
     """Return direct scene/view profile restrictions in stable order."""
-    extra = _extra(scene)
-    allowed_profiles = extra.get("allowed_profiles") or extra.get("profile_keys") or []
+    allowed_profiles = _scene_profile_limit(scene)
     if not allowed_profiles:
         allowed_profiles = [
-            profile
-            for view in scene.views
-            for profile in _extra(view).get("allowed_profiles") or []
+            profile for view in scene.views for profile in _view_profile_limit(view)
         ]
     # A null entry restricts nothing; keeping it would fail SceneSecurity.
     return [key for key in dict.fromkeys(allowed_profiles) if isinstance(key, str)]
@@ -597,15 +615,14 @@ def get_views_for_profile(
 
     # If scene has no restrictions, all views are accessible (if no view-level restrictions)
     # If scene has restrictions, profile must be in the list
-    scene_allowed_profiles = _extra(scene).get("allowed_profiles", [])
+    scene_allowed_profiles = _scene_profile_limit(scene)
     scene_accessible = (
         not scene_allowed_profiles or profile_key in scene_allowed_profiles
     )
 
     for view in scene.views:
-        extra = _extra(view)
-        view_allowed_profiles = extra.get("allowed_profiles", [])
-        if extra.get("limit_profile_access", False) and view_allowed_profiles:
+        view_allowed_profiles = _view_profile_limit(view)
+        if view_allowed_profiles:
             # View has explicit restrictions
             view_accessible = profile_key in view_allowed_profiles
         else:

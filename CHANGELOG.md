@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- `role-access-review` and `role-access-summary` read a leftover `allowed_profiles` list as
+  a role restriction when `limit_profile_access` was off. Knack keeps the list after the
+  "limit to roles" switch is turned off and no longer enforces it, so such a page was
+  reported as locked to those roles when any logged-in user could open it. A login view's
+  list now counts only while its `limit_profile_access` is on, and a page's own list is
+  ignored when its `limit_profile_access` is `false`; these pages get the `UNRESTRICTED`
+  concern instead (#24).
+
 ## 0.10.0
 
 ### Fixed
