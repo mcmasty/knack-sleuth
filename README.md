@@ -296,8 +296,9 @@ knack-sleuth show-rules my_app.json --object Applicant
 knack-sleuth show-rules --app-id YOUR_APP_ID --view view_123 --format json
 ```
 
-For each form and action link on the object, it lists the email rules, record rules and submit
-rules. Email rules show subject, recipients and conditions, but never the body; custom addresses
+For each form, action link and inline-editable table column on the object, it lists the email
+rules, record rules and submit rules. Inline-edit rules on a table whose inline editing is off
+are listed as inactive. Email rules show subject, recipients and conditions, but never the body; custom addresses
 are masked to their domain. It also lists rules on other objects' views that change this object
 through a connection, and the object's scheduled tasks with their run status. Views that never
 render are marked unreachable.

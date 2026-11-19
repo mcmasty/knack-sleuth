@@ -468,6 +468,111 @@ class TestReviewRegressions:
         assert "None" not in result.output
         assert "staff.inbox" not in result.output
 
+    @staticmethod
+    def _editable_table(view_key, source, rule, **flags):
+        """A table whose Status column carries one inline-edit rule."""
+        return {
+            "key": view_key,
+            "name": "Editable",
+            "type": "table",
+            "source": {"object": source},
+            "options": {"cell_editor": flags.get("cell_editor", True)},
+            "columns": [
+                {
+                    "type": "field",
+                    "header": "Status",
+                    "field": {"key": "field_3"},
+                    "ignore_edit": flags.get("ignore_edit", False),
+                    "edit_rules": [rule],
+                }
+            ],
+        }
+
+    def test_inline_edit_rules_are_a_trigger(self, tmp_path):
+        # Editing a cell in a table fires the column's edit_rules. A table
+        # with only these was listed as having no rules.
+        rule = {
+            "key": "1",
+            "action": "record",
+            "connection": None,
+            "criteria": [{"field": "field_3", "operator": "is", "value": "Rejected"}],
+            "values": [{"type": "value", "field": "field_4", "value": "Closed out"}],
+        }
+
+        def mutate(app):
+            app["scenes"][0]["views"].append(
+                self._editable_table("view_20", "object_1", rule)
+            )
+
+        data = _mutated(mutate)
+        report = collect_rules(KnackAppMetadata(**data), "object_1")
+
+        (edit,) = _by_view(report, "view_20")
+        assert edit["trigger"] == "inline_edit"
+        assert edit["active"] is True
+        assert edit["edited_field"] == {"field": "field_3", "field_name": "Status"}
+        assert edit["emails"] == []
+        (record,) = edit["records"]
+        assert [(v["field"], v["set_to"]) for v in record["values"]] == [
+            ("field_4", "Closed out")
+        ]
+        assert record["criteria"][0]["value"] == "Rejected"
+        assert "view_20" not in {v["view_key"] for v in report["views_without_rules"]}
+
+        result = _run_on(tmp_path, data, "--object", "object_1")
+        assert result.exit_code == 0, result.output
+        assert "Inline edit of field_3 (Status):" in result.output
+        assert "INACTIVE" not in result.output
+
+    @pytest.mark.parametrize(
+        ("flags", "reason"),
+        [
+            ({"cell_editor": False}, "inline editing is off for this table"),
+            ({"ignore_edit": True}, "inline editing is off for this column"),
+        ],
+    )
+    def test_inline_edit_rules_left_behind_are_reported_inactive(
+        self, tmp_path, flags, reason
+    ):
+        rule = {"key": "1", "action": "record", "values": []}
+
+        def mutate(app):
+            app["scenes"][0]["views"].append(
+                self._editable_table("view_20", "object_1", rule, **flags)
+            )
+
+        data = _mutated(mutate)
+        (edit,) = _by_view(
+            collect_rules(KnackAppMetadata(**data), "object_1"), "view_20"
+        )
+        assert (edit["active"], edit["inactive_reason"]) == (False, reason)
+
+        result = _run_on(tmp_path, data, "--object", "object_1")
+        assert f"INACTIVE: {reason}" in result.output
+
+    def test_inline_edit_on_another_object_reaches_this_one_by_connection(self):
+        rule = {
+            "key": "1",
+            "action": "connection",
+            "connection": "object_1.field_5",
+            "values": [{"type": "value", "field": "field_3", "value": "Closed"}],
+        }
+
+        def mutate(app):
+            table = self._editable_table("view_21", "object_2", rule)
+            table["columns"][0]["field"] = {"key": "field_10"}
+            app["scenes"][2]["views"].append(table)
+
+        report = collect_rules(KnackAppMetadata(**_mutated(mutate)), "object_1")
+
+        (connected,) = [
+            c for c in report["connected_record_rules"] if c["view_key"] == "view_21"
+        ]
+        assert connected["trigger"] == "inline_edit"
+        assert connected["edited_field"]["field"] == "field_10"
+        assert connected["active"] is True
+        assert connected["record_rule"]["connection"] == "object_1.field_5"
+
     def test_conditional_field_rules_are_reported(self, report):
         (entry,) = report["conditional_field_rules"]
         assert entry["field_name"] == "Status"

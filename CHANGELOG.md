@@ -7,6 +7,12 @@
 - An object or field whose name was saved with a stray space ("Status ") could not be found
   by the name you can see: `search-field Status` answered "Did you mean: Status ?". Name
   lookups now ignore leading, trailing and repeated whitespace.
+- `show-rules` ignored the record rules that run when a table cell is edited in place
+  (`columns[].edit_rules`), and listed such a table under "no form rules or action links".
+  They are now reported as an `inline_edit` trigger, including when they change another
+  object through a connection. Rules left behind on a table or column whose inline editing
+  is off are listed as inactive. On a real app this adds 7 rules on 6 columns, 5 of them
+  active.
 - `role-access-review --summary-only` inflated `child_count` for a page whose name is part
   of another page's name: "Jobs" was credited with everything under "Jobs Archive". Children
   are now counted by following parent pages, not by matching names. On a real app two rows
