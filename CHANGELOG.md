@@ -4,6 +4,13 @@
 
 ### Fixed
 
+- `show-rules` conditions, three corrections to how values are printed:
+  - A list of roles holding anything that is not a role key crashed the command with a
+    `TypeError`. The unexpected item is now printed as it is.
+  - A date condition with a time printed only the date, which moved the apparent cutoff to
+    midnight. The time is now shown.
+  - A text condition whose value happened to equal a role key ("Name is profile_7") was
+    relabelled as that role. Role names are now added only on fields of type `user_roles`.
 - Three places disagreed about dropdown menus and utility pages after they stopped being
   flagged `UNRESTRICTED`:
   - A login-only page that names a dropdown menu as its parent read `OK`, because it was

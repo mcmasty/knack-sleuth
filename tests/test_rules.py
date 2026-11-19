@@ -442,33 +442,45 @@ class TestReviewRegressions:
         assert "is today and" in result.output
         assert "is 'Approved'" in result.output
 
+    @staticmethod
+    def _task_criteria(app, criteria):
+        """Give Programs a role key, Applicants a roles field, and the task
+        these criteria."""
+        app["objects"][1]["profile_key"] = "profile_7"
+        app["objects"][0]["fields"].append(
+            {"key": "field_90", "name": "Roles", "type": "user_roles"}
+        )
+        app["objects"][0]["tasks"][0]["action"]["criteria"] = criteria
+
     def test_criteria_values_read_as_a_person_would_say_them(self, tmp_path):
         # An "is blank" on a date field keeps an empty date dict; a criterion
-        # on the user's roles holds role keys. Neither should print raw.
+        # on a roles field holds role keys. Neither should print raw.
         def mutate(app):
-            app["objects"][1]["profile_key"] = "profile_7"
-            app["objects"][0]["tasks"][0]["action"]["criteria"] = [
-                {
-                    "field": "field_1",
-                    "operator": "is blank",
-                    "value": {"all_day": False, "date": ""},
-                },
-                {
-                    "field": "field_1",
-                    "operator": "is",
-                    "value": {"all_day": False, "date": "01/02/2026"},
-                },
-                {
-                    "field": "field_3",
-                    "operator": "does not contain",
-                    "value": "profile_7",
-                },
-                {
-                    "field": "field_3",
-                    "operator": "contains",
-                    "value": ["profile_7", "profile_404"],
-                },
-            ]
+            self._task_criteria(
+                app,
+                [
+                    {
+                        "field": "field_1",
+                        "operator": "is blank",
+                        "value": {"all_day": False, "date": ""},
+                    },
+                    {
+                        "field": "field_1",
+                        "operator": "is",
+                        "value": {"all_day": False, "date": "01/02/2026"},
+                    },
+                    {
+                        "field": "field_90",
+                        "operator": "does not contain",
+                        "value": "profile_7",
+                    },
+                    {
+                        "field": "all_users-field_90",
+                        "operator": "contains",
+                        "value": ["profile_7", "profile_404"],
+                    },
+                ],
+            )
 
         data = _mutated(mutate)
         (task,) = collect_rules(KnackAppMetadata(**data), "object_1")["tasks"]
@@ -490,6 +502,84 @@ class TestReviewRegressions:
         assert "does not contain Programs (profile_7) and" in text
         assert "contains Programs (profile_7), 'profile_404'" in text
         assert "all_day" not in text
+
+    def test_text_that_looks_like_a_role_key_is_left_as_text(self, tmp_path):
+        # Only a roles field is compared with role keys. "profile_7" typed
+        # into a text condition is the text "profile_7".
+        def mutate(app):
+            self._task_criteria(
+                app, [{"field": "field_1", "operator": "is", "value": "profile_7"}]
+            )
+
+        data = _mutated(mutate)
+        (task,) = collect_rules(KnackAppMetadata(**data), "object_1")["tasks"]
+        assert "value_names" not in task["emails"][0]["criteria"][0]
+
+        result = _run_on(tmp_path, data, "--object", "object_1")
+        assert "(Name) is 'profile_7'" in " ".join(result.output.split())
+        assert "Programs (profile_7)" not in result.output
+
+    def test_role_list_holding_something_unexpected_does_not_crash(self, tmp_path):
+        # The role lookup indexed a dict with whatever the list held; a
+        # nested object raised TypeError and took the command down.
+        def mutate(app):
+            self._task_criteria(
+                app,
+                [
+                    {
+                        "field": "field_90",
+                        "operator": "contains",
+                        "value": ["profile_7", {"id": "user_1"}, 5],
+                    }
+                ],
+            )
+
+        result = _run_on(tmp_path, _mutated(mutate), "--object", "object_1")
+
+        assert result.exit_code == 0, result.output
+        assert "contains Programs (profile_7), {'id': 'user_1'}, 5" in " ".join(
+            result.output.split()
+        )
+
+    @pytest.mark.parametrize(
+        ("value", "shown"),
+        [
+            (
+                {"date": "01/05/2026", "time": "8:00am", "all_day": False},
+                "'01/05/2026 8:00am'",
+            ),
+            (
+                {"date": "01/05/2026", "hours": "9", "minutes": "5", "am_pm": "PM"},
+                "'01/05/2026 9:05PM'",
+            ),
+            (
+                {
+                    "all_day": False,
+                    "hours": 7,
+                    "minutes": 30,
+                    "am_pm": "am",
+                    "time": "",
+                },
+                "'7:30am'",
+            ),
+            (
+                {"date": "01/05/2026", "hours": None, "minutes": None, "time": ""},
+                "'01/05/2026'",
+            ),
+        ],
+        ids=["time-string", "hours-and-minutes", "time-only", "date-only"],
+    )
+    def test_date_criteria_keep_their_time(self, tmp_path, value, shown):
+        # Dropping the time moved the apparent cutoff to midnight.
+        def mutate(app):
+            self._task_criteria(
+                app, [{"field": "field_1", "operator": "is after", "value": value}]
+            )
+
+        result = _run_on(tmp_path, _mutated(mutate), "--object", "object_1")
+
+        assert result.exit_code == 0, result.output
+        assert f"(Name) is after {shown}" in " ".join(result.output.split())
 
     def test_notification_recipient_is_a_masked_address(self, tmp_path):
         # A form's "email notification" lists bare addresses: no recipient

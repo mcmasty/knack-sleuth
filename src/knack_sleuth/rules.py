@@ -46,6 +46,8 @@ FORM_RULE_LISTS = ("emails", "records", "submits", "fields")
 EMAIL_ACTIONS = {"email", "email_notification"}
 # Date operators that are followed by a span: "is during the next 7 days".
 RELATIVE_RANGE_ENDINGS = (" next", " previous")
+# The field type whose values are role (profile) keys.
+ROLES_FIELD_TYPE = "user_roles"
 KNOWN_ACTION_RULE_KEYS = {
     "key",
     "criteria",
@@ -117,6 +119,11 @@ class _FieldNames:
             for obj in app_export.application.objects
             for field in obj.fields
         }
+        self.types = {
+            field.key: field.type
+            for obj in app_export.application.objects
+            for field in obj.fields
+        }
         # Role key -> role name, for criteria that test the user's roles.
         self.roles = {
             obj.profile_key: obj.name
@@ -124,8 +131,18 @@ class _FieldNames:
             if obj.profile_key
         }
 
-    def role_names(self, value: Any) -> dict[str, str]:
-        """The roles a criterion's value names, if it names any."""
+    def role_names(self, field_key: Any, value: Any) -> dict[str, str]:
+        """The roles a criterion's value names, when its field holds roles.
+
+        Only a ``user_roles`` field is compared with role keys. Anywhere else
+        a value such as "profile_7" is just text that looks like one.
+        """
+        if not isinstance(field_key, str):
+            return {}
+        # A compound key tests the last field it names.
+        tested = FIELD_KEY_PATTERN.findall(field_key)[-1:]
+        if not tested or self.types.get(tested[0]) != ROLES_FIELD_TYPE:
+            return {}
         keys = value if isinstance(value, list) else [value]
         return {
             key: self.roles[key]
@@ -170,7 +187,7 @@ def _criteria(rules: Any, names: _FieldNames) -> list[Criterion]:
         span = _relative_range(rule)
         if span:
             entry["range"] = span
-        roles = names.role_names(rule.get("value"))
+        roles = names.role_names(rule.get("field"), rule.get("value"))
         if roles:
             entry["value_names"] = roles
         out.append(entry)
