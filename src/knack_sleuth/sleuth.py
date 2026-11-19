@@ -1320,7 +1320,9 @@ class KnackSleuth:
                 key=lambda x: len(x.get("used_by", [])),
                 reverse=True,
             ),
-            "supporting_entities": by_role["supporting"],
+            "supporting_entities": sorted(
+                by_role["supporting"], key=lambda x: x["record_count"], reverse=True
+            ),
         }
 
     def _object_summary(self, obj: KnackObject, roles: dict[str, Any]) -> EntitySummary:
