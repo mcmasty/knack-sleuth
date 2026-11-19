@@ -156,6 +156,82 @@ class TestGenerateSecurityReportTopLine:
         }
 
 
+class TestReportTotalsOnAHandBuiltApp:
+    """Every summary figure, on an app small enough to count by eye.
+
+    The sample app has no public page, no legacy ``profile_keys`` and no page
+    open to more than five roles, so its totals cannot tell these apart.
+    """
+
+    @pytest.fixture
+    def report(self):
+        roles = [f"profile_{n}" for n in range(1, 7)]
+        scenes = [
+            Scene(
+                key="scene_1", name="Menu", slug="menu", type="menu", authenticated=True
+            ),
+            Scene(key="scene_2", name="Public", slug="public", authenticated=False),
+            Scene(key="scene_3", name="Members", slug="members", authenticated=True),
+            # Older metadata names its roles under profile_keys.
+            Scene(key="scene_4", name="Legacy", slug="legacy", profile_keys=roles[:1]),
+            Scene(key="scene_5", name="Five", slug="five", allowed_profiles=roles[:5]),
+            Scene(key="scene_6", name="Six", slug="six", allowed_profiles=roles),
+            Scene(
+                key="scene_7",
+                name="Account",
+                slug="account",
+                type="user",
+                authenticated=True,
+            ),
+            Scene(key="scene_8", name="Detail", slug="detail", parent="legacy"),
+            Scene(key="scene_9", name="Leaflet", slug="leaflet", parent="public"),
+        ]
+        app = Application(
+            id="app_totals",
+            name="Totals",
+            slug="totals",
+            home_scene={"key": "scene_1", "slug": "menu"},
+            scenes=scenes,
+            objects=[],
+        )
+        return generate_security_report(app)
+
+    def test_summary_counts(self, report):
+        assert report.total_scenes == 9
+        assert report.public_scenes == 2  # Public and Leaflet, below it
+        assert report.login_required_scenes == 7
+        # Login but no role list: Menu, Members, Account.
+        assert report.unrestricted_authenticated_scenes == 3
+        assert report.scenes_with_parents == 2  # Detail, Leaflet
+        assert report.scenes_inheriting_security == 1  # Detail, from Legacy
+        assert report.menu_scenes == 1
+        assert report.utility_pages == 1  # Account
+
+    def test_profile_access_counts(self, report):
+        # profile_1: Legacy, Five, Six and Detail (inherited).
+        assert report.profile_access_counts == {
+            "profile_1": 4,
+            "profile_2": 2,
+            "profile_3": 2,
+            "profile_4": 2,
+            "profile_5": 2,
+            "profile_6": 1,
+        }
+
+    def test_legacy_profile_keys_restrict_the_page_and_its_child(self, report):
+        by_key = {s.scene_key: s for s in report.scene_analyses}
+        assert by_key["scene_4"].allowed_profiles == ["profile_1"]
+        assert by_key["scene_8"].allowed_profiles == ["profile_1"]
+
+    def test_many_roles_is_flagged_above_five(self, report):
+        by_key = {s.scene_key: s for s in report.scene_analyses}
+        assert "MANY_ROLES" not in by_key["scene_5"].security_concern
+        assert (
+            "MANY_ROLES: Accessible by 6 different roles"
+            in by_key["scene_6"].security_concern
+        )
+
+
 class TestAnalyzeSceneSecurityDirect:
     def test_matches_generate_security_report_for_same_scene(
         self, application, report, analyses_by_key
