@@ -4,6 +4,16 @@
 
 ### Fixed
 
+- Three places disagreed about dropdown menus and utility pages after they stopped being
+  flagged `UNRESTRICTED`:
+  - A login-only page that names a dropdown menu as its parent read `OK`, because it was
+    treated as sitting behind the menu's login. A menu is not a page a visitor passes
+    through, so the page's own login is where the gate starts and it is now flagged.
+  - The "N scenes require login but have no profile restrictions" warning used the total
+    of pages any login can open, which includes utility pages and inheriting pages that no
+    row flags. It now counts the rows flagged `UNRESTRICTED`.
+  - `role-access-summary` still listed dropdown menus as `any_login`. They are left out,
+    as `role-access-review` leaves them out of its unrestricted count.
 - `app-summary --format markdown` left supporting entities and user profiles out of its
   Domain Model section, though both are in the JSON. On a real app 26 of 61 objects were
   never mentioned. Both buckets are now listed, so the five counts add up to the number of

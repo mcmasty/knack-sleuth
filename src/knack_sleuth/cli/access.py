@@ -12,6 +12,7 @@ from knack_sleuth.security import (
     count_children,
     generate_security_report,
     get_views_for_profile,
+    is_dropdown_menu,
 )
 
 from ._common import (
@@ -118,11 +119,17 @@ def _print_review(report: SecurityReport) -> None:
         console.print(
             f"⚠️  {report.public_scenes} scenes are publicly accessible without login"
         )
-    if report.unrestricted_authenticated_scenes > 0:
+    # The rows flagged UNRESTRICTED, so the warning matches what the CSV
+    # shows. The total above also counts pages that are open to every
+    # logged-in user by design or by inheritance, which are not findings.
+    flagged = sum(
+        1 for scene in report.scene_analyses if "UNRESTRICTED" in scene.security_concern
+    )
+    if flagged > 0:
         console.print(
-            f"⚠️  {report.unrestricted_authenticated_scenes} scenes require login but have no profile restrictions"
+            f"⚠️  {flagged} scenes require login but have no profile restrictions"
         )
-    if report.public_scenes == 0 and report.unrestricted_authenticated_scenes == 0:
+    if report.public_scenes == 0 and flagged == 0:
         console.print("✓ No obvious security concerns in scene access controls")
 
 
@@ -282,6 +289,10 @@ def _access_basis(analysis: SceneSecurity, profile_name: str) -> str | None:
     if not analysis.requires_login:
         return "public"
     if analysis.allowed_profile_count == 0:
+        # A dropdown menu is navigation with nothing of its own to open; the
+        # review does not count it among the unrestricted pages either.
+        if is_dropdown_menu(analysis.scene_type, analysis.view_keys):
+            return None
         return "any_login"
     return None
 

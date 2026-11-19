@@ -143,6 +143,18 @@ def _asks_for_login(scene: Scene) -> bool | None:
     return scene.authenticated
 
 
+def _gates_what_is_below(scene: Scene) -> bool:
+    """Whether the scene's own login protects the pages under it.
+
+    A dropdown menu's login decides who sees the menu. It is not a page a
+    visitor passes through, so a page that names it as parent is not behind
+    that login: the page's own settings are what count.
+    """
+    return _asks_for_login(scene) is True and not is_dropdown_menu(
+        scene.type, scene.views
+    )
+
+
 def _get_allowed_profile_keys(scene: Scene) -> list[str]:
     """Return direct scene/view profile restrictions in stable order."""
     allowed_profiles = _scene_profile_limit(scene)
@@ -272,7 +284,7 @@ class _InheritanceSolver:
             # A bare login requirement does not end the walk: the scene still
             # sits behind every ancestor, so a login page above it that limits
             # profiles still decides which roles get in (issue #27).
-            bare_auth = _asks_for_login(candidate) is True
+            bare_auth = _gates_what_is_below(candidate)
             if candidate.key in self.looping_logins:
                 found.setdefault(((), True), {}).setdefault(label)
             # An unsolved parent (only possible inside a cycle) is an empty
@@ -316,7 +328,7 @@ class _InheritanceSolver:
             candidate.key
             for slug in self.order
             for candidate in self.scenes_by_slug[slug]
-            if _asks_for_login(candidate) is True
+            if _gates_what_is_below(candidate)
             and not self.own_profiles[candidate.key]
             and candidate.parent in self.values
             and not self.values[candidate.parent]
@@ -611,7 +623,7 @@ def _effective_access(scene: Scene, hierarchy: NavigationHierarchy) -> _Access:
     return _Access(allowed, authenticated, False, None, ambiguous, weakest == 0)
 
 
-def _is_dropdown_menu(scene_type: str | None, views: list[Any]) -> bool:
+def is_dropdown_menu(scene_type: str | None, views: list[Any]) -> bool:
     """A menu scene with no views of its own: a list of links to other pages."""
     return scene_type == "menu" and not views
 
@@ -644,7 +656,7 @@ def _security_concerns(
         not access.profile_keys
         and access.ancestors_public
         and not is_utility_page
-        and not _is_dropdown_menu(scene.type, scene.views)
+        and not is_dropdown_menu(scene.type, scene.views)
     ):
         concerns.append(
             "UNRESTRICTED: Requires login but no specific profiles restricted"
@@ -800,7 +812,7 @@ def generate_security_report(app: Application) -> SecurityReport:
         for s in scene_analyses
         if s.requires_login
         and s.allowed_profile_count == 0
-        and not _is_dropdown_menu(s.scene_type, s.view_keys)
+        and not is_dropdown_menu(s.scene_type, s.view_keys)
     )
     scenes_with_parents = sum(1 for s in scene_analyses if s.nav_level == "Child")
     scenes_inheriting_security = sum(1 for s in scene_analyses if s.inherits_security)
