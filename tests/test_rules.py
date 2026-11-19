@@ -562,8 +562,12 @@ class TestReviewRegressions:
                 lambda t: t["columns"][0].pop("field"),
                 "this column is not an editable field",
             ),
+            (
+                lambda t: t["columns"][0].update(field={"key": ""}),
+                "this column is not an editable field",
+            ),
         ],
-        ids=["details-view", "link-column", "no-field"],
+        ids=["details-view", "link-column", "no-field", "empty-key"],
     )
     def test_inline_edit_rules_where_nothing_can_be_edited_are_inactive(
         self, change, reason

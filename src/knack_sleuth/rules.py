@@ -516,9 +516,8 @@ def _inline_edit_blocker(
         return "only tables can be edited inline"
     if options.get("cell_editor") is not True:
         return "inline editing is off for this table"
-    if column.get("type") != "field" or not isinstance(
-        _dict(column.get("field")).get("key"), str
-    ):
+    field_key = _dict(column.get("field")).get("key")
+    if column.get("type") != "field" or not (isinstance(field_key, str) and field_key):
         return "this column is not an editable field"
     if column.get("ignore_edit"):
         return "inline editing is off for this column"
