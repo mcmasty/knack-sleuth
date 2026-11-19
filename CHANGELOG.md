@@ -12,6 +12,9 @@
 
 ### Fixed
 
+- A scene whose `menu` value is not a scene key (a list or an object) crashed
+  `role-access-review`, `role-access-summary` and, since it began using the same analysis,
+  `app-summary`, with a `TypeError`. Such a value now reads as "no menu".
 - Looking up an object by name could pick the wrong one when two names differ only by
   whitespace ("Job  Status" and "Job Status"): the first in the export won. The name as
   written now wins, and a name that matches two objects only after whitespace is ignored is

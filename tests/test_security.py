@@ -26,7 +26,7 @@ import pytest
 from typer.testing import CliRunner
 
 from knack_sleuth.cli import cli
-from knack_sleuth.models import Application, Scene
+from knack_sleuth.models import Application, KnackAppMetadata, Scene
 from knack_sleuth.security import (
     analyze_scene_security,
     build_navigation_hierarchy,
@@ -36,6 +36,7 @@ from knack_sleuth.security import (
     get_profile_mapping,
     get_views_for_profile,
 )
+from knack_sleuth.sleuth import KnackSleuth
 
 SAMPLE_FILE = Path("tests/data/sample_knack_app_meta.json")
 
@@ -975,6 +976,37 @@ class TestNavigationHierarchy:
 # ---------------------------------------------------------------------------
 # D. count_children
 # ---------------------------------------------------------------------------
+
+
+class TestMalformedMenuReference:
+    @pytest.mark.parametrize("menu", [["scene_404"], {"key": "scene_404"}, 7, ""])
+    def test_a_menu_that_is_not_a_key_reads_as_no_menu(self, menu):
+        # `menu` is undeclared metadata. An unhashable value used to raise
+        # TypeError from a dict lookup and take the whole report down.
+        scenes = [
+            Scene(key="scene_1", name="Home", slug="home", menu=menu),
+            Scene(key="scene_2", name="Page", slug="page", parent="home"),
+        ]
+        app = Application(
+            id="app_menu",
+            name="Menu",
+            slug="menu",
+            home_scene={"key": "scene_1", "slug": "home"},
+            scenes=scenes,
+            objects=[],
+        )
+
+        report = generate_security_report(app)
+
+        assert (report.total_scenes, report.menu_scenes) == (2, 0)
+        assert all("Menu" not in s.page_nav for s in report.scene_analyses)
+        assert KnackSleuth(KnackAppMetadata(application=app)).generate_app_summary()[
+            "ui_architecture"
+        ]["scene_patterns"] == {
+            "authenticated_scenes": 0,
+            "public_scenes": 2,
+            "total_scenes": 2,
+        }
 
 
 class TestCountChildren:
