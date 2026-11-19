@@ -53,6 +53,8 @@ SUMMARY_COLUMNS = [
     "access_basis",
 ]
 ACCESS_BASES = ("role", "any_login", "public")
+# Knack's base Accounts object: every user has it, whatever their roles.
+ALL_USERS_KEY = "all_users"
 
 
 def _analyze(file_path: Path | None, app_id: str | None, refresh: bool):
@@ -97,11 +99,18 @@ def _print_review(report: SecurityReport) -> None:
     console.print()
     _banner("USER PROFILES (ROLES)")
     for profile_key, profile_name in report.profiles.items():
+        label = escape(f"  {profile_name:30} ({profile_key:20})")
+        if profile_key == ALL_USERS_KEY:
+            # Not a role anyone is limited to: it stands for every logged-in
+            # user, so what it "has access to" is the pages with no role limit.
+            console.print(
+                label
+                + f" - any logged-in user: {report.unrestricted_authenticated_scenes} "
+                "login-required scenes with no role limit"
+            )
+            continue
         access_count = report.profile_access_counts.get(profile_name, 0)
-        console.print(
-            escape(f"  {profile_name:30} ({profile_key:20})")
-            + f" - Access to {access_count} scenes"
-        )
+        console.print(label + f" - Access to {access_count} scenes")
 
     console.print()
     _banner("SECURITY CONCERNS")
