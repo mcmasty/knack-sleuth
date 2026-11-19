@@ -24,6 +24,16 @@
   of the 8 flags were menus. A menu with no views of its own now reads `OK` and is left out
   of the unrestricted count.
 
+### Changed
+
+- Library: `KnackSleuth.generate_impact_analysis` returns the full report shape when the
+  target cannot be classified (for example the key `nonsense`), with `error` set and every
+  list empty. It used to return `{"error": ...}` alone. The CLI is unaffected: it prints the
+  error and exits 1 either way.
+- Development: the `show-rules` and `impact-analysis` reports and the security hierarchy are
+  declared as TypedDicts (`rules_report.py`, `impact_report.py`), so the type checker sees
+  a misspelt or missing key. They are still plain dicts at run time.
+
 ## 0.11.0
 
 ### Added

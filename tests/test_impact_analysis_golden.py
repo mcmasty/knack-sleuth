@@ -11,9 +11,11 @@ and the diff of the golden file shows exactly what moved.
 import json
 import os
 from pathlib import Path
+from typing import cast
 
 import pytest
 
+from knack_sleuth.impact_report import DirectImpacts
 from knack_sleuth.models import KnackAppMetadata
 from knack_sleuth.sleuth import (
     FIELD_RISK_LOW_MAX,
@@ -64,7 +66,11 @@ def test_band_thresholds():
 
 
 def test_workflow_hints_follow_the_requested_order():
-    direct = {"forms": [{}], "views": [], "connections": [{}], "formulas": [{}]}
+    # Only whether each list is empty matters here.
+    direct = cast(
+        DirectImpacts,
+        {"forms": [{}], "views": [], "connections": [{}], "formulas": [{}]},
+    )
     assert _workflow_hints(direct, ("forms", "views", "connections")) == [
         "User data entry forms",
         "Related data relationships",

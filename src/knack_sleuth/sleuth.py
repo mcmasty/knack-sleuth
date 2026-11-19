@@ -4,8 +4,16 @@ import re
 from collections.abc import Iterator
 from dataclasses import dataclass, replace
 from functools import cached_property
-from typing import Any, NamedTuple
+from typing import Any, Literal, NamedTuple
 
+from knack_sleuth.impact_report import (
+    AffectedField,
+    DirectImpacts,
+    FormImpact,
+    FormulaImpact,
+    ImpactAnalysis,
+    RuleImpact,
+)
 from knack_sleuth.models import (
     KnackAppMetadata,
     KnackObject,
@@ -178,8 +186,10 @@ def _is_typed_equation_reference(
     return f"{{{field_key}}}" in str(equation)
 
 
+_HintKind = Literal["forms", "views", "connections", "formulas", "rules"]
+
 # Workflow hint per kind of direct impact, in the order hints are listed.
-_WORKFLOW_HINTS = {
+_WORKFLOW_HINTS: dict[_HintKind, str] = {
     "forms": "User data entry forms",
     "views": "Data display views",
     "connections": "Related data relationships",
@@ -199,21 +209,22 @@ def _risk_level(score: int, low_max: int, medium_max: int) -> str:
     return "high"
 
 
-def _count_direct_impacts(direct: dict[str, list]) -> int:
+def _count_direct_impacts(direct: DirectImpacts) -> int:
     """Impacts that score: a view or form on no page is listed but not counted."""
-    return sum(
-        1
-        for kind in ("connections", "views", "formulas", "forms", "rules")
-        for impact in direct[kind]
-        if not impact.get("orphaned_view")
+    return (
+        len(direct["connections"])
+        + sum(1 for view in direct["views"] if not view["orphaned_view"])
+        + len(direct["formulas"])
+        + sum(1 for form in direct["forms"] if not form["orphaned_view"])
+        + len(direct["rules"])
     )
 
 
-def _workflow_hints(direct: dict[str, list], kinds: tuple[str, ...]) -> list[str]:
+def _workflow_hints(direct: DirectImpacts, kinds: tuple[_HintKind, ...]) -> list[str]:
     return [_WORKFLOW_HINTS[kind] for kind in kinds if direct[kind]]
 
 
-def _formula_impact(usage: Usage) -> dict[str, Any]:
+def _formula_impact(usage: Usage) -> FormulaImpact:
     """A computed field that depends on the target: an equation, or a sum,
     count or similar field whose settings name it (equation is None then)."""
     return {
@@ -224,7 +235,7 @@ def _formula_impact(usage: Usage) -> dict[str, Any]:
     }
 
 
-def _form_impact(usage: Usage) -> dict[str, Any]:
+def _form_impact(usage: Usage) -> FormImpact:
     return {
         "view_key": usage.details.get("view_key"),
         "view_name": usage.details.get("view_name"),
@@ -233,7 +244,7 @@ def _form_impact(usage: Usage) -> dict[str, Any]:
     }
 
 
-def _rule_impact(usage: Usage) -> dict[str, Any]:
+def _rule_impact(usage: Usage) -> RuleImpact:
     """A rule, validation or task on an object, or a page rule, naming the target."""
     return {
         "type": usage.location_type,
@@ -244,7 +255,7 @@ def _rule_impact(usage: Usage) -> dict[str, Any]:
     }
 
 
-def _record_dependent(direct: dict[str, list], usage: Usage) -> None:
+def _record_dependent(direct: DirectImpacts, usage: Usage) -> None:
     """File a formula, form or rule usage under its direct impact; other
     usage types are left to the caller."""
     if usage.location_type in ("field_equation", "field_reference"):
@@ -262,16 +273,15 @@ def _note_scene(scenes_seen: dict[str, None], usage: Usage) -> None:
         scenes_seen[scene_key] = None
 
 
-def _affected_objects(direct: dict[str, list], own_object: str) -> list[str]:
+def _affected_objects(direct: DirectImpacts, own_object: str) -> list[str]:
     """Other objects that connect to, compute from, or have rules on the target."""
-    keys: dict[str, None] = {}
-    for kind in ("connections", "formulas", "rules"):
-        for impact in direct[kind]:
-            for attr in ("source_object", "target_object", "object_key"):
-                key = impact.get(attr)
-                if key and key != own_object:
-                    keys[key] = None
-    return list(keys)
+    named: list[Any] = []
+    for connection in direct["connections"]:
+        named += [connection.get("source_object"), connection.get("target_object")]
+    named += [formula["object_key"] for formula in direct["formulas"]]
+    named += [rule["object_key"] for rule in direct["rules"]]
+    # dict, not set: first-seen order keeps the output stable.
+    return list(dict.fromkeys(key for key in named if key and key != own_object))
 
 
 def _score_importance(summaries: list[dict[str, Any]]) -> None:
@@ -875,7 +885,7 @@ class KnackSleuth:
 
     def generate_impact_analysis(
         self, target_key: str, target_type: str = "auto"
-    ) -> dict[str, Any]:
+    ) -> ImpactAnalysis:
         """
         Generate a comprehensive impact analysis for AI consumption.
 
@@ -884,23 +894,24 @@ class KnackSleuth:
             target_type: 'object', 'field', or 'auto' (default: auto-detect)
 
         Returns:
-            A structured dictionary with impact analysis suitable for AI agents
+            A structured dictionary with impact analysis suitable for AI agents.
+            When the target cannot be analysed it has an ``error`` key and
+            every list is empty.
         """
         # Auto-detect target type
+        error: str | None = None
         if target_type == "auto":
             if target_key.startswith("object_"):
                 target_type = "object"
             elif target_key.startswith("field_"):
                 target_type = "field"
             else:
-                return {"error": "Could not detect target type from key"}
-        if target_type not in ("object", "field"):
-            return {
-                "error": f"Unknown target type '{target_type}': use object or field"
-            }
+                error = "Could not detect target type from key"
+        elif target_type not in ("object", "field"):
+            error = f"Unknown target type '{target_type}': use object or field"
 
         # Initialize analysis structure
-        analysis = {
+        analysis: ImpactAnalysis = {
             "target": {
                 "key": target_key,
                 "type": target_type,
@@ -931,13 +942,16 @@ class KnackSleuth:
             },
         }
 
+        if error:
+            analysis["error"] = error
+            return analysis
         if target_type == "object":
             return self._analyze_object_impact(target_key, analysis)
         return self._analyze_field_impact(target_key, analysis)
 
     def _analyze_object_impact(
-        self, object_key: str, analysis: dict[str, Any]
-    ) -> dict[str, Any]:
+        self, object_key: str, analysis: ImpactAnalysis
+    ) -> ImpactAnalysis:
         """Analyze impact of changes to an object."""
         obj = self.get_object_info(object_key)
         if not obj:
@@ -997,9 +1011,9 @@ class KnackSleuth:
         self,
         field_key: str,
         usages: list[Usage],
-        analysis: dict[str, Any],
+        analysis: ImpactAnalysis,
         scenes_seen: dict[str, None],
-    ) -> dict[str, Any] | None:
+    ) -> AffectedField | None:
         """One of an object's fields: its usages, plus the formulas, forms and
         rules they put in the object's direct impacts."""
         _, field_info = self.get_field_info(field_key)
@@ -1020,8 +1034,8 @@ class KnackSleuth:
         }
 
     def _analyze_field_impact(
-        self, field_key: str, analysis: dict[str, Any]
-    ) -> dict[str, Any]:
+        self, field_key: str, analysis: ImpactAnalysis
+    ) -> ImpactAnalysis:
         """Analyze impact of changes to a field."""
         obj_info, field_info = self.get_field_info(field_key)
         if not field_info or not obj_info:
@@ -1069,7 +1083,7 @@ class KnackSleuth:
 
     @staticmethod
     def _record_view_impact(
-        analysis: dict[str, Any], usage: Usage, scenes_seen: dict[str, None]
+        analysis: ImpactAnalysis, usage: Usage, scenes_seen: dict[str, None]
     ) -> None:
         _note_scene(scenes_seen, usage)
         analysis["direct_impacts"]["views"].append(
@@ -1084,7 +1098,7 @@ class KnackSleuth:
         )
 
     def _record_scenes(
-        self, analysis: dict[str, Any], scenes_seen: dict[str, None]
+        self, analysis: ImpactAnalysis, scenes_seen: dict[str, None]
     ) -> None:
         """Add the scenes seen, in first-seen order, skipping unknown keys."""
         scenes_by_key: dict[str, Scene] = {}

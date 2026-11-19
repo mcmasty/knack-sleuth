@@ -1,8 +1,8 @@
 """Structured reports for humans and agents: impact-analysis and app-summary."""
 
 import json
-from collections.abc import Callable
-from typing import Annotated
+from collections.abc import Callable, Mapping
+from typing import Annotated, Any
 
 import typer
 import yaml
@@ -39,7 +39,9 @@ def _validate_report_format(output_format: str) -> None:
         fail(f"Unknown format '{output_format}'")
 
 
-def _render(data: dict, output_format: str, markdown: Callable[[], str]) -> str:
+def _render(
+    data: Mapping[str, Any], output_format: str, markdown: Callable[[], str]
+) -> str:
     if output_format == "json":
         return json.dumps(data, indent=2)
     if output_format == "yaml":
