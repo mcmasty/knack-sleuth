@@ -212,7 +212,7 @@
  },
  "ui_architecture": {
   "navigation_depth": {
-   "avg_depth": 0,
+   "avg_depth": 0.0,
    "interpretation": "Simple hierarchy",
    "max_depth": 0
   },

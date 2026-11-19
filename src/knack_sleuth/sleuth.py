@@ -1173,7 +1173,9 @@ class KnackSleuth:
         )
         possible_connections = total_objects * (total_objects - 1)
         connection_density = (
-            actual_connections / possible_connections if possible_connections > 0 else 0
+            actual_connections / possible_connections
+            if possible_connections > 0
+            else 0.0
         )
 
         return {
@@ -1619,7 +1621,7 @@ class KnackSleuth:
 
         depths = self._scene_depths()
         max_depth = max(depths, default=0)
-        avg_depth = sum(depths) / len(depths) if depths else 0
+        avg_depth = sum(depths) / len(depths) if depths else 0.0
 
         return {
             "scene_patterns": {
@@ -1718,7 +1720,7 @@ class KnackSleuth:
         objects_in_clusters = sum(len(c["object_keys"]) for c in clusters)
 
         modularity_score = (
-            objects_in_clusters / total_objects if total_objects > 0 else 0
+            objects_in_clusters / total_objects if total_objects > 0 else 0.0
         )
 
         # Identify tight coupling

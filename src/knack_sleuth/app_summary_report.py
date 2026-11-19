@@ -34,7 +34,7 @@ class EntitySummary(TypedDict):
     total_connections: int
     is_core_entity: bool
     primary_role: str
-    # Names of the objects that use this one as reference data.
+    # Keys of the objects that connect to this one, when it is reference data.
     used_by: NotRequired[list[str]]
     # Set on the non-user objects, which are ranked against each other.
     importance_score: NotRequired[float]
