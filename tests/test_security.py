@@ -1343,6 +1343,33 @@ class TestRoleAccessSummaryCli:
         assert result.exit_code == 0, result.output
         assert "not found" not in result.output
 
+    def test_role_name_differing_only_by_case_beats_a_whitespace_near_match(
+        self, tmp_path
+    ):
+        # "Job  Admin" comes first in the export; "job admin" is "Job Admin".
+        data = json.loads(SAMPLE_FILE.read_text())
+        roles = [o for o in data["application"]["objects"] if o.get("profile_key")]
+        roles[0]["name"], roles[1]["name"] = "Job  Admin", "Job Admin"
+        meta = tmp_path / "app.json"
+        meta.write_text(json.dumps(data))
+
+        result = runner.invoke(
+            cli,
+            [
+                "role-access-summary",
+                "--role",
+                "job admin",
+                str(meta),
+                "-o",
+                str(tmp_path / "out.csv"),
+            ],
+            env=WIDE,
+        )
+
+        assert result.exit_code == 0, result.output
+        assert f"Profile: Job Admin ({roles[1]['profile_key']})" in result.output
+        assert "Multiple profiles match" not in result.output
+
     def test_rows_say_why_the_role_can_open_the_scene(self, tmp_path, report):
         # Issue #27: a blank profile list used to read as "this role can open
         # it" with no way to tell a genuine login-only page from a resolver

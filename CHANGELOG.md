@@ -12,6 +12,10 @@
 
 ### Fixed
 
+- `role-access-summary --role` could pick a role whose name differs by whitespace over one
+  that differs only by case ("job admin" chose "Job  Admin" over "Job Admin"). The role
+  name is now matched as written, then ignoring case, then ignoring stray whitespace, and a
+  looser reading is used only when a stricter one finds nothing.
 - `role-access-review` gave a page the concern `OK` when it adds its own login, with no role
   limit, below a public page. The summary counted it as unrestricted but its row did not
   say so. Such a page is now flagged `UNRESTRICTED`, like a top-level one. A page below a
