@@ -3,7 +3,7 @@
   "authentication_model": "user_based",
   "role_usage": {
    "interpretation": "Role-based access control in use",
-   "scenes_with_role_restrictions": 30
+   "scenes_with_role_restrictions": 63
   },
   "user_objects": [
    "Object Name 2",
@@ -921,13 +921,13 @@
  },
  "ui_architecture": {
   "navigation_depth": {
-   "avg_depth": 1.8,
-   "interpretation": "Simple hierarchy",
-   "max_depth": 2
+   "avg_depth": 3.1,
+   "interpretation": "High complexity",
+   "max_depth": 5
   },
   "scene_patterns": {
-   "authenticated_scenes": 2,
-   "public_scenes": 63,
+   "authenticated_scenes": 65,
+   "public_scenes": 0,
    "total_scenes": 65
   },
   "view_patterns": {

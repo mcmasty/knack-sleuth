@@ -4,6 +4,15 @@
 
 ### Fixed
 
+- `app-summary` miscounted three access and navigation figures. They now agree with
+  `role-access-review`:
+  - Public and authenticated scenes were counted from each page's own `authenticated` flag,
+    so a page behind a login page counted as public. On the sample app it reported 63 of 65
+    pages as public; none are.
+  - Navigation depth compared a page's `parent` (a slug) with scene keys, so it never went
+    past 2. Parents are now followed by slug.
+  - "Role-restricted scenes" counted pages that have a layout. It now counts pages limited
+    to named roles, directly or through an ancestor.
 - `show-rules` dropped the span from relative date conditions: "is during the next 7 days"
   printed as "is during the next". The span is now shown, and is in the JSON output as
   `range` on the criterion.

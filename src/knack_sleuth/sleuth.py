@@ -3,9 +3,17 @@
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass, replace
+from functools import cached_property
 from typing import Any, NamedTuple
 
-from knack_sleuth.models import KnackAppMetadata, KnackObject, Scene, View
+from knack_sleuth.models import (
+    KnackAppMetadata,
+    KnackObject,
+    Scene,
+    SecurityReport,
+    View,
+)
+from knack_sleuth.security import generate_security_report
 
 # Heuristic thresholds for the technical analysis (impact, domain model,
 # graph and technical-debt sections). Changing them changes report wording,
@@ -1528,49 +1536,54 @@ class KnackSleuth:
             },
         }
 
+    @cached_property
+    def _security_report(self) -> SecurityReport:
+        return generate_security_report(self.app)
+
+    def _scene_depths(self) -> list[int]:
+        """How many pages deep each scene sits: 1 for a top-level page.
+
+        ``parent`` is a slug, and a duplicate slug resolves to the first scene
+        that has it, as the navigation path does. A parent that does not
+        resolve still counts as a level; a slug seen twice ends the walk.
+        """
+        by_slug: dict[str, Scene] = {}
+        for scene in self.app.scenes:
+            by_slug.setdefault(scene.slug, scene)
+
+        depths = []
+        for scene in self.app.scenes:
+            depth = 1
+            seen: set[str] = set()
+            parent = scene.parent
+            while parent and parent not in seen:
+                seen.add(parent)
+                depth += 1
+                ancestor = by_slug.get(parent)
+                parent = ancestor.parent if ancestor else None
+            depths.append(depth)
+        return depths
+
     def _analyze_ui_architecture(self) -> dict[str, Any]:
         """Analyze scene and view patterns."""
-        authenticated_scenes = 0
-        public_scenes = 0
+        # Whether a page needs a login depends on its ancestors and on login
+        # views, not only on its own `authenticated` flag; the security
+        # report resolves that, so both commands give the same figures.
+        security = self._security_report
         view_type_counts = {}
-
         for scene in self.app.scenes:
-            if scene.authenticated:
-                authenticated_scenes += 1
-            else:
-                public_scenes += 1
-
             for view in scene.views:
                 view_type = view.type
                 view_type_counts[view_type] = view_type_counts.get(view_type, 0) + 1
 
-        # Calculate navigation depth
-        max_depth = 0
-        total_depth = 0
-        scene_count = 0
-
-        for scene in self.app.scenes:
-            depth = 1
-            current = scene
-            while current.parent:
-                depth += 1
-                parent_scene = next(
-                    (s for s in self.app.scenes if s.key == current.parent), None
-                )
-                if not parent_scene:
-                    break
-                current = parent_scene
-
-            max_depth = max(max_depth, depth)
-            total_depth += depth
-            scene_count += 1
-
-        avg_depth = total_depth / scene_count if scene_count > 0 else 0
+        depths = self._scene_depths()
+        max_depth = max(depths, default=0)
+        avg_depth = sum(depths) / len(depths) if depths else 0
 
         return {
             "scene_patterns": {
-                "authenticated_scenes": authenticated_scenes,
-                "public_scenes": public_scenes,
+                "authenticated_scenes": security.login_required_scenes,
+                "public_scenes": security.public_scenes,
                 "total_scenes": len(self.app.scenes),
             },
             "view_patterns": view_type_counts,
@@ -1592,11 +1605,12 @@ class KnackSleuth:
         # User objects are identified by having a profile_key
         user_objects = [obj.name for obj in self.app.objects if obj.profile_key]
 
-        # Analyze role usage
-        scenes_with_roles = 0
-        for scene in self.app.scenes:
-            if scene.groups and len(scene.groups) > 0:
-                scenes_with_roles += 1
+        # Pages limited to named roles, directly or through an ancestor.
+        scenes_with_roles = sum(
+            1
+            for scene in self._security_report.scene_analyses
+            if scene.allowed_profile_count
+        )
 
         return {
             "authentication_model": "user_based" if user_objects else "public",
