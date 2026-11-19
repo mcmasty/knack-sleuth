@@ -31,11 +31,7 @@
     },
     "src/knack_sleuth/core.py": {
       "S110": 1
-    },
-    "src/knack_sleuth/security.py": {
-      "C901": 1,
-      "PLR0915": 1
     }
   },
-  "total": 4
+  "total": 2
 }
