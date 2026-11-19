@@ -500,6 +500,40 @@ class TestInertProfileLists:
         own = analyze_scene_security(login, ADMIN_ONLY, hierarchy)
         assert "UNRESTRICTED" in own.security_concern
 
+    @pytest.mark.parametrize("authenticated", [None, False])
+    def test_login_view_with_the_limit_off_is_still_a_login_gate(self, authenticated):
+        # Switching the role limit off opens the page to every role, not to
+        # the public: the login view is still there. Knack does not always
+        # set `authenticated` on the login page itself.
+        login = Scene(
+            key="scene_login",
+            name="Login",
+            slug="login",
+            type="authentication",
+            authenticated=authenticated,
+            views=[
+                {
+                    "key": "view_login",
+                    "name": "Login",
+                    "type": "login",
+                    "limit_profile_access": False,
+                    "allowed_profiles": ["profile_admin"],
+                }
+            ],
+        )
+        child = Scene(key="scene_child", name="Child", slug="child", parent="login")
+        hierarchy = build_navigation_hierarchy([login, child])
+
+        own = analyze_scene_security(login, ADMIN_ONLY, hierarchy)
+        below = analyze_scene_security(child, ADMIN_ONLY, hierarchy)
+
+        assert (own.requires_login, own.allowed_profiles) == (True, [])
+        assert "UNRESTRICTED" in own.security_concern
+        assert "PUBLIC" not in own.security_concern
+        assert (below.requires_login, below.allowed_profiles) == (True, [])
+        assert below.inherits_security is True
+        assert "PUBLIC" not in below.security_concern
+
     def test_view_list_with_the_limit_on_restricts_the_scene_and_its_children(self):
         login = self._login_scene(limit_profile_access=True)
         child = Scene(key="scene_child", name="Child", slug="child", parent="login")
