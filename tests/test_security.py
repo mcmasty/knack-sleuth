@@ -377,6 +377,116 @@ class TestSecurityInheritance:
             assert analysis.allowed_profiles == []
 
 
+ADMIN_ONLY = {"profile_admin": "Admin"}
+
+
+class TestInertProfileLists:
+    """A profile list only restricts while ``limit_profile_access`` is on.
+
+    Knack keeps ``allowed_profiles`` when the builder's "limit to roles"
+    switch is turned off. Reading that leftover list as a restriction reports
+    a page as role-locked when any logged-in user can open it (issue #24).
+    """
+
+    @staticmethod
+    def _login_scene(**view_flags):
+        return Scene(
+            key="scene_login",
+            name="Login",
+            slug="login",
+            type="authentication",
+            authenticated=True,
+            views=[
+                {
+                    "key": "view_login",
+                    "name": "Login",
+                    "type": "login",
+                    "allowed_profiles": ["profile_admin"],
+                    **view_flags,
+                }
+            ],
+        )
+
+    @pytest.mark.parametrize(
+        "view_flags",
+        [{"limit_profile_access": False}, {"limit_profile_access": None}, {}],
+        ids=["off", "null", "absent"],
+    )
+    def test_view_list_without_the_limit_is_not_a_restriction(self, view_flags):
+        login = self._login_scene(**view_flags)
+        child = Scene(key="scene_child", name="Child", slug="child", parent="login")
+        hierarchy = build_navigation_hierarchy([login, child])
+
+        for scene in (login, child):
+            analysis = analyze_scene_security(scene, ADMIN_ONLY, hierarchy)
+            assert analysis.requires_login is True, scene.key
+            assert analysis.allowed_profiles == [], scene.key
+        own = analyze_scene_security(login, ADMIN_ONLY, hierarchy)
+        assert "UNRESTRICTED" in own.security_concern
+
+    def test_view_list_with_the_limit_on_restricts_the_scene_and_its_children(self):
+        login = self._login_scene(limit_profile_access=True)
+        child = Scene(key="scene_child", name="Child", slug="child", parent="login")
+        hierarchy = build_navigation_hierarchy([login, child])
+
+        for scene in (login, child):
+            analysis = analyze_scene_security(scene, ADMIN_ONLY, hierarchy)
+            assert analysis.allowed_profiles == ["Admin"], scene.key
+
+    def test_scene_list_with_the_limit_off_is_not_a_restriction(self):
+        scene = Scene(
+            key="scene_page",
+            name="Page",
+            slug="page",
+            authenticated=True,
+            limit_profile_access=False,
+            allowed_profiles=["profile_admin"],
+        )
+        hierarchy = build_navigation_hierarchy([scene])
+
+        analysis = analyze_scene_security(scene, ADMIN_ONLY, hierarchy)
+
+        assert analysis.requires_login is True
+        assert analysis.allowed_profiles == []
+        assert "UNRESTRICTED" in analysis.security_concern
+
+    @pytest.mark.parametrize(
+        "scene_flags",
+        [{"limit_profile_access": True}, {"limit_profile_access": None}, {}],
+        ids=["on", "null", "absent"],
+    )
+    def test_scene_list_restricts_unless_the_limit_is_off(self, scene_flags):
+        # Real metadata always pairs the list with the flag. Hand-written or
+        # older metadata may omit it, and is taken at its word.
+        scene = Scene(
+            key="scene_page",
+            name="Page",
+            slug="page",
+            authenticated=True,
+            allowed_profiles=["profile_admin"],
+            **scene_flags,
+        )
+        hierarchy = build_navigation_hierarchy([scene])
+
+        analysis = analyze_scene_security(scene, ADMIN_ONLY, hierarchy)
+
+        assert analysis.allowed_profiles == ["Admin"]
+
+    def test_views_for_profile_ignores_a_scene_list_with_the_limit_off(self):
+        scene = Scene(
+            key="scene_page",
+            name="Page",
+            slug="page",
+            limit_profile_access=False,
+            allowed_profiles=["profile_admin"],
+            views=[{"key": "view_1", "name": "Table", "type": "table"}],
+        )
+
+        names, keys = get_views_for_profile(scene, "profile_other", "Other")
+
+        assert (names, keys) == (["Table"], ["view_1"])
+
+
 # ---------------------------------------------------------------------------
 # C. Navigation path / hierarchy
 # ---------------------------------------------------------------------------
