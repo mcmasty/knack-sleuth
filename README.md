@@ -192,6 +192,13 @@ This displays a table showing:
 - Total connections (Ca + Ce)
 - **I** (Instability): Ce / (Ca + Ce) - from 0.00 (stable, depended-upon) to 1.00 (unstable, dependent); shown as `-` for unconnected objects
 
+**System audit connections.** Knack adds Created By, Updated By and Owned By to every object,
+each a connection to the Accounts object. They record who touched a record, not how your
+data is modelled, so `list-objects`, `show-coupling`, `app-summary`, `export-db-schema` and
+`export-schema-subgraph` leave them out of connection counts, coupling, clusters and
+diagrams, and say how many were left out. Pass `--include-system-connections` to count them.
+They still appear as fields everywhere fields are listed.
+
 **Sorting:**
 - Default: Alphabetically by object name
 - `--sort-by-rows`: Sort by row count (largest first) to quickly identify your biggest tables

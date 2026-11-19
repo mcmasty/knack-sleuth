@@ -15,6 +15,7 @@
  "application": {
   "complexity_metrics": {
    "connection_density": 0.181,
+   "system_connections_excluded": 0,
    "total_fields": 102,
    "total_objects": 19,
    "total_records": 61,

@@ -29,7 +29,14 @@ from ._common import (
     scene_url,
 )
 from ._markdown import app_summary_markdown, impact_markdown
-from ._options import AppId, MetadataFile, Refresh, ReportFormat, ReportOutput
+from ._options import (
+    AppId,
+    IncludeSystemConnections,
+    MetadataFile,
+    Refresh,
+    ReportFormat,
+    ReportOutput,
+)
 
 REPORT_FORMATS = ("json", "yaml", "markdown")
 
@@ -170,6 +177,7 @@ def app_summary(
     refresh: Refresh = False,
     output_format: ReportFormat = "json",
     output_file: ReportOutput = None,
+    include_system_connections: IncludeSystemConnections = False,
 ):
     """
     [EXPERIMENTAL] Generate a comprehensive architectural summary for human and AI/agent consumption.
@@ -229,7 +237,9 @@ def app_summary(
     app_export = load_app_metadata(file_path, app_id, refresh)
 
     with console.status("[cyan]Analyzing application architecture..."):
-        summary = KnackSleuth(app_export).generate_app_summary()
+        summary = KnackSleuth(app_export).generate_app_summary(
+            include_system_connections=include_system_connections
+        )
 
     content = _render(summary, output_format, lambda: app_summary_markdown(summary))
     emit(content, output_file, "Summary")

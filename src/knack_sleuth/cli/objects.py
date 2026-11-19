@@ -24,11 +24,18 @@ from ._common import (
     print_builder_pages,
     print_suggestions,
     print_usages,
+    relationship_view,
     resolve_object_or_exit,
     scene_keys_of,
     validate_output_format,
 )
-from ._options import AppId, MetadataFile, Refresh, RichOrJson
+from ._options import (
+    AppId,
+    IncludeSystemConnections,
+    MetadataFile,
+    Refresh,
+    RichOrJson,
+)
 
 # --- list-objects -------------------------------------------------------------
 
@@ -118,6 +125,7 @@ def list_objects(
         ),
     ] = False,
     output_format: RichOrJson = "rich",
+    include_system_connections: IncludeSystemConnections = False,
 ):
     """
     List all objects in a Knack application with field and connection counts.
@@ -154,6 +162,7 @@ def list_objects(
     """
     validate_output_format(output_format)
     app = load_app_metadata(file_path, app_id, refresh).application
+    app, excluded = relationship_view(app, include_system_connections)
 
     if sort_by_rows:
         # Largest first, then by name as tiebreaker
@@ -171,6 +180,7 @@ def list_objects(
         "ca": sum(e["ca"] for e in entries),
         "ce": sum(e["ce"] for e in entries),
         "connections": _connection_count(app.objects),
+        "system_connections_excluded": excluded,
     }
 
     if output_format == "json":
@@ -454,6 +464,7 @@ def show_coupling(
     app_id: AppId = None,
     refresh: Refresh = False,
     output_format: RichOrJson = "rich",
+    include_system_connections: IncludeSystemConnections = False,
 ):
     """
     Show coupling relationships for a specific object.
@@ -474,11 +485,15 @@ def show_coupling(
     validate_output_format(output_format)
     app_export = load_app_metadata(file_path, app_id, refresh)
     target = resolve_object_or_exit(app_export, object_identifier)
+    view, excluded = relationship_view(
+        app_export.application, include_system_connections
+    )
+    objects_by_key = {obj.key: obj for obj in view.objects}
+    target = objects_by_key[target.key]
 
     inbound = (target.connections.inbound if target.connections else None) or []
     outbound = (target.connections.outbound if target.connections else None) or []
     ca, ce = len(inbound), len(outbound)
-    objects_by_key = {obj.key: obj for obj in app_export.application.objects}
 
     if output_format == "json":
         payload = {
@@ -486,6 +501,7 @@ def show_coupling(
             "ca": ca,
             "ce": ce,
             "instability": round(ce / (ca + ce), 2) if (ca + ce) else None,
+            "system_connections_excluded": excluded,
             "inbound": [
                 _connection_payload(c, objects_by_key, inbound=True) for c in inbound
             ],

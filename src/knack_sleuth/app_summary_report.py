@@ -14,6 +14,9 @@ class ComplexityMetrics(TypedDict):
     total_views: int
     total_records: int
     connection_density: float
+    # Knack's own audit connections (Created By, Updated By, Owned By), left
+    # out of every relationship figure in the report. 0 when they are included.
+    system_connections_excluded: NotRequired[int]
 
 
 class ApplicationSummary(TypedDict):

@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Knack's own audit connections are no longer treated as relationships. Knack adds Created
+  By, Updated By and Owned By to every object, each a connection to the Accounts object
+  marked `isSystemField`. Counted as relationships, they joined every object to Accounts
+  three times: on a real app with 63 objects that added 189 connections to the 127 real
+  ones, made every object a hub, merged the app into a single cluster and put the
+  modularity score at 1.0.
+  - `list-objects`, `show-coupling`, `app-summary`, `export-db-schema` and
+    `export-schema-subgraph` now leave these connections out, and say how many.
+  - `--include-system-connections` on each of those commands counts them as before.
+  - The JSON output of `list-objects` (`totals`), `show-coupling` and `app-summary`
+    (`application.complexity_metrics`) gains `system_connections_excluded`.
+  - The fields themselves are untouched: they are still listed as fields, and
+    `find-orphans`, `search-field` and `impact-analysis` are unchanged.
+  - Library: `KnackSleuth.generate_app_summary` takes `include_system_connections`
+    (default `False`); `knack_sleuth.system_fields` has the helpers.
+
 ## 0.12.0
 
 ### Fixed
