@@ -675,6 +675,36 @@ class TestReviewRegressions:
         assert "1 rule(s) hiding other views on this page" in result.output
         assert "Message 'Hi'" in result.output
 
+    def test_hide_rule_on_a_page_matched_by_criteria_is_printed_in_full(self, tmp_path):
+        # The landing page has no view of the object; its hide rule is listed
+        # only because it tests the object's Status. Collapsing it into
+        # "1 rule(s) hiding other views" left the terminal saying nothing.
+        def mutate(app):
+            self._with_page_rules(app)
+            app["scenes"][-1]["rules"].append(
+                {
+                    "key": "2",
+                    "action": "hide_views",
+                    "view_keys": ["view_50"],
+                    "criteria": [
+                        {"field": "field_3", "operator": "is", "value": "Approved"}
+                    ],
+                }
+            )
+
+        data = _mutated(mutate)
+        report = collect_rules(KnackAppMetadata(**data), "object_1")
+        matched = {p["scene_key"]: p["matched_by"] for p in report["page_rules"]}
+        assert matched == {"scene_1": "views", "scene_50": "criteria"}
+
+        result = _run_on(tmp_path, data, "--object", "object_1")
+        assert result.exit_code == 0, result.output
+        assert (
+            "Hide view_50 (Text) when field_3 (Status) is 'Approved'" in result.output
+        )
+        # The object's own page still collapses rules hiding unrelated views.
+        assert result.output.count("hiding other views on this page") == 1
+
     def test_page_rules_for_one_view_skip_rules_hiding_other_views(self):
         data = _mutated(self._with_page_rules)
         report = collect_rules(KnackAppMetadata(**data), view_key="view_1")

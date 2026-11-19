@@ -12,6 +12,10 @@
 
 ### Fixed
 
+- `show-rules --object` collapsed a page rule into "N rule(s) hiding other views" when the
+  page was listed only because its rules test the object's fields. Those rules are the
+  reason the page is shown, so they are now printed in full. Each page in the JSON
+  `page_rules` says how it was matched (`matched_by`: `views` or `criteria`).
 - A scene whose `menu` value is not a scene key (a list or an object) crashed
   `role-access-review`, `role-access-summary` and, since it began using the same analysis,
   `app-summary`, with a `TypeError`. Such a value now reads as "no menu".
