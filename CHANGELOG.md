@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- An object or field whose name was saved with a stray space ("Status ") could not be found
+  by the name you can see: `search-field Status` answered "Did you mean: Status ?". Name
+  lookups now ignore leading, trailing and repeated whitespace.
 - `role-access-review --summary-only` inflated `child_count` for a page whose name is part
   of another page's name: "Jobs" was credited with everything under "Jobs Archive". Children
   are now counted by following parent pages, not by matching names. On a real app two rows
