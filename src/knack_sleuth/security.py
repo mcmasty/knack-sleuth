@@ -129,11 +129,16 @@ def _asks_for_login(scene: Scene) -> bool | None:
 
     A login view is a login gate even when its role limit is switched off, and
     Knack does not always set ``authenticated`` on the page that carries it.
+    A utility page (type ``user``) is open to all logged-in users, or to the
+    roles it names, and never to the public.
     Otherwise the scene's own flag stands, None (absent) included.
     """
     if scene.authenticated is True:
         return True
     if any(view.type == "login" for view in scene.views):
+        return True
+    # A utility page lives in the user menu, which only a logged-in user has.
+    if scene.type == "user":
         return True
     return scene.authenticated
 
@@ -619,9 +624,7 @@ def _security_concerns(
     is_utility_page = scene.type == "user"
     concerns = []
     if is_utility_page:
-        concerns.append(
-            "UTILITY PAGE: Requires Knack system-level account (beyond app profiles)"
-        )
+        concerns.append("UTILITY PAGE: In the logged-in user's menu, not the page menu")
     if access.ambiguous_parents:
         # The fork is not necessarily at the parent slug -- it can be any
         # duplicate slug further up -- so name the disagreeing scenes.

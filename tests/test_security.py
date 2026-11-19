@@ -1435,14 +1435,16 @@ class TestRoleAccessSummaryCli:
                 expected[key] = "utility"
         assert {row["scene_key"]: row["access_basis"] for row in rows} == expected
         assert "role" in expected.values()
-        for basis in ("role", "any_login", "public", "utility"):
+        for basis in ("role", "any_login", "public"):
             count = sum(1 for v in expected.values() if v == basis)
             assert f"{basis}: {count}" in result.output
 
     @pytest.mark.parametrize("authenticated", [None, True])
-    def test_utility_pages_have_their_own_access_basis(self, tmp_path, authenticated):
-        # Utility pages (type "user") need a Knack system-level account, so
-        # neither "public" nor "any logged-in user" describes them.
+    def test_utility_page_without_roles_is_open_to_any_login(
+        self, tmp_path, authenticated
+    ):
+        # Utility pages (type "user") are in the logged-in user's menu. With
+        # no role list they are open to every logged-in user, never public.
         app = {
             "application": {
                 "id": "app_utility",
@@ -1490,8 +1492,9 @@ class TestRoleAccessSummaryCli:
         assert result.exit_code == 0, result.output
         with out.open(newline="") as f:
             rows = {row["scene_key"]: row["access_basis"] for row in csv.DictReader(f)}
-        assert rows["scene_utility"] == "utility"
-        assert "utility: 1" in result.output
+        assert rows["scene_utility"] == "any_login"
+        assert "any_login: 1" in result.output
+        assert "utility:" not in result.output
 
     def test_unknown_role_exits_1_and_lists_available_roles(self):
         result = runner.invoke(

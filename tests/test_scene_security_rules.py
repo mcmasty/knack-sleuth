@@ -74,11 +74,30 @@ def test_menu_scene_with_views_of_its_own_is_still_a_page():
     assert "UNRESTRICTED" in result["menu"].security_concern
 
 
-def test_utility_page_is_flagged_but_not_unrestricted():
-    result = analyze(scene("account", type="user", authenticated=True))
+@pytest.mark.parametrize("authenticated", [True, False, None])
+def test_utility_page_needs_a_login_whatever_its_flag_says(authenticated):
+    # Knack's docs: utility pages sit in the user menu and are open to "all
+    # logged-in users" or to specific roles. One with no role list is not
+    # public, and not a finding either.
+    result = analyze(scene("account", type="user", authenticated=authenticated))
+    assert result["account"].requires_login is True
     assert result["account"].security_concern == (
-        "UTILITY PAGE: Requires Knack system-level account (beyond app profiles)"
+        "UTILITY PAGE: In the logged-in user's menu, not the page menu"
     )
+
+
+def test_utility_page_limited_to_roles_lists_them():
+    result = analyze(
+        scene(
+            "account",
+            type="user",
+            authenticated=True,
+            limit_profile_access=True,
+            allowed_profiles=["profile_1"],
+        )
+    )
+    assert result["account"].allowed_profiles == ["Role 1"]
+    assert "PUBLIC" not in result["account"].security_concern
 
 
 def test_child_login_page_without_roles_is_not_unrestricted():

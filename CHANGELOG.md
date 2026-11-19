@@ -4,6 +4,12 @@
 
 ### Fixed
 
+- Utility pages (Account Settings and other pages in the user menu) were described as
+  needing a "Knack system-level account (beyond app profiles)", and one with no role limit
+  was reported as `PUBLIC`. Knack's documentation says they are open to all logged-in users
+  or to specific roles. They are now always login-required, the note reads "In the
+  logged-in user's menu, not the page menu", and `role-access-summary` gives them the
+  access basis `role` or `any_login`; the `utility` basis is gone.
 - `show-rules` printed some rule conditions as stored rather than as read. A condition on
   the logged-in user's roles now names the role ("does not contain Admin (profile_113)"
   instead of `'profile_113'`), and a date condition that compares to nothing ("is blank",
