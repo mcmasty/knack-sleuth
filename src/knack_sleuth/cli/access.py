@@ -315,7 +315,9 @@ def _print_access_summary(
     """Print the console summary; returns the total number of accessible views."""
     console.print()
     _banner(f"ROLE ACCESS SUMMARY: {escape(app_name)}")
-    console.print(f"\nProfile: [bold]{escape(profile_name)}[/bold] ({profile_key})")
+    console.print(
+        f"\nProfile: [bold]{escape(profile_name)}[/bold] ({escape(profile_key)})"
+    )
     console.print(f"Accessible Scenes: {len(rows)}")
 
     total_views = sum(r["view_count"] for r in rows)
@@ -391,7 +393,7 @@ def role_access_summary(
     target_key, target_name = _resolve_profile(report, role, profile_key)
 
     console.print(
-        f"[dim]Filtering scenes accessible by '{escape(target_name)}' ({target_key})...[/dim]"
+        f"[dim]Filtering scenes accessible by '{escape(target_name)}' ({escape(target_key)})...[/dim]"
     )
     rows = _accessible_scenes(
         report, app_export.application.scenes, target_key, target_name

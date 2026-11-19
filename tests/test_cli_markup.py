@@ -635,3 +635,62 @@ def test_table_cells_print_backslashes_and_bracketed_keys_as_written(tmp_path, e
     assert "Rate\\ " in orphans
     assert "Rate\\\\" not in orphans
     assert "field_9001[/x]" in orphans
+
+
+KEY_TAG = "[/k]"
+
+
+def _bracket_keys(tmp_path: Path) -> Path:
+    """The sample app with "[/k]" appended to every object, field, scene,
+    view and profile key, wherever it is mentioned."""
+    text = re.sub(
+        r"\b((?:object|field|scene|view|profile)_\d+)\b", r"\1[/k]", SAMPLE.read_text()
+    )
+    path = tmp_path / "keys.json"
+    path.write_text(text)
+    return path
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["list-objects"],
+        ["search-object", f"{OBJECT}{KEY_TAG}"],
+        ["search-object", f"{OBJECT}{KEY_TAG}", "--show-fields"],
+        ["search-field", f"{FIELD}{KEY_TAG}"],
+        ["show-coupling", f"{OBJECT}{KEY_TAG}"],
+        ["find-orphans"],
+        ["show-rules", "--object", f"{OBJECT}{KEY_TAG}"],
+        ["show-rules", "--view", f"{VIEW}{KEY_TAG}"],
+        ["role-access-summary", "--profile-key", f"{PROFILE_KEY}{KEY_TAG}"],
+        ["role-access-summary", "--profile-key", "profile_404[/k]"],
+        ["export-schema-subgraph", "--object", f"{OBJECT}{KEY_TAG}"],
+    ],
+    ids=lambda args: " ".join(a for a in args if not a.endswith(KEY_TAG)),
+)
+def test_keys_with_brackets_print_as_written(args, tmp_path, env):
+    # Knack's own keys never hold brackets, but a key is still text from the
+    # file: it must be printed, not parsed.
+    path = _bracket_keys(tmp_path)
+    extra = (
+        ["-o", str(tmp_path / "out.csv")] if args[0] == "role-access-summary" else []
+    )
+    if args[0] == "export-schema-subgraph":
+        extra = ["-o", str(tmp_path / "out.json")]
+    result = runner.invoke(cli, [*args, str(path), *extra], env=env)
+
+    assert result.exception is None or isinstance(result.exception, SystemExit), (
+        f"{result.exception!r}\n{result.output}"
+    )
+    assert KEY_TAG in result.output
+
+
+def test_diff_prints_bracketed_keys_as_written(original, tmp_path, env):
+    result = runner.invoke(
+        cli, ["diff", str(original), str(_bracket_keys(tmp_path))], env=env
+    )
+
+    assert result.exception is None or isinstance(result.exception, SystemExit), (
+        f"{result.exception!r}\n{result.output}"
+    )
+    assert KEY_TAG in result.output

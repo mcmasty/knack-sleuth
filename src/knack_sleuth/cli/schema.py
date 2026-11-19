@@ -373,7 +373,7 @@ def export_schema_subgraph(
     if not start:
         fail(f"Object '{object}' not found. Please specify a valid object key or name.")
     console.print(
-        f"[green]✓[/green] Starting object: [bold]{escape(start.name)}[/bold] ({start.key})"
+        f"[green]✓[/green] Starting object: [bold]{escape(start.name)}[/bold] ({escape(start.key)})"
     )
 
     console.print(f"[dim]Building subgraph with depth {depth}...[/dim]")
@@ -388,7 +388,7 @@ def export_schema_subgraph(
     for key in sorted(subgraph_keys):
         obj = objects_by_key.get(key)
         if obj:
-            console.print(f"  • {escape(obj.name)} ({key})")
+            console.print(f"  • {escape(obj.name)} ({escape(key)})")
     console.print()
 
     with exit_on_error():
@@ -402,7 +402,7 @@ def export_schema_subgraph(
         [
             f"Format: {format.upper()}",
             f"Detail: {detail}",
-            f"Starting object: {escape(start.name)} ({start.key})",
+            f"Starting object: {escape(start.name)} ({escape(start.key)})",
             f"Depth: {depth}",
             f"Objects: {len(subgraph_keys)}",
             f"File size: {file_size_kb(output_file)}",
