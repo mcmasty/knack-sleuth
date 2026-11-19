@@ -1069,6 +1069,27 @@ class TestCountChildren:
             "scene_5": 0,
         }
 
+    def test_a_deleted_menu_on_the_child_does_not_hide_it_from_its_real_menu(self):
+        # Root belongs to the menu; Child still names a menu that was
+        # deleted. The path reads "Menu > Root > Child", so the menu has one
+        # page below its member page.
+        scenes = [
+            Scene(key="scene_menu", name="Menu", slug="menu", type="menu"),
+            Scene(key="scene_1", name="Root", slug="root", menu="scene_menu"),
+            Scene(
+                key="scene_2",
+                name="Child",
+                slug="child",
+                parent="root",
+                menu="scene_deleted",
+            ),
+        ]
+        hierarchy = build_navigation_hierarchy(scenes)
+        analyses = [analyze_scene_security(s, {}, hierarchy) for s in scenes]
+
+        assert analyses[2].page_nav == "Menu > Root > Child"
+        assert [count_children(s.key, analyses) for s in scenes] == [1, 1, 0]
+
     def test_count_includes_every_scene_sharing_a_duplicate_parent_slug(self):
         scenes = [
             Scene(key="scene_1", name="Home", slug="home"),

@@ -12,6 +12,10 @@
 
 ### Fixed
 
+- `role-access-review --summary-only` gave a menu a `child_count` of 0 for a page that still
+  names a deleted menu, even though the page sits below one of the menu's member pages and
+  its navigation path says so. A menu reference that points at no scene is now skipped when
+  counting, as it already was when building the path.
 - `show-rules` marked inline-edit rules as active wherever the view had `cell_editor` on,
   including on a details view or a link column that cannot be edited in place. Rules are
   now active only on a field column of a table; anything else is listed as inactive with

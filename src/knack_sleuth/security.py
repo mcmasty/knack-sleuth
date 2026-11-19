@@ -473,11 +473,17 @@ def _ancestor_keys(scene: Scene, hierarchy: dict[str, Any]) -> list[str]:
     Follows the same route as the navigation path: parents by slug, continuing
     from the first scene of a duplicate slug, and the nearest menu on the way
     up. Every scene sharing a duplicate slug is included, as each of them is
-    named in the path.
+    named in the path. A menu reference that points at no scene is skipped,
+    as the path skips it, so a menu further up is still found.
     """
     scenes_by_key = hierarchy["scenes_by_key"]
+
+    def menu_of(member: Scene) -> str | None:
+        ref = _menu_ref(member)
+        return ref if ref in scenes_by_key else None
+
     keys: dict[str, None] = {}
-    menu_key = _menu_ref(scene)
+    menu_key = menu_of(scene)
     slug = scene.parent
     visited: set[str] = set()
     while slug and slug not in visited:
@@ -487,9 +493,9 @@ def _ancestor_keys(scene: Scene, hierarchy: dict[str, Any]) -> list[str]:
             break
         for candidate in candidates:
             keys.setdefault(candidate.key)
-        menu_key = menu_key or _menu_ref(candidates[0])
+        menu_key = menu_key or menu_of(candidates[0])
         slug = candidates[0].parent
-    if isinstance(menu_key, str) and menu_key in scenes_by_key:
+    if menu_key:
         keys.setdefault(menu_key)
     keys.pop(scene.key, None)
     return list(keys)
