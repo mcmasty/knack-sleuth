@@ -230,4 +230,20 @@ def test_navigation_depth_survives_a_parent_loop_and_a_missing_parent():
         ]
     )
 
-    assert sleuth._scene_depths() == [3, 3, 2]
+    # A sits under B and B under A: each has one page above it, not two.
+    # C's parent does not exist, which still counts as a level.
+    assert sleuth._scene_depths() == [2, 2, 2]
+
+
+def test_navigation_depth_counts_a_namesake_parent():
+    # Knack slugs are path-scoped: a page can sit below another page with the
+    # same slug. That is a real level, not a loop.
+    sleuth = _access_app(
+        [
+            {"key": "scene_1", "name": "Jobs", "slug": "jobs"},
+            {"key": "scene_2", "name": "Jobs", "slug": "jobs", "parent": "jobs"},
+            {"key": "scene_3", "name": "Job", "slug": "job", "parent": "jobs"},
+        ]
+    )
+
+    assert sleuth._scene_depths() == [1, 2, 2]
