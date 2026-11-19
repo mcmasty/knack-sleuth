@@ -345,6 +345,47 @@ class TestListObjects:
         text = runner.invoke(cli, ["list-objects", SAMPLE], env=env)
         assert "31 connections" in text.output
 
+    def test_connection_recorded_on_one_side_only_is_still_counted(
+        self, env, tmp_path, sample_metadata_dict
+    ):
+        # Three connections by hand: field_901 on both ends, field_902 only
+        # as inbound, field_903 only as outbound.
+        def entry(key, other):
+            return {
+                "key": key,
+                "name": key,
+                "object": other,
+                "has": "one",
+                "belongs_to": "many",
+                "field": {"name": key},
+            }
+
+        data = json.loads(json.dumps(sample_metadata_dict))
+        objects = data["application"]["objects"][:2]
+        data["application"]["objects"] = objects
+        first, second = objects
+        first["connections"] = {
+            "inbound": [entry("field_902", second["key"])],
+            "outbound": [
+                entry("field_901", second["key"]),
+                entry("field_903", second["key"]),
+            ],
+        }
+        second["connections"] = {
+            "inbound": [entry("field_901", first["key"])],
+            "outbound": [],
+        }
+        path = tmp_path / "app.json"
+        path.write_text(json.dumps(data))
+
+        result = runner.invoke(
+            cli, ["list-objects", str(path), "--format", "json"], env=env
+        )
+        assert result.exit_code == 0, result.output
+        totals = json.loads(result.stdout)["totals"]
+
+        assert (totals["ca"], totals["ce"], totals["connections"]) == (2, 2, 3)
+
 
 class TestInstallSkill:
     def test_install_then_refuse_then_force(self, tmp_path):

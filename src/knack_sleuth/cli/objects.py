@@ -48,6 +48,24 @@ def _object_entry(obj: KnackObject, counts: dict[str, int]) -> dict[str, Any]:
     }
 
 
+def _connection_count(objects: list[KnackObject]) -> int:
+    """How many connections the app has, each counted once.
+
+    A connection is one connection field. It is listed as outbound on the
+    object that owns the field and as inbound on the other, under the same
+    field key, so adding Ca to Ce counts it twice. Counting keys rather than
+    one side also keeps a connection that only one object records.
+    """
+    return len(
+        {
+            conn.key
+            for obj in objects
+            if obj.connections
+            for conn in (*obj.connections.inbound, *obj.connections.outbound)
+        }
+    )
+
+
 def _print_objects_table(app_name: str, entries: list[dict], totals: dict) -> None:
     table = Table(title=f"[bold cyan]{escape(app_name)}[/bold cyan] - Objects")
     table.add_column("Key", style="dim")
@@ -149,9 +167,7 @@ def list_objects(
         "fields": sum(e["fields"] for e in entries),
         "ca": sum(e["ca"] for e in entries),
         "ce": sum(e["ce"] for e in entries),
-        # Each connection is outbound from exactly one object. Adding Ca to
-        # Ce would count it at both ends.
-        "connections": sum(e["ce"] for e in entries),
+        "connections": _connection_count(app.objects),
     }
 
     if output_format == "json":

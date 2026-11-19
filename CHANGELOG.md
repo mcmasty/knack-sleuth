@@ -34,8 +34,9 @@
   moves 2 pages from public to login-required.
 - `list-objects` reported twice the number of connections in its total line and in
   `totals.connections` of the JSON output (228 for an app with 114), because it added each
-  object's inbound and outbound counts. Each connection is now counted once. The per-object
-  `Total` column is unchanged.
+  object's inbound and outbound counts. Each connection is now counted once, by its field
+  key, so one that only a single object records is still counted. The per-object `Total`
+  column is unchanged.
 - `role-access-summary --role` did not find a role whose name was saved with a stray space.
   Role names are now matched like object and field names, ignoring case and extra
   whitespace.
