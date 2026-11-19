@@ -201,8 +201,9 @@ class TestReportTotalsOnAHandBuiltApp:
         assert report.total_scenes == 9
         assert report.public_scenes == 2  # Public and Leaflet, below it
         assert report.login_required_scenes == 7
-        # Login but no role list: Menu, Members, Account.
-        assert report.unrestricted_authenticated_scenes == 3
+        # Login but no role list: Members and Account. The Menu is a list of
+        # links, not a page, so it is not counted.
+        assert report.unrestricted_authenticated_scenes == 2
         assert report.scenes_with_parents == 2  # Detail, Leaflet
         assert report.scenes_inheriting_security == 1  # Detail, from Legacy
         assert report.menu_scenes == 1

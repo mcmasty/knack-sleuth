@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- `role-access-review` flagged dropdown menus as `UNRESTRICTED` and counted them among the
+  unrestricted pages. A menu is a list of links with nothing of its own to open, and each
+  page in it sets its own access, so the flag buried the pages that matter: on a real app 7
+  of the 8 flags were menus. A menu with no views of its own now reads `OK` and is left out
+  of the unrestricted count.
 ## 0.11.0
 
 ### Added
