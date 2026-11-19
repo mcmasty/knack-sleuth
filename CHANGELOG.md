@@ -12,6 +12,10 @@
 
 ### Fixed
 
+- A page that shares its parent's slug and comes before the parent in the export resolved
+  the slug to itself. `role-access-review` then showed a navigation path that listed the
+  page as its own parent and left out its menu, and `--summary-only` left it out of the
+  menu's `child_count`. A page is no longer a candidate for its own parent.
 - `role-access-summary --role` could pick a role whose name differs by whitespace over one
   that differs only by case ("job admin" chose "Job  Admin" over "Job Admin"). The role
   name is now matched as written, then ignoring case, then ignoring stray whitespace, and a

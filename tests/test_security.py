@@ -1131,6 +1131,36 @@ class TestCountChildren:
         assert analyses[2].page_nav == "Menu > Root > Child"
         assert [count_children(s.key, analyses) for s in scenes] == [1, 1, 0]
 
+    @pytest.mark.parametrize(
+        "child_first", [True, False], ids=["child-first", "parent-first"]
+    )
+    def test_page_below_a_namesake_finds_its_parent_whatever_the_order(
+        self, child_first
+    ):
+        # Knack slugs are path-scoped, so a page can share its parent's slug.
+        # Listed first, the child resolved "jobs" to itself: its path lost the
+        # menu and the menu lost the child.
+        menu = Scene(key="scene_m", name="Menu", slug="m", type="menu")
+        parent = Scene(key="scene_1", name="Jobs", slug="jobs", menu="scene_m")
+        child = Scene(key="scene_2", name="Job", slug="jobs", parent="jobs")
+        scenes = [menu, child, parent] if child_first else [menu, parent, child]
+        hierarchy = build_navigation_hierarchy(scenes)
+        analyses = {s.key: analyze_scene_security(s, {}, hierarchy) for s in scenes}
+
+        assert analyses["scene_2"].page_nav == "Menu > Jobs > Job"
+        assert analyses["scene_2"].ancestor_keys == ["scene_1", "scene_m"]
+        counts = {s.key: count_children(s.key, list(analyses.values())) for s in scenes}
+        assert counts == {"scene_m": 1, "scene_1": 1, "scene_2": 0}
+
+    def test_page_that_names_only_itself_as_parent_has_no_ancestors(self):
+        scene = Scene(key="scene_1", name="Loop", slug="loop", parent="loop")
+        hierarchy = build_navigation_hierarchy([scene])
+
+        analysis = analyze_scene_security(scene, {}, hierarchy)
+
+        assert analysis.page_nav == "Loop"
+        assert analysis.ancestor_keys == []
+
     def test_count_includes_every_scene_sharing_a_duplicate_parent_slug(self):
         scenes = [
             Scene(key="scene_1", name="Home", slug="home"),
