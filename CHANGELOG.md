@@ -12,6 +12,10 @@
 
 ### Fixed
 
+- `show-rules` marked inline-edit rules as active wherever the view had `cell_editor` on,
+  including on a details view or a link column that cannot be edited in place. Rules are
+  now active only on a field column of a table; anything else is listed as inactive with
+  the reason.
 - `show-rules --object` collapsed a page rule into "N rule(s) hiding other views" when the
   page was listed only because its rules test the object's fields. Those rules are the
   reason the page is shown, so they are now printed in full. Each page in the JSON
