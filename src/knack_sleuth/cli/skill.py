@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from rich.markup import escape
 
 from ._common import cli, console, exit_on_error
 from ._skill_drift import _skill_drift_warning, default_skill_dir, packaged_skill
@@ -48,10 +49,12 @@ def install_skill(
         skill_content = packaged_skill()
 
     if target_file.exists() and not force:
-        console.print(f"[yellow]Skill already installed at[/yellow] {target_file}")
+        console.print(
+            f"[yellow]Skill already installed at[/yellow] {escape(str(target_file))}"
+        )
         warning = _skill_drift_warning(target_file, skill_content)
         if warning:
-            console.print(f"[yellow]{warning}[/yellow]")
+            console.print(f"[yellow]{escape(warning)}[/yellow]")
         else:
             console.print("[dim]Installed skill matches this release[/dim]")
         console.print("[dim]Use --force to overwrite[/dim]")
@@ -63,7 +66,7 @@ def install_skill(
 
     console.print()
     console.print(
-        f"[green]✓[/green] Installed knack-explorer skill to [bold]{target_file}[/bold]"
+        f"[green]✓[/green] Installed knack-explorer skill to [bold]{escape(str(target_file))}[/bold]"
     )
     console.print()
     console.print(

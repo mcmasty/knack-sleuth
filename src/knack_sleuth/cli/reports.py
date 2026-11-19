@@ -6,6 +6,7 @@ from typing import Annotated
 
 import typer
 import yaml
+from rich.markup import escape
 
 from knack_sleuth.lookup import (
     resolve_fields,
@@ -71,7 +72,7 @@ def _resolve_target(app: Application, identifier: str) -> tuple[str, str]:
         return field_matches[0][1].key, "field"
 
     err_console.print(
-        f"[red]Error:[/red] Could not find object or field '{identifier}'"
+        f"[red]Error:[/red] Could not find object or field '{escape(identifier)}'"
     )
     print_suggestions(
         suggest_object_names(app, identifier) or suggest_field_names(app, identifier)

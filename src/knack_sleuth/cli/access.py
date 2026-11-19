@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Annotated, Any, NoReturn
 
 import typer
+from rich.markup import escape
 
 from knack_sleuth.models import Scene, SceneSecurity, SecurityReport
 from knack_sleuth.security import (
@@ -70,7 +71,7 @@ def _banner(title: str) -> None:
 
 def _print_review(report: SecurityReport) -> None:
     console.print()
-    _banner(f"ROLE ACCESS REVIEW: {report.app_name}")
+    _banner(f"ROLE ACCESS REVIEW: {escape(report.app_name)}")
     console.print(f"\nTotal Scenes: {report.total_scenes}")
     console.print(f"  Menu Scenes: {report.menu_scenes}")
     console.print(f"  Utility Pages (Require Knack Account): {report.utility_pages}")
@@ -95,7 +96,8 @@ def _print_review(report: SecurityReport) -> None:
     for profile_key, profile_name in report.profiles.items():
         access_count = report.profile_access_counts.get(profile_name, 0)
         console.print(
-            f"  {profile_name:30} ({profile_key:20}) - Access to {access_count} scenes"
+            escape(f"  {profile_name:30} ({profile_key:20})")
+            + f" - Access to {access_count} scenes"
         )
 
     console.print()
@@ -194,13 +196,15 @@ def role_access_review(
     if summary_only:
         children_omitted = report.total_scenes - len(scenes)
         console.print(
-            f"[green]✓[/green] Summary report exported to [bold]{output}[/bold]"
+            f"[green]✓[/green] Summary report exported to [bold]{escape(str(output))}[/bold]"
         )
         console.print(
             f"[dim]  {len(scenes)} top-level scenes ({children_omitted} children omitted)[/dim]"
         )
     else:
-        console.print(f"[green]✓[/green] Report exported to [bold]{output}[/bold]")
+        console.print(
+            f"[green]✓[/green] Report exported to [bold]{escape(str(output))}[/bold]"
+        )
         console.print(f"[dim]  {len(scenes)} scenes[/dim]")
     console.print()
 
@@ -211,10 +215,10 @@ def role_access_review(
 def _exit_unknown_profile(
     message: str, report: SecurityReport, by_key: bool
 ) -> NoReturn:
-    err_console.print(f"[red]Error:[/red] {message}")
+    err_console.print(f"[red]Error:[/red] {escape(message)}")
     console.print(f"\n[cyan]Available {'profiles' if by_key else 'roles'}:[/cyan]")
     for pk, pn in report.profiles.items():
-        console.print(f"  {pk}: {pn}" if by_key else f"  {pn} ({pk})")
+        console.print(escape(f"  {pk}: {pn}" if by_key else f"  {pn} ({pk})"))
     raise typer.Exit(1)
 
 
@@ -238,10 +242,10 @@ def _resolve_profile(
 
     if len(matches) > 1:
         err_console.print(
-            f"[yellow]Warning:[/yellow] Multiple profiles match '{role}':"
+            f"[yellow]Warning:[/yellow] Multiple profiles match '{escape(str(role))}':"
         )
         for pk, pn in matches:
-            console.print(f"  {pk}: {pn}")
+            console.print(escape(f"  {pk}: {pn}"))
         console.print("\nUsing first match. Use --profile-key to specify exactly.")
     return matches[0]
 
@@ -298,8 +302,8 @@ def _print_access_summary(
 ) -> int:
     """Print the console summary; returns the total number of accessible views."""
     console.print()
-    _banner(f"ROLE ACCESS SUMMARY: {app_name}")
-    console.print(f"\nProfile: [bold]{profile_name}[/bold] ({profile_key})")
+    _banner(f"ROLE ACCESS SUMMARY: {escape(app_name)}")
+    console.print(f"\nProfile: [bold]{escape(profile_name)}[/bold] ({profile_key})")
     console.print(f"Accessible Scenes: {len(rows)}")
 
     total_views = sum(r["view_count"] for r in rows)
@@ -375,7 +379,7 @@ def role_access_summary(
     target_key, target_name = _resolve_profile(report, role, profile_key)
 
     console.print(
-        f"[dim]Filtering scenes accessible by '{target_name}' ({target_key})...[/dim]"
+        f"[dim]Filtering scenes accessible by '{escape(target_name)}' ({target_key})...[/dim]"
     )
     rows = _accessible_scenes(
         report, app_export.application.scenes, target_key, target_name
@@ -388,6 +392,8 @@ def role_access_summary(
     write_csv(output, SUMMARY_COLUMNS, rows)
 
     console.print()
-    console.print(f"[green]✓[/green] Summary exported to [bold]{output}[/bold]")
+    console.print(
+        f"[green]✓[/green] Summary exported to [bold]{escape(str(output))}[/bold]"
+    )
     console.print(f"[dim]  {len(rows)} scenes, {total_views} views[/dim]")
     console.print()

@@ -6,6 +6,7 @@ from dataclasses import asdict
 from typing import Annotated, Any
 
 import typer
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
@@ -48,7 +49,7 @@ def _object_entry(obj: KnackObject, counts: dict[str, int]) -> dict[str, Any]:
 
 
 def _print_objects_table(app_name: str, entries: list[dict], totals: dict) -> None:
-    table = Table(title=f"[bold cyan]{app_name}[/bold cyan] - Objects")
+    table = Table(title=f"[bold cyan]{escape(app_name)}[/bold cyan] - Objects")
     table.add_column("Key", style="dim")
     table.add_column("Name", style="bold cyan")
     table.add_column("Rows", justify="right", style="magenta")
@@ -61,7 +62,7 @@ def _print_objects_table(app_name: str, entries: list[dict], totals: dict) -> No
     for entry in entries:
         table.add_row(
             entry["key"],
-            entry["name"],
+            escape(entry["name"]),
             f"{entry['rows']:,}",
             str(entry["fields"]),
             str(entry["ca"]),
@@ -185,7 +186,7 @@ def _print_field_usages(sleuth: KnackSleuth, field_usage_map: dict) -> None:
         _, field_info = sleuth.get_field_info(field_key)
         if field_info:
             console.print(
-                f"\n  [bold cyan]{field_info.name}[/bold cyan] ({field_key}) - {field_info.type} - {len(usages)} usages"
+                f"\n  [bold cyan]{escape(field_info.name)}[/bold cyan] ({field_key}) - {escape(field_info.type)} - {len(usages)} usages"
             )
             print_usages(usages, "    ")
 
@@ -256,7 +257,7 @@ def search_object(
 
     console.print(
         Panel(
-            f"[bold cyan]{target.name}[/bold cyan] ({target.key})",
+            f"[bold cyan]{escape(target.name)}[/bold cyan] ({target.key})",
             title="Object Search Results",
             subtitle=f"{len(target.fields)} fields",
         )
@@ -322,7 +323,7 @@ def search_field(
     matches = resolve_fields(app_export.application, field_identifier)
     if not matches:
         err_console.print(
-            f"[red]Error:[/red] Field '{field_identifier}' not found in application"
+            f"[red]Error:[/red] Field '{escape(field_identifier)}' not found in application"
         )
         print_suggestions(suggest_field_names(app_export.application, field_identifier))
         raise typer.Exit(1)
@@ -350,9 +351,9 @@ def search_field(
 
     console.print(
         Panel(
-            f"[bold cyan]{target_object.name} → {target_field.name}[/bold cyan] ({target_field.key})",
+            f"[bold cyan]{escape(target_object.name)} → {escape(target_field.name)}[/bold cyan] ({target_field.key})",
             title="Field Search Results",
-            subtitle=f"type: {target_field.type}",
+            subtitle=f"type: {escape(target_field.type)}",
         )
     )
 
@@ -403,8 +404,8 @@ def _print_coupling_side(connections: list, objects_by_key: dict, side: tuple) -
         if related:
             relationship = conn.relationship_type(from_connected=inbound)
             console.print(
-                f"  [yellow]{arrow}[/yellow] [bold cyan]{related.name}[/bold cyan] ({conn.object})\n"
-                f"     via [dim]{conn.name}[/dim] ({conn.key}) \\[{relationship}]"
+                f"  [yellow]{arrow}[/yellow] [bold cyan]{escape(related.name)}[/bold cyan] ({conn.object})\n"
+                f"     via [dim]{escape(conn.name)}[/dim] ({conn.key}) \\[{relationship}]"
             )
 
 
@@ -478,7 +479,7 @@ def show_coupling(
     console.print()
     console.print(
         Panel(
-            f"[bold cyan]{target.name}[/bold cyan] ({target.key})",
+            f"[bold cyan]{escape(target.name)}[/bold cyan] ({target.key})",
             title="Object Coupling",
             subtitle=f"Ca: {ca} | Ce: {ce} | I: {instability}",
         )

@@ -13,6 +13,9 @@ import httpx
 import typer
 from pydantic import ValidationError
 from rich.console import Console
+from rich.markup import escape
+from rich.style import Style
+from rich.text import Text
 
 from knack_sleuth.config import Settings
 from knack_sleuth.core import (
@@ -43,8 +46,11 @@ T = TypeVar("T")
 
 
 def fail(message: str) -> NoReturn:
-    """Print an error to stderr and exit 1."""
-    err_console.print(f"[red]Error:[/red] {message}")
+    """Print an error to stderr and exit 1.
+
+    The message is plain text (no callers pass markup), so it is escaped here.
+    """
+    err_console.print(f"[red]Error:[/red] {escape(message)}")
     raise typer.Exit(1) from None
 
 
@@ -125,11 +131,11 @@ def _from_cache(app_id: str, parse: Callable[[dict], T]) -> T | None:
         # Corrupt/unreadable cache: the caller falls through to an API fetch.
         err_console.print(
             f"[yellow]Warning:[/yellow] Failed to read cache "
-            f"{cache_path.name}; fetching fresh data..."
+            f"{escape(cache_path.name)}; fetching fresh data..."
         )
         return None
     err_console.print(
-        f"[dim]Using cached data from {cache_path.name} "
+        f"[dim]Using cached data from {escape(cache_path.name)} "
         f"(age: {cache_age_hours:.1f}h)[/dim]"
     )
     return result
@@ -143,7 +149,7 @@ def _from_api(app_id: str, refresh: bool) -> dict:
         with err_console.status("[cyan]Fetching metadata from Knack API..."):
             data = fetch_metadata_from_api(app_id)
         cache_path = write_cache(app_id, data)
-    err_console.print(f"[dim]Cached metadata to {cache_path.name}[/dim]")
+    err_console.print(f"[dim]Cached metadata to {escape(cache_path.name)}[/dim]")
     return data
 
 
@@ -187,19 +193,20 @@ def load_app_metadata(
 
 def print_suggestions(suggestions: list[str]) -> None:
     if suggestions:
-        console.print(
-            f"Did you mean: [cyan]{'[/cyan], [cyan]'.join(suggestions)}[/cyan]?"
-        )
+        names = "[/cyan], [cyan]".join(escape(s) for s in suggestions)
+        console.print(f"Did you mean: [cyan]{names}[/cyan]?")
 
 
 def exit_ambiguous_field(identifier: str, matches: list) -> NoReturn:
     """List every field a name matches, then exit 1."""
     console.print(
-        f"[yellow]Ambiguous:[/yellow] field name '{identifier}' matches "
+        f"[yellow]Ambiguous:[/yellow] field name '{escape(identifier)}' matches "
         f"{len(matches)} fields:"
     )
     for obj, field in matches:
-        console.print(f"  {field.key} — {obj.name} → {field.name} ({field.type})")
+        console.print(
+            escape(f"  {field.key} — {obj.name} → {field.name} ({field.type})")
+        )
     console.print("\nRe-run with the field key to disambiguate.")
     raise typer.Exit(1)
 
@@ -213,7 +220,7 @@ def resolve_object_or_exit(
         return obj
 
     err_console.print(
-        f"[red]Error:[/red] Object '{identifier}' not found in application"
+        f"[red]Error:[/red] Object '{escape(identifier)}' not found in application"
     )
     print_suggestions(suggest_object_names(app_export.application, identifier))
     raise typer.Exit(1)
@@ -241,7 +248,8 @@ def print_builder_pages(app_export: KnackAppMetadata, scenes_to_review: set) -> 
     console.print()
     for scene_key in sorted(scenes_to_review):
         url = scene_url(app_export, scene_key)
-        console.print(f"  [link={url}]{url}[/link]")
+        # A Text, not [link=...] markup: a "[" in the URL would break the tag.
+        console.print(Text.assemble("  ", (url, Style(link=url))))
     console.print()
     console.print(
         "[dim]Tip: Set KNACK_NEXT_GEN_BUILDER=true to use Next-Gen builder URLs[/dim]"
@@ -251,7 +259,7 @@ def print_builder_pages(app_export: KnackAppMetadata, scenes_to_review: set) -> 
 def print_usages(usages: Iterable, indent: str = "  ") -> None:
     for usage in usages:
         console.print(
-            f"{indent}[yellow]•[/yellow] \\[{usage.location_type}] {usage.context}"
+            f"{indent}[yellow]•[/yellow] \\[{usage.location_type}] {escape(usage.context)}"
         )
 
 
@@ -267,7 +275,9 @@ def emit(content: str, output_file: Path | None, saved_label: str) -> None:
         return
     with exit_on_error("Failed to save file: "):
         output_file.write_text(content)
-    console.print(f"[green]✓[/green] {saved_label} saved to [bold]{output_file}[/bold]")
+    console.print(
+        f"[green]✓[/green] {saved_label} saved to [bold]{escape(str(output_file))}[/bold]"
+    )
 
 
 def write_csv(

@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- Names containing square brackets were read as Rich markup in terminal output: a field
+  called "Amount [usd]" printed as "Amount", and a name containing a closing tag such as
+  `[/internal]` crashed the command with a `MarkupError`. Every command now prints names,
+  paths and identifiers exactly as written. JSON, CSV and Markdown output was never
+  affected.
 - An object or field whose name was saved with a stray space ("Status ") could not be found
   by the name you can see: `search-field Status` answered "Did you mean: Status ?". Name
   lookups now ignore leading, trailing and repeated whitespace.
