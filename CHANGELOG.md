@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- An object or field whose name was saved with a stray space ("Status ") could not be found
+  by the name you can see: `search-field Status` answered "Did you mean: Status ?". Name
+  lookups now ignore leading, trailing and repeated whitespace.
 - `show-rules` ignored the record rules that run when a table cell is edited in place
   (`columns[].edit_rules`), and listed such a table under "no form rules or action links".
   They are now reported as an `inline_edit` trigger, including when they change another
