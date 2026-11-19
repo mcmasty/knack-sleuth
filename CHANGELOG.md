@@ -4,6 +4,12 @@
 
 ### Fixed
 
+- `show-rules` dropped the span from relative date conditions: "is during the next 7 days"
+  printed as "is during the next". The span is now shown, and is in the JSON output as
+  `range` on the criterion.
+- `show-rules` printed the recipient of a form's email notification as `None: None ?`. These
+  recipients are bare addresses with no type or mode; they now show as a masked `to:`
+  address, and the rule is labelled `Email notification`.
 - `role-access-review` and `role-access-summary` read a leftover `allowed_profiles` list as
   a role restriction when `limit_profile_access` was off. Knack keeps the list after the
   "limit to roles" switch is turned off and no longer enforces it, so such a page was
