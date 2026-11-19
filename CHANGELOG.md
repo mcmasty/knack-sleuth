@@ -12,6 +12,10 @@
 
 ### Fixed
 
+- Looking up an object by name could pick the wrong one when two names differ only by
+  whitespace ("Job  Status" and "Job Status"): the first in the export won. The name as
+  written now wins, and a name that matches two objects only after whitespace is ignored is
+  reported as not found instead of guessed.
 - `role-access-review` reported a login page as PUBLIC when its login view's role limit was
   off and the page did not set `authenticated` itself, and reported the pages below it as
   public too. A page with a login view now counts as requiring a login whatever its role

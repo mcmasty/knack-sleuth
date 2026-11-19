@@ -31,9 +31,17 @@ def resolve_object(app: Application, identifier: str) -> KnackObject | None:
             if obj.key.lower() == ident:
                 return obj
 
+    # The name as written wins. Only then is whitespace forgiven, and only
+    # when that points at one object: "Job  Status" must not answer for
+    # "Job Status" when both exist. (Fields need no such rule: every match is
+    # returned and the caller asks the user to pick.)
+    exact = identifier.lower()
     for obj in app.objects:
-        if normalise_name(obj.name) == ident:
+        if obj.name.lower() == exact:
             return obj
+    loose = [obj for obj in app.objects if normalise_name(obj.name) == ident]
+    if loose:
+        return loose[0] if len(loose) == 1 else None
 
     # People say "Applicant" for an object named "Applicants". Fall back to the
     # inflections, but only when they point at a single object.
