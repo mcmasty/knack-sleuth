@@ -16,9 +16,30 @@ taken from a record field is reported by field key and name only.
 
 import re
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, NamedTuple
 
 from knack_sleuth.models import KnackAppMetadata, KnackObject, Scene, View
+from knack_sleuth.rules_report import (
+    ActionRule,
+    ConditionalRule,
+    ConnectedRecordRule,
+    Criterion,
+    DisplayRule,
+    EmailRule,
+    FieldLabel,
+    FieldRules,
+    PageRule,
+    PageRules,
+    QuietView,
+    Recipient,
+    RecordRule,
+    RulesReport,
+    SubmitRule,
+    Task,
+    Trigger,
+    ValueAssignment,
+    ViewHeader,
+)
 from knack_sleuth.sleuth import FIELD_KEY_PATTERN, KnackSleuth
 
 FORM_RULE_LISTS = ("emails", "records", "submits", "fields")
@@ -112,7 +133,7 @@ class _FieldNames:
             if isinstance(key, str) and key in self.roles
         }
 
-    def label(self, field_key: Any) -> dict[str, Any]:
+    def label(self, field_key: Any) -> FieldLabel:
         if not isinstance(field_key, str):
             return {"field": None, "field_name": None}
         return {"field": field_key, "field_name": self._name(field_key)}
@@ -136,12 +157,12 @@ class _FieldNames:
         return None
 
 
-def _criteria(rules: Any, names: _FieldNames) -> list[dict[str, Any]]:
-    out = []
+def _criteria(rules: Any, names: _FieldNames) -> list[Criterion]:
+    out: list[Criterion] = []
     for rule in _list(rules):
         if not isinstance(rule, dict):
             continue
-        entry = {
+        entry: Criterion = {
             **names.label(rule.get("field")),
             "operator": rule.get("operator"),
             "value": rule.get("value"),
@@ -171,7 +192,7 @@ def _relative_range(rule: dict[str, Any]) -> str | None:
     return f"{span} {unit}" if isinstance(unit, str) and unit else str(span)
 
 
-def _value(value: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
+def _value(value: dict[str, Any], names: _FieldNames) -> ValueAssignment:
     """Describe one ``field = value`` assignment of a record rule."""
     source = value.get("type")
     if source == "value":
@@ -186,16 +207,20 @@ def _value(value: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
     else:
         # str(): a wrong-typed `type` (e.g. a list) must not crash the lookup.
         set_to = VALUE_SOURCES.get(str(source), str(source))
-    entry = {**names.label(value.get("field")), "source": source, "set_to": set_to}
+    entry: ValueAssignment = {
+        **names.label(value.get("field")),
+        "source": source,
+        "set_to": set_to,
+    }
     if value.get("action"):
         # e.g. "append" adds to a connection field instead of replacing it.
         entry["mode"] = value["action"]
     return entry
 
 
-def _email(rule: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
+def _email(rule: dict[str, Any], names: _FieldNames) -> EmailRule:
     email = _dict(rule.get("email"))
-    recipients = []
+    recipients: list[Recipient] = []
     listed = _list(email.get("recipients"))
     if not listed and email.get("recipient_type"):
         # Older rules keep a single recipient on the email itself.
@@ -208,13 +233,15 @@ def _email(rule: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
         if not kind and isinstance(recipient.get("email"), str):
             # A notification's recipient is a bare address: no type, no mode.
             kind, mode = "custom", mode or "to"
-        entry: dict[str, Any] = {"mode": mode, "type": kind}
+        entry: Recipient = {"mode": mode, "type": kind}
         if kind == "custom":
             entry["address"] = mask_address(recipient.get("email"))
         else:
             # The `email` string is populated even for field recipients; it is
             # a leftover, not who receives the message, so it is never shown.
-            entry.update(names.label(recipient.get("field")))
+            label = names.label(recipient.get("field"))
+            entry["field"] = label["field"]
+            entry["field_name"] = label["field_name"]
             if recipient.get("connection"):
                 entry["connection"] = recipient["connection"]
         recipients.append(entry)
@@ -230,7 +257,7 @@ def _email(rule: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
     }
 
 
-def _record(rule: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
+def _record(rule: dict[str, Any], names: _FieldNames) -> RecordRule:
     action = rule.get("action")
     return {
         "key": rule.get("key"),
@@ -246,9 +273,9 @@ def _record(rule: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
     }
 
 
-def _submit(rule: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
+def _submit(rule: dict[str, Any], names: _FieldNames) -> SubmitRule:
     action = rule.get("action")
-    entry: dict[str, Any] = {
+    entry: SubmitRule = {
         "key": rule.get("key"),
         "action": action,
         "criteria": _criteria(rule.get("criteria"), names),
@@ -264,7 +291,7 @@ def _submit(rule: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
     return entry
 
 
-def _display(rule: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
+def _display(rule: dict[str, Any], names: _FieldNames) -> DisplayRule:
     return {
         "key": rule.get("key"),
         "actions": [
@@ -278,7 +305,7 @@ def _display(rule: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
 
 def _split_email_rules(
     rules: list[Any], names: _FieldNames, all_email: bool = False
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[list[EmailRule], list[RecordRule]]:
     """Separate email rules from record rules by content, not list name.
 
     A false "no email" is the expensive mistake, so anything that looks like
@@ -302,15 +329,15 @@ def _split_email_rules(
     return emails, records
 
 
-def _email_field_refs(email: dict[str, Any]) -> set[str]:
+def _email_field_refs(email: EmailRule) -> set[str]:
     refs = {r["field"] for r in email["recipients"] if r.get("field")}
     refs |= {c["field"] for c in email["criteria"] if c.get("field")}
     return refs
 
 
 def _blanking_warnings(
-    emails: list[dict[str, Any]],
-    records: list[dict[str, Any]],
+    emails: list[EmailRule],
+    records: list[RecordRule],
     body_refs: dict[Any, set[str]],
 ) -> list[str]:
     """Email rules run after record rules, so an email that reads a field a
@@ -372,7 +399,7 @@ def _iter_action_links(value: Any) -> Iterator[dict[str, Any]]:
             yield from _iter_action_links(nested)
 
 
-def _view_header(scene: Scene, view: View, orphaned: set[str]) -> dict[str, Any]:
+def _view_header(scene: Scene, view: View, orphaned: set[str]) -> ViewHeader:
     reachable = view.key not in orphaned
     header = {
         "scene_key": scene.key,
@@ -392,8 +419,8 @@ def _view_header(scene: Scene, view: View, orphaned: set[str]) -> dict[str, Any]
 
 
 def _form_trigger(
-    header: dict[str, Any], view_data: dict[str, Any], names: _FieldNames
-) -> dict[str, Any] | None:
+    header: ViewHeader, view_data: dict[str, Any], names: _FieldNames
+) -> Trigger | None:
     rules = view_data.get("rules")
     if not isinstance(rules, dict):
         return None
@@ -414,7 +441,7 @@ def _form_trigger(
     display = [
         _display(r, names) for r in _list(rules.get("fields")) if isinstance(r, dict)
     ]
-    return {
+    trigger: Trigger = {
         "trigger": "form_submit",
         **header,
         "form_action": view_data.get("action"),
@@ -426,11 +453,12 @@ def _form_trigger(
             emails, records, _body_field_refs(raw_emails + _list(rules.get("records")))
         ),
     }
+    return trigger
 
 
 def _action_link_trigger(
-    header: dict[str, Any], column: dict[str, Any], names: _FieldNames
-) -> dict[str, Any]:
+    header: ViewHeader, column: dict[str, Any], names: _FieldNames
+) -> Trigger:
     action_rules = []
     for action_rule in _list(column.get("action_rules")):
         if not isinstance(action_rule, dict):
@@ -460,7 +488,7 @@ def _action_link_trigger(
             ]
             + odd_email_keys
         )
-        entry = {
+        entry: ActionRule = {
             "key": action_rule.get("key"),
             "link_text": action_rule.get("link_text"),
             "criteria": _criteria(action_rule.get("criteria"), names),
@@ -487,8 +515,8 @@ def _action_link_trigger(
 
 
 def _inline_edit_triggers(
-    header: dict[str, Any], view_data: dict[str, Any], names: _FieldNames
-) -> list[dict[str, Any]]:
+    header: ViewHeader, view_data: dict[str, Any], names: _FieldNames
+) -> list[Trigger]:
     """Record rules that run when a table cell is edited in place.
 
     A column's ``edit_rules`` fire on an inline edit of that column. Knack
@@ -503,7 +531,7 @@ def _inline_edit_triggers(
             continue
         raw_rules = _list(column.get("edit_rules"))
         emails, records = _split_email_rules(raw_rules, names)
-        trigger = {
+        trigger: Trigger = {
             "trigger": "inline_edit",
             **header,
             "edited_field": names.label(_dict(column.get("field")).get("key")),
@@ -542,9 +570,13 @@ def _inline_edit_blocker(
     return None
 
 
-def _task(task: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
+def _task(task: dict[str, Any], names: _FieldNames) -> Task:
     action = _dict(task.get("action"))
-    entry: dict[str, Any] = {
+    emails: list[EmailRule] = []
+    records: list[RecordRule] = []
+    if action:
+        emails, records = _split_email_rules([action], names)
+    return {
         "trigger": "task",
         "key": task.get("key"),
         "name": task.get("name"),
@@ -554,18 +586,16 @@ def _task(task: dict[str, Any], names: _FieldNames) -> dict[str, Any]:
         "schedule": _dict(task.get("schedule")),
         "action": action.get("action"),
         "criteria": _criteria(action.get("criteria"), names),
+        "emails": emails,
+        "records": records,
     }
-    emails, records = _split_email_rules([action], names) if action else ([], [])
-    entry["emails"] = emails
-    entry["records"] = records
-    return entry
 
 
 def collect_rules(
     app_export: KnackAppMetadata,
     object_key: str | None = None,
     view_key: str | None = None,
-) -> dict[str, Any]:
+) -> RulesReport:
     """Collect the behaviour rules for an object, a view, or both.
 
     With ``object_key``: every view sourced on that object that carries form
@@ -579,14 +609,14 @@ def collect_rules(
         app_export, object_key, view_key, names, orphaned
     )
 
-    connected: list[dict[str, Any]] = []
+    connected: list[ConnectedRecordRule] = []
     if object_key and not view_key:
         connected = _connected_record_rules(
             triggers, app_export, object_key, names, orphaned
         )
 
-    tasks: list[dict[str, Any]] = []
-    field_rules: list[dict[str, Any]] = []
+    tasks: list[Task] = []
+    field_rules: list[FieldRules] = []
     if object_key:
         for obj in app_export.application.objects:
             if obj.key == object_key:
@@ -609,12 +639,12 @@ def _view_triggers(
     view_key: str | None,
     names: _FieldNames,
     orphaned: set[str],
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+) -> tuple[list[Trigger], list[QuietView]]:
     """Form, action-link and inline-edit triggers on the selected views, and the selected
     views that have none (listed so "no rules here" is visible, not inferred
     from silence)."""
-    triggers: list[dict[str, Any]] = []
-    quiet_views: list[dict[str, Any]] = []
+    triggers: list[Trigger] = []
+    quiet_views: list[QuietView] = []
     for scene, view in _selected_views(app_export, object_key, view_key):
         header = _view_header(scene, view, orphaned)
         view_data = view.model_dump(mode="python")
@@ -628,12 +658,16 @@ def _view_triggers(
         ]
         triggers += _inline_edit_triggers(header, view_data, names)
         if len(triggers) == found:
-            quiet_views.append({k: header[k] for k in _QUIET_VIEW_KEYS})
+            quiet_views.append(
+                {
+                    "scene_key": header["scene_key"],
+                    "view_key": header["view_key"],
+                    "view_name": header["view_name"],
+                    "view_type": header["view_type"],
+                    "reachable": header["reachable"],
+                }
+            )
     return triggers, quiet_views
-
-
-_INLINE_EDIT_KEYS = ("edited_field", "active", "inactive_reason")
-_QUIET_VIEW_KEYS = ("scene_key", "view_key", "view_name", "view_type", "reachable")
 
 
 def _selected_views(
@@ -655,7 +689,7 @@ def _page_rules(
     object_key: str | None,
     view_key: str | None,
     names: _FieldNames,
-) -> list[dict[str, Any]]:
+) -> list[PageRules]:
     """The page rules of every page that holds a selected view.
 
     Page rules run when the page loads: they hide views, show a message or
@@ -684,7 +718,7 @@ def _page_rules(
             for field in obj.fields
         }
 
-    pages = []
+    pages: list[PageRules] = []
     for scene in app_export.application.scenes:
         rules = [
             _page_rule(rule, names, view_names, selected.get(scene.key, set()))
@@ -720,7 +754,7 @@ def _page_rules(
     return pages
 
 
-def _criteria_field_keys(criteria: list[dict[str, Any]]) -> set[str]:
+def _criteria_field_keys(criteria: list[Criterion]) -> set[str]:
     """Every field key the criteria test, compound keys split into their parts."""
     return {
         key
@@ -734,10 +768,10 @@ def _page_rule(
     names: _FieldNames,
     view_names: dict[str, str],
     selected_views: set[str],
-) -> dict[str, Any]:
+) -> PageRule:
     # A page rule has a submit rule's shape (message, redirect, criteria),
     # plus the views it hides.
-    entry = _submit(rule, names)
+    entry: PageRule = {**_submit(rule, names)}
     if entry["action"] == "hide_views":
         # Knack leaves an empty message and a stale page on a hide rule.
         entry.pop("message", None)
@@ -749,17 +783,15 @@ def _page_rule(
     return entry
 
 
-def _conditional_field_rules(
-    obj: KnackObject, names: _FieldNames
-) -> list[dict[str, Any]]:
+def _conditional_field_rules(obj: KnackObject, names: _FieldNames) -> list[FieldRules]:
     """The object's conditional field rules.
 
     These set a value whenever a record is saved, whichever form, link,
     import or API call saved it.
     """
-    field_rules = []
+    field_rules: list[FieldRules] = []
     for field in obj.fields:
-        rules = [
+        rules: list[ConditionalRule] = [
             {
                 "key": rule.get("key"),
                 "values": [
@@ -777,50 +809,96 @@ def _conditional_field_rules(
     return field_rules
 
 
-def _targets_object(record: dict[str, Any], object_key: str) -> bool:
+def _targets_object(record: RecordRule, object_key: str) -> bool:
     connection = record.get("connection") or ""
     return record["action"] != "record" and connection.split(".", 1)[0] == object_key
 
 
-def _view_trigger_candidates(
-    header: dict[str, Any], view_data: dict[str, Any], names: _FieldNames
-) -> list[tuple[str, str | None, list, dict[str, Any]]]:
-    """A view's form submit, action-link and inline-edit rules, each with its
-    own trigger.
+class _Candidate(NamedTuple):
+    """Record rules that fire together, and what fires them.
 
-    Each candidate is ``(trigger, link_text, conditions, rules)``: the
-    conditions on the action link, and the emails the same click or submit
-    sends, stay attached to the record rules they belong to.
+    The conditions on an action link, and the emails the same click, submit
+    or edit sends, stay attached to the record rules they belong to.
     """
-    candidates: list[tuple[str, str | None, list, dict[str, Any]]] = []
+
+    trigger: str
+    link_text: Any
+    conditions: list[Criterion]
+    records: list[RecordRule]
+    emails: list[EmailRule]
+    # The inline-edit trigger itself, for its edited field and active state.
+    inline_edit: Trigger | None = None
+
+
+def _view_trigger_candidates(
+    header: ViewHeader, view_data: dict[str, Any], names: _FieldNames
+) -> list[_Candidate]:
+    """A view's form submit, action-link and inline-edit rules, each with its
+    own trigger."""
+    candidates: list[_Candidate] = []
     form = _form_trigger(header, view_data, names)
     if form:
-        candidates.append(("form_submit", None, [], form))
+        candidates.append(
+            _Candidate(
+                "form_submit", None, [], form.get("records", []), form.get("emails", [])
+            )
+        )
     for column in _iter_action_links(view_data):
         link = _action_link_trigger(header, column, names)
         candidates.extend(
-            (
+            _Candidate(
                 "action_link",
                 action_rule["link_text"],
                 action_rule["criteria"],
-                action_rule,
+                action_rule["records"],
+                action_rule["emails"],
             )
-            for action_rule in link["action_rules"]
+            for action_rule in link.get("action_rules", [])
         )
     candidates.extend(
-        ("inline_edit", None, [], edit)
+        _Candidate(
+            "inline_edit",
+            None,
+            [],
+            edit.get("records", []),
+            edit.get("emails", []),
+            edit,
+        )
         for edit in _inline_edit_triggers(header, view_data, names)
     )
     return candidates
 
 
+def _connected_entry(
+    candidate: _Candidate, header: ViewHeader, record: RecordRule
+) -> ConnectedRecordRule:
+    entry: ConnectedRecordRule = {
+        "trigger": candidate.trigger,
+        **header,
+        "record_rule": record,
+        "trigger_criteria": candidate.conditions,
+        "emails_on_same_trigger": candidate.emails,
+    }
+    if candidate.link_text is not None:
+        entry["link_text"] = candidate.link_text
+    edit = candidate.inline_edit
+    if edit is not None:
+        if "edited_field" in edit:
+            entry["edited_field"] = edit["edited_field"]
+        if "active" in edit:
+            entry["active"] = edit["active"]
+        if "inactive_reason" in edit:
+            entry["inactive_reason"] = edit["inactive_reason"]
+    return entry
+
+
 def _connected_record_rules(
-    own_triggers: list[dict[str, Any]],
+    own_triggers: list[Trigger],
     app_export: KnackAppMetadata,
     object_key: str,
     names: _FieldNames,
     orphaned: set[str],
-) -> list[dict[str, Any]]:
+) -> list[ConnectedRecordRule]:
     """Record rules on *other* objects' views that change this object.
 
     A form or action link on a parent record can update or insert this
@@ -829,30 +907,16 @@ def _connected_record_rules(
     views alone.
     """
     own_views = {t["view_key"] for t in own_triggers}
-    out = []
+    out: list[ConnectedRecordRule] = []
     for scene in app_export.application.scenes:
         for view in scene.views:
             if view.key in own_views:
                 continue
             header = _view_header(scene, view, orphaned)
             view_data = view.model_dump(mode="python")
-            candidates = _view_trigger_candidates(header, view_data, names)
-            for trigger, link_text, conditions, rules in candidates:
-                for record in rules["records"]:
+            for candidate in _view_trigger_candidates(header, view_data, names):
+                for record in candidate.records:
                     if not _targets_object(record, object_key):
                         continue
-                    entry = {
-                        "trigger": trigger,
-                        **header,
-                        "record_rule": record,
-                        "trigger_criteria": conditions,
-                        "emails_on_same_trigger": rules["emails"],
-                    }
-                    if link_text is not None:
-                        entry["link_text"] = link_text
-                    if trigger == "inline_edit":
-                        entry.update(
-                            {k: rules[k] for k in _INLINE_EDIT_KEYS if k in rules}
-                        )
-                    out.append(entry)
+                    out.append(_connected_entry(candidate, header, record))
     return out

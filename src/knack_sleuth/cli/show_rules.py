@@ -1,13 +1,27 @@
 """show-rules: what an object's forms, links, table edits, pages and tasks DO."""
 
 import json
-from typing import Annotated
+from collections.abc import Mapping
+from typing import Annotated, Any
 
 import typer
 from rich.markup import escape
 from rich.panel import Panel
 
 from knack_sleuth.rules import collect_rules
+from knack_sleuth.rules_report import (
+    ConnectedRecordRule,
+    Criterion,
+    EmailRule,
+    FieldRules,
+    PageRule,
+    PageRules,
+    RecordRule,
+    RulesReport,
+    SubmitRule,
+    Task,
+    Trigger,
+)
 
 from ._common import (
     cli,
@@ -22,16 +36,16 @@ from ._options import AppId, MetadataFile, Refresh, RichOrJson
 BREADCRUMB = "\u203a"  # single right-pointing angle quotation mark
 
 
-def _fmt_field(entry: dict) -> str:
+def _fmt_field(entry: Mapping[str, Any]) -> str:
     name = entry.get("field_name")
     key = entry.get("field") or "?"
     return f"{key} ({name})" if name else str(key)
 
 
-def _fmt_value(criterion: dict) -> str:
+def _fmt_value(criterion: Criterion) -> str:
     """What a criterion compares against, or "" when it compares to nothing."""
     if criterion.get("range"):
-        return str(criterion["range"])
+        return criterion["range"]
     value = criterion.get("value")
     if isinstance(value, dict) and "date" in value:
         # Knack stores a date as a dict and leaves an empty one behind on
@@ -48,7 +62,7 @@ def _fmt_value(criterion: dict) -> str:
     return repr(value)
 
 
-def _fmt_criteria(criteria: list) -> str:
+def _fmt_criteria(criteria: list[Criterion]) -> str:
     if not criteria:
         return ""
     parts = [
@@ -62,7 +76,7 @@ def _fmt_criteria(criteria: list) -> str:
     return " [dim]when " + escape(" and ".join(parts)) + "[/dim]"
 
 
-def _print_emails(emails: list, indent: str) -> None:
+def _print_emails(emails: list[EmailRule], indent: str) -> None:
     for email in emails:
         recipients = (
             ", ".join(
@@ -88,7 +102,7 @@ def _print_emails(emails: list, indent: str) -> None:
         )
 
 
-def _print_records(records: list, indent: str) -> None:
+def _print_records(records: list[RecordRule], indent: str) -> None:
     for record in records:
         values = (
             "; ".join(
@@ -100,12 +114,12 @@ def _print_records(records: list, indent: str) -> None:
         )
         target = f" via {record['connection']}" if record.get("connection") else ""
         console.print(
-            f"{indent}[cyan]Record[/cyan] {escape(str(record['description']))}{escape(target)}: "
+            f"{indent}[cyan]Record[/cyan] {escape(record['description'])}{escape(target)}: "
             f"{escape(values)}{_fmt_criteria(record['criteria'])}"
         )
 
 
-def _print_submits(submits: list, indent: str) -> None:
+def _print_submits(submits: list[SubmitRule], indent: str) -> None:
     for submit in submits:
         detail = (
             submit.get("target_page")
@@ -119,7 +133,9 @@ def _print_submits(submits: list, indent: str) -> None:
         )
 
 
-def _print_rule_lists(item: dict, indent: str, note_no_email: bool = True) -> None:
+def _print_rule_lists(
+    item: Mapping[str, Any], indent: str, note_no_email: bool = True
+) -> None:
     """Print the email/record/submit rules shared by every trigger kind.
 
     "Email rules: none" is printed on purpose: the question this answers is
@@ -140,7 +156,7 @@ def _print_rule_lists(item: dict, indent: str, note_no_email: bool = True) -> No
         )
 
 
-def _print_view_heading(trigger: dict, label: str) -> None:
+def _print_view_heading(trigger: Trigger | ConnectedRecordRule, label: str) -> None:
     where = escape(
         f"{trigger['scene_name']} ({trigger['scene_key']}) {BREADCRUMB} "
         f"{trigger['view_name']} ({trigger['view_key']}, {trigger['view_type']})"
@@ -153,18 +169,18 @@ def _print_view_heading(trigger: dict, label: str) -> None:
     console.print(f"\n[bold]{label}[/bold] {where}{flag}")
 
 
-def _link_label(entry: dict) -> str:
+def _link_label(entry: Trigger | ConnectedRecordRule) -> str:
     return f"Action link {escape(repr(entry.get('link_text') or ''))}:"
 
 
-def _inline_edit_label(entry: dict) -> str:
+def _inline_edit_label(entry: Trigger | ConnectedRecordRule) -> str:
     label = f"Inline edit of {escape(_fmt_field(entry['edited_field']))}:"
     if not entry.get("active", True):
         label += f" [yellow]INACTIVE: {escape(entry['inactive_reason'])}[/yellow]"
     return label
 
 
-def _print_trigger(trigger: dict) -> None:
+def _print_trigger(trigger: Trigger) -> None:
     if trigger["trigger"] == "inline_edit":
         _print_view_heading(trigger, _inline_edit_label(trigger))
         _print_rule_lists(trigger, "  ")
@@ -193,7 +209,7 @@ def _print_trigger(trigger: dict) -> None:
         )
 
 
-def _print_connected(connected: list) -> None:
+def _print_connected(connected: list[ConnectedRecordRule]) -> None:
     if not connected:
         return
     console.print(
@@ -217,7 +233,7 @@ def _print_connected(connected: list) -> None:
         )
 
 
-def _page_rule_line(rule: dict) -> str:
+def _page_rule_line(rule: PageRule) -> str:
     action = rule.get("action")
     if action == "hide_views":
         hidden = ", ".join(
@@ -236,7 +252,7 @@ def _page_rule_line(rule: dict) -> str:
     return f"[blue]{escape(str(action))}[/blue]"
 
 
-def _print_page_rules(pages: list) -> None:
+def _print_page_rules(pages: list[PageRules]) -> None:
     if not pages:
         return
     console.print(
@@ -245,8 +261,7 @@ def _print_page_rules(pages: list) -> None:
     )
     for page in pages:
         console.print(
-            f"  [bold]{escape(str(page['scene_name']))}[/bold] "
-            f"({escape(str(page['scene_key']))})"
+            f"  [bold]{escape(page['scene_name'])}[/bold] ({escape(page['scene_key'])})"
         )
         # A page that is here for its criteria alone has no selected view to
         # hide, so every one of its rules is the finding: print them all.
@@ -266,7 +281,7 @@ def _print_page_rules(pages: list) -> None:
             )
 
 
-def _print_field_rules(field_rules: list) -> None:
+def _print_field_rules(field_rules: list[FieldRules]) -> None:
     if not field_rules:
         return
     console.print(
@@ -281,7 +296,7 @@ def _print_field_rules(field_rules: list) -> None:
             console.print(f"  {escape(values)}{_fmt_criteria(rule['criteria'])}")
 
 
-def _print_tasks(tasks: list) -> None:
+def _print_tasks(tasks: list[Task]) -> None:
     console.print("\n[bold cyan]Scheduled tasks:[/bold cyan]")
     if not tasks:
         console.print("  [dim]none[/dim]")
@@ -297,7 +312,7 @@ def _print_tasks(tasks: list) -> None:
         _print_rule_lists(task, "    ", note_no_email=False)
 
 
-def _print_report(report: dict, title: str, show_tasks: bool) -> None:
+def _print_report(report: RulesReport, title: str, show_tasks: bool) -> None:
     console.print(
         Panel(f"[bold cyan]{escape(title)}[/bold cyan]", title="Builder Rules")
     )
