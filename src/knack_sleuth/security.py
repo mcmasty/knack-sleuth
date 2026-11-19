@@ -371,16 +371,43 @@ def _inherited_restrictions(
     return restrictions or [((), False, None)]
 
 
+def _resolve_parent(
+    slug: str, hierarchy: dict[str, Any], child_key: str | None
+) -> tuple[Scene | None, str | None, bool]:
+    """Resolve a parent slug for the walk up from the scene ``child_key``.
+
+    As ``_resolve_scene_by_slug``, except that the scene the walk started from
+    is never a candidate: a page can share its parent's slug, and when it comes
+    first in the export it would otherwise resolve to itself. Returns the
+    scene to continue from, its label, and whether the slug exists at all.
+    """
+    everyone = hierarchy["scenes_by_slug"].get(slug, [])
+    others = [scene for scene in everyone if scene.key != child_key]
+    if len(others) == len(everyone):
+        scene, label = _resolve_scene_by_slug(slug, hierarchy)
+        return scene, label, bool(everyone)
+    if not others:
+        return None, None, True
+    label = (
+        others[0].name
+        if len(others) == 1
+        else " / ".join(_scene_label(scene) for scene in others)
+    )
+    return others[0], label, True
+
+
 def _walk_ancestors(
     parent_slug: str,
     hierarchy: dict[str, Any],
+    child_key: str | None = None,
 ) -> tuple[list[str], str | None, str | None]:
     """Walk the parent chain once for everything a navigation path needs.
 
     Returns the ancestor labels root-first, the name of the nearest menu an
     ancestor belongs to, and the label of the top-most ancestor (the root
     login page for a "Direct" chain). A slug that does not resolve ends the
-    chain with the slug itself, and a repeated slug ends it silently.
+    chain with the slug itself, and a repeated slug ends it silently, as does
+    a slug that only the starting scene (``child_key``) has.
     """
     scenes_by_key = hierarchy["scenes_by_key"]
     chain: list[str] = []
@@ -391,9 +418,12 @@ def _walk_ancestors(
 
     while current_slug and current_slug not in visited_slugs:
         visited_slugs.add(current_slug)
-        current_scene, current_label = _resolve_scene_by_slug(current_slug, hierarchy)
+        current_scene, current_label, known = _resolve_parent(
+            current_slug, hierarchy, child_key
+        )
         if not current_scene:
-            chain.append(current_slug)
+            if not known:
+                chain.append(current_slug)
             break
         chain.append(current_label or current_slug)
         if not current_scene.parent:
@@ -432,7 +462,7 @@ def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, 
     parent_chain: list[str] = []
     if parent_slug:
         parent_chain, menu_name, root_login_name = _walk_ancestors(
-            parent_slug, hierarchy
+            parent_slug, hierarchy, scene.key
         )
         if root_nav == "Direct":
             if menu_name:
@@ -488,7 +518,12 @@ def _ancestor_keys(scene: Scene, hierarchy: dict[str, Any]) -> list[str]:
     visited: set[str] = set()
     while slug and slug not in visited:
         visited.add(slug)
-        candidates = hierarchy["scenes_by_slug"].get(slug, [])
+        # The scene is never its own ancestor, even where it shares the slug.
+        candidates = [
+            candidate
+            for candidate in hierarchy["scenes_by_slug"].get(slug, [])
+            if candidate.key != scene.key
+        ]
         if not candidates:
             break
         for candidate in candidates:
@@ -497,7 +532,6 @@ def _ancestor_keys(scene: Scene, hierarchy: dict[str, Any]) -> list[str]:
         slug = candidates[0].parent
     if menu_key:
         keys.setdefault(menu_key)
-    keys.pop(scene.key, None)
     return list(keys)
 
 
