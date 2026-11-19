@@ -1326,6 +1326,82 @@ class TestRoleAccessReviewCli:
         assert len(summary_rows) == 11 + 1
 
 
+class TestRoleListAllUsers:
+    def test_all_users_line_counts_pages_with_no_role_limit(self, tmp_path):
+        # "all_users" is every logged-in user, not a role a page is limited
+        # to, so "Access to 0 scenes" was true and useless.
+        app = {
+            "application": {
+                "id": "app_roles",
+                "name": "Roles",
+                "slug": "roles",
+                "home_scene": {"key": "scene_1", "slug": "open"},
+                "objects": [
+                    {
+                        "key": "object_1",
+                        "name": "Accounts",
+                        "user": True,
+                        "profile_key": "all_users",
+                        "fields": [],
+                    },
+                    {
+                        "key": "object_2",
+                        "name": "Staff",
+                        "user": True,
+                        "profile_key": "profile_2",
+                        "fields": [],
+                    },
+                ],
+                "scenes": [
+                    {"key": "scene_1", "name": "Open", "slug": "open", "views": []},
+                    {
+                        "key": "scene_2",
+                        "name": "Members",
+                        "slug": "members",
+                        "authenticated": True,
+                        "views": [],
+                    },
+                    {
+                        "key": "scene_3",
+                        "name": "Lounge",
+                        "slug": "lounge",
+                        "parent": "members",
+                        "views": [],
+                    },
+                    {
+                        "key": "scene_4",
+                        "name": "Staff Room",
+                        "slug": "staff-room",
+                        "authenticated": True,
+                        "limit_profile_access": True,
+                        "allowed_profiles": ["profile_2"],
+                        "views": [],
+                    },
+                ],
+            }
+        }
+        path = tmp_path / "app.json"
+        path.write_text(json.dumps(app))
+
+        result = runner.invoke(
+            cli,
+            ["role-access-review", str(path), "-o", str(tmp_path / "out.csv")],
+            env=WIDE,
+        )
+
+        assert result.exit_code == 0, result.output
+        lines = {
+            line.split("(")[0].strip(): " ".join(line.split())
+            for line in result.output.splitlines()
+            if "(all_users" in line or "(profile_2" in line
+        }
+        # Members and Lounge need a login and name no role.
+        assert lines["Accounts"].endswith(
+            "any logged-in user: 2 login-required scenes with no role limit"
+        )
+        assert lines["Staff"].endswith("Access to 1 scenes")
+
+
 class TestRoleAccessSummaryCli:
     def test_valid_role_writes_csv(self, tmp_path):
         out = tmp_path / "role_summary.csv"

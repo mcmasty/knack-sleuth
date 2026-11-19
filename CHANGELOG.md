@@ -4,6 +4,9 @@
 
 ### Fixed
 
+- `role-access-review` listed the base Accounts object as a role with "Access to 0 scenes".
+  Its key, `all_users`, stands for every logged-in user, so the line now gives the number
+  of login-required scenes that have no role limit.
 - Utility pages (Account Settings and other pages in the user menu) were described as
   needing a "Knack system-level account (beyond app profiles)", and one with no role limit
   was reported as `PUBLIC`. Knack's documentation says they are open to all logged-in users
