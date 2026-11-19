@@ -245,6 +245,15 @@ def _domain_model(domain: DomainModel) -> list[str]:
         f"- **{e['name']}** - Used by {len(e.get('used_by', []))} objects"
         for e in reference[:5]
     )
+    # The two remaining buckets, so every object is counted somewhere here.
+    for title, entities in (
+        ("Supporting Entities", domain["supporting_entities"]),
+        ("User Profiles", domain["user_profiles"]),
+    ):
+        lines += ["", f"### {title} ({len(entities)}) - top 5 shown"]
+        lines.extend(
+            f"- **{e['name']}** - {e['record_count']:,} records" for e in entities[:5]
+        )
     return lines
 
 
