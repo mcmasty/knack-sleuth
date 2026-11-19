@@ -1,56 +1,50 @@
 # Changelog
 
-## Unreleased
+## 0.12.0
 
 ### Fixed
 
-- `app-summary` reported `connection_density`, `avg_depth` and `modularity_score` as the
-  integer `0` when there was nothing to divide by (an app with no objects or no scenes).
-  They are ratios and are now `0.0`, as they are declared.
-- `show-rules` conditions, three corrections to how values are printed:
-  - A list of roles holding anything that is not a role key crashed the command with a
-    `TypeError`. The unexpected item is now printed as it is.
-  - A date condition with a time printed only the date, which moved the apparent cutoff to
-    midnight. The time is now shown.
-  - A text condition whose value happened to equal a role key ("Name is profile_7") was
-    relabelled as that role. Role names are now added only on fields of type `user_roles`.
-- Three places disagreed about dropdown menus and utility pages after they stopped being
-  flagged `UNRESTRICTED`:
-  - A login-only page that names a dropdown menu as its parent read `OK`, because it was
-    treated as sitting behind the menu's login. A menu is not a page a visitor passes
-    through, so the page's own login is where the gate starts and it is now flagged.
-  - The "N scenes require login but have no profile restrictions" warning used the total
-    of pages any login can open, which includes utility pages and inheriting pages that no
-    row flags. It now counts the rows flagged `UNRESTRICTED`.
-  - `role-access-summary` still listed dropdown menus as `any_login`. They are left out,
-    as `role-access-review` leaves them out of its unrestricted count.
-- `app-summary --format markdown` left supporting entities and user profiles out of its
-  Domain Model section, though both are in the JSON. On a real app 26 of 61 objects were
-  never mentioned. Both buckets are now listed, so the five counts add up to the number of
-  objects. Supporting entities are ordered by record count, in the JSON as well, so the
-  "top 5" shown are the five largest.
-- `role-access-review` listed the base Accounts object as a role with "Access to 0 scenes".
-  Its key, `all_users`, stands for every logged-in user, so the line now gives the number
-  of login-required scenes that have no role limit.
+- `role-access-review` flagged dropdown menus as `UNRESTRICTED`. A menu is a list of links
+  with nothing of its own to open, and each page in it sets its own access, so the flags
+  buried the pages that matter: on a real app 7 of the 8 flags were menus. A menu with no
+  views of its own now reads `OK`, is left out of the unrestricted count and of
+  `role-access-summary`, and no longer counts as a login in front of a page that names it
+  as parent. Such a page is flagged itself if it asks for a login and names no roles.
 - Utility pages (Account Settings and other pages in the user menu) were described as
   needing a "Knack system-level account (beyond app profiles)", and one with no role limit
   was reported as `PUBLIC`. Knack's documentation says they are open to all logged-in users
-  or to specific roles. They are now always login-required, the note reads "In the
-  logged-in user's menu, not the page menu", and `role-access-summary` gives them the
-  access basis `role` or `any_login`; the `utility` basis is gone.
+  or to specific roles. They are now always login-required, and the note reads "In the
+  logged-in user's menu, not the page menu".
+- `role-access-review`'s warning "N scenes require login but have no profile restrictions"
+  now counts the rows flagged `UNRESTRICTED`. It used the total of pages any login can
+  open, which includes menus, utility pages and pages that inherit a role-less login.
+- `role-access-review` listed the base Accounts object as a role with "Access to 0 scenes".
+  Its key, `all_users`, stands for every logged-in user, so the line now gives the number
+  of login-required scenes that have no role limit.
 - `show-rules` printed some rule conditions as stored rather than as read. A condition on
-  the logged-in user's roles now names the role ("does not contain Admin (profile_113)"
-  instead of `'profile_113'`), and a date condition that compares to nothing ("is blank",
-  "is today") no longer prints the empty date value Knack leaves on it. In the JSON output
-  the stored `value` is unchanged and role names are added as `value_names`.
-- `role-access-review` flagged dropdown menus as `UNRESTRICTED` and counted them among the
-  unrestricted pages. A menu is a list of links with nothing of its own to open, and each
-  page in it sets its own access, so the flag buried the pages that matter: on a real app 7
-  of the 8 flags were menus. A menu with no views of its own now reads `OK` and is left out
-  of the unrestricted count.
+  a roles field now names the role ("does not contain Admin (profile_113)" instead of
+  `'profile_113'`). A date condition prints its date and time instead of the stored
+  dictionary, and one that compares to nothing ("is blank", "is today") no longer prints
+  the empty value Knack leaves on it.
+- `app-summary --format markdown` left supporting entities and user profiles out of its
+  Domain Model section, though both are in the JSON. On a real app 26 of 61 objects were
+  never mentioned. Both buckets are now listed, so the five counts add up to the number of
+  objects.
+- `app-summary` reported `connection_density`, `avg_depth` and `modularity_score` as the
+  integer `0` when there was nothing to divide by (an app with no objects or no scenes).
+  They are ratios and are now `0.0`.
 
 ### Changed
 
+These follow from the fixes above. Anything that reads the output may need updating.
+
+- `role-access-summary`: `access_basis` no longer takes the value `utility`; a utility page
+  is `role` or `any_login`. Dropdown menus no longer have a row.
+- `role-access-review`: dropdown menus read `OK` instead of `UNRESTRICTED`, utility pages
+  carry a new note, and `unrestricted_authenticated_scenes` no longer counts menus.
+- `show-rules --format json`: a criterion on a roles field gains `value_names` (role key to
+  role name). The stored `value` is unchanged.
+- `app-summary`: `supporting_entities` is ordered by record count, largest first.
 - Library: `KnackSleuth.generate_impact_analysis` returns the full report shape when the
   target cannot be classified (for example the key `nonsense`), with `error` set and every
   list empty. It used to return `{"error": ...}` alone. The CLI is unaffected: it prints the
