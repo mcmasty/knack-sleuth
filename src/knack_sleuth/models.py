@@ -359,6 +359,9 @@ class SceneSecurity(BaseModel):
     requires_login: bool  # Whether login is actually required (considering inheritance)
     inherits_security: bool  # Whether security is inherited from parent
     child_count: int | None = None  # Only populated in summary mode
+    # Keys of every scene above this one: its parents by slug (all scenes that
+    # share a duplicate slug) and the menu the chain hangs from.
+    ancestor_keys: list[str] = PydanticField(default_factory=list)
     view_names: list[str] = PydanticField(
         default_factory=list
     )  # All view names on this scene

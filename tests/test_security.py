@@ -977,6 +977,43 @@ class TestCountChildren:
         # chain passes through it in the raw JSON.
         assert count_children("scene_13", report.scene_analyses) == 0
 
+    def test_count_ignores_pages_that_only_share_part_of_a_name(self):
+        # "Jobs" is a substring of "Jobs Archive", whose pages are not below
+        # Jobs. Matching names in the navigation path counted them anyway.
+        menu = Scene(key="scene_menu", name="Jobs Menu", slug="menu", type="menu")
+        scenes = [
+            menu,
+            Scene(key="scene_1", name="Jobs", slug="jobs", menu="scene_menu"),
+            Scene(key="scene_2", name="Job Details", slug="job", parent="jobs"),
+            Scene(key="scene_3", name="Jobs Archive", slug="archive"),
+            Scene(key="scene_4", name="Archived Job", slug="old", parent="archive"),
+            Scene(key="scene_5", name="Notes", slug="notes", parent="old"),
+        ]
+        hierarchy = build_navigation_hierarchy(scenes)
+        analyses = [analyze_scene_security(s, {}, hierarchy) for s in scenes]
+
+        counts = {s.key: count_children(s.key, analyses) for s in scenes}
+
+        assert counts == {
+            "scene_menu": 1,  # Job Details, below its member page Jobs
+            "scene_1": 1,  # Job Details
+            "scene_2": 0,
+            "scene_3": 2,  # Archived Job and Notes
+            "scene_4": 1,  # Notes
+            "scene_5": 0,
+        }
+
+    def test_count_includes_every_scene_sharing_a_duplicate_parent_slug(self):
+        scenes = [
+            Scene(key="scene_1", name="Home", slug="home"),
+            Scene(key="scene_2", name="Home", slug="home"),
+            Scene(key="scene_3", name="Page", slug="page", parent="home"),
+        ]
+        hierarchy = build_navigation_hierarchy(scenes)
+        analyses = [analyze_scene_security(s, {}, hierarchy) for s in scenes]
+
+        assert [count_children(s.key, analyses) for s in scenes] == [1, 1, 0]
+
 
 # ---------------------------------------------------------------------------
 # E. get_views_for_profile
