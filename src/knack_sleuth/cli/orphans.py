@@ -5,7 +5,10 @@ from dataclasses import dataclass
 from typing import Annotated
 
 import typer
+from rich.markup import escape
+from rich.style import Style
 from rich.table import Table
+from rich.text import Text
 
 from knack_sleuth.config import Settings
 from knack_sleuth.core import builder_url
@@ -146,7 +149,9 @@ def _payload(orphans: _Orphans, app: Application) -> dict:
 def _print_fields(orphans: _Orphans, app_name: str) -> None:
     console.print()
     if orphans.fields:
-        table = Table(title=f"[bold cyan]{app_name}[/bold cyan] - Orphaned Fields")
+        table = Table(
+            title=f"[bold cyan]{escape(app_name)}[/bold cyan] - Orphaned Fields"
+        )
         table.add_column("Object", style="bold cyan")
         table.add_column("Field", style="yellow")
         table.add_column("Key", style="dim")
@@ -154,10 +159,10 @@ def _print_fields(orphans: _Orphans, app_name: str) -> None:
         table.add_column("Notes", style="dim")
         for obj, field in orphans.fields:
             table.add_row(
-                obj.name,
-                field.name,
+                escape(obj.name),
+                escape(field.name),
                 field.key,
-                field.type,
+                escape(field.type),
                 ", ".join(_field_notes(obj, field)),
             )
         console.print(table)
@@ -180,7 +185,7 @@ def _print_objects(orphans: _Orphans, app: Application) -> None:
     for obj in orphans.objects:
         row_count = app.counts.get(obj.key, 0)
         console.print(
-            f"  [yellow]•[/yellow] [bold cyan]{obj.name}[/bold cyan] ({obj.key}) - "
+            f"  [yellow]•[/yellow] [bold cyan]{escape(obj.name)}[/bold cyan] ({obj.key}) - "
             f"{len(obj.fields)} fields, {row_count:,} rows"
         )
 
@@ -190,7 +195,7 @@ def _print_views(orphans: _Orphans, app: Application) -> None:
     if not orphans.views:
         console.print("[green]✓[/green] No orphaned views found")
         return
-    table = Table(title=f"[bold cyan]{app.name}[/bold cyan] - Orphaned Views")
+    table = Table(title=f"[bold cyan]{escape(app.name)}[/bold cyan] - Orphaned Views")
     table.add_column("Scene", style="bold cyan")
     table.add_column("View", style="yellow")
     table.add_column("Key", style="dim")
@@ -198,11 +203,12 @@ def _print_views(orphans: _Orphans, app: Application) -> None:
     table.add_column("Builder", style="dim")
     for orphan in orphans.views:
         table.add_row(
-            orphan.scene.name,
-            orphan.view.name,
+            escape(orphan.scene.name),
+            escape(orphan.view.name),
             orphan.view.key,
-            orphan.view.type,
-            f"[link={_view_url(app, orphan)}]open[/link]",
+            escape(orphan.view.type),
+            # A Text, not [link=...] markup: a "[" in the URL would break the tag.
+            Text("open", style=Style(link=_view_url(app, orphan))),
         )
     console.print(table)
     console.print(
@@ -220,11 +226,13 @@ def _print_layout_defects(orphans: _Orphans) -> None:
         )
         for item in orphans.dangling_keys:
             where = (
-                f"now on {item.moved_to}" if item.moved_to else "view no longer exists"
+                f"now on {escape(item.moved_to)}"
+                if item.moved_to
+                else "view no longer exists"
             )
             console.print(
-                f"  [yellow]•[/yellow] [bold cyan]{item.scene.name}[/bold cyan] "
-                f"({item.scene.key}) references {item.view_key} — {where}"
+                f"  [yellow]•[/yellow] [bold cyan]{escape(item.scene.name)}[/bold cyan] "
+                f"({item.scene.key}) references {escape(item.view_key)} — {where}"
             )
 
     if orphans.stale_rules:
@@ -234,9 +242,9 @@ def _print_layout_defects(orphans: _Orphans) -> None:
         )
         for item in orphans.stale_rules:
             console.print(
-                f"  [yellow]•[/yellow] [bold cyan]{item.scene.name}[/bold cyan] "
-                f"({item.scene.key}) {item.rule_path} → {item.view_key} "
-                f"[dim]({item.reason})[/dim]"
+                f"  [yellow]•[/yellow] [bold cyan]{escape(item.scene.name)}[/bold cyan] "
+                f"({item.scene.key}) {escape(item.rule_path)} → {escape(item.view_key)} "
+                f"[dim]({escape(item.reason)})[/dim]"
             )
 
 

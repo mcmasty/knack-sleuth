@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import typer
+from rich.markup import escape
 
 from knack_sleuth.db_schema import (
     build_subgraph,
@@ -123,7 +124,7 @@ def export_schema(
 
     console.print()
     console.print(
-        f"[green]✓[/green] JSON schema exported to [bold]{output_file}[/bold]"
+        f"[green]✓[/green] JSON schema exported to [bold]{escape(str(output_file))}[/bold]"
     )
     console.print(f"[dim]  Mode: {mode}[/dim]")
     console.print(f"[dim]  File size: {file_size_kb(output_file)}[/dim]")
@@ -147,7 +148,7 @@ def _load(file_path: Path | None, app_id: str | None, refresh: bool):
     console.print("[dim]Loading application metadata...[/dim]")
     app = load_app_metadata(file_path, app_id, refresh).application
     console.print(
-        f"[green]✓[/green] Loaded: [bold]{app.name}[/bold] ({len(app.objects)} objects)"
+        f"[green]✓[/green] Loaded: [bold]{escape(app.name)}[/bold] ({len(app.objects)} objects)"
     )
     return app
 
@@ -243,7 +244,7 @@ def export_db_schema(
     _generate_and_write(app, format, detail, output_file)
 
     console.print(
-        f"[green]✓[/green] Database schema exported to [bold]{output_file}[/bold]"
+        f"[green]✓[/green] Database schema exported to [bold]{escape(str(output_file))}[/bold]"
     )
     _print_export_details(
         [
@@ -372,7 +373,7 @@ def export_schema_subgraph(
     if not start:
         fail(f"Object '{object}' not found. Please specify a valid object key or name.")
     console.print(
-        f"[green]✓[/green] Starting object: [bold]{start.name}[/bold] ({start.key})"
+        f"[green]✓[/green] Starting object: [bold]{escape(start.name)}[/bold] ({start.key})"
     )
 
     console.print(f"[dim]Building subgraph with depth {depth}...[/dim]")
@@ -387,7 +388,7 @@ def export_schema_subgraph(
     for key in sorted(subgraph_keys):
         obj = objects_by_key.get(key)
         if obj:
-            console.print(f"  • {obj.name} ({key})")
+            console.print(f"  • {escape(obj.name)} ({key})")
     console.print()
 
     with exit_on_error():
@@ -395,13 +396,13 @@ def export_schema_subgraph(
     _generate_and_write(filtered_app, format, detail, output_file)
 
     console.print(
-        f"[green]✓[/green] Schema subgraph exported to [bold]{output_file}[/bold]"
+        f"[green]✓[/green] Schema subgraph exported to [bold]{escape(str(output_file))}[/bold]"
     )
     _print_export_details(
         [
             f"Format: {format.upper()}",
             f"Detail: {detail}",
-            f"Starting object: {start.name} ({start.key})",
+            f"Starting object: {escape(start.name)} ({start.key})",
             f"Depth: {depth}",
             f"Objects: {len(subgraph_keys)}",
             f"File size: {file_size_kb(output_file)}",

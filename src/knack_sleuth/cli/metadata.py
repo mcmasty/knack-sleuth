@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from rich.markup import escape
 from rich.panel import Panel
 
 from knack_sleuth.diff import diff_applications, diff_to_markdown
@@ -30,9 +31,13 @@ from ._options import AppId, Refresh
 def _print_saved(output_file: Path, data: dict) -> None:
     application = data.get("application", {})
     console.print()
-    console.print(f"[green]✓[/green] Metadata saved to [bold]{output_file}[/bold]")
+    console.print(
+        f"[green]✓[/green] Metadata saved to [bold]{escape(str(output_file))}[/bold]"
+    )
     console.print(f"[dim]  File size: {file_size_kb(output_file)}[/dim]")
-    console.print(f"[dim]  App: {application.get('name', 'Unknown')}[/dim]")
+    console.print(
+        f"[dim]  App: {escape(str(application.get('name', 'Unknown')))}[/dim]"
+    )
     console.print(
         f"[dim]  Objects: {len(application.get('objects', []))} | "
         f"Scenes: {len(application.get('scenes', []))}[/dim]"
@@ -97,29 +102,27 @@ def _render_changes(entry: dict) -> str:
     changes = "; ".join(
         f"{attr}: {c['old']!r} → {c['new']!r}" for attr, c in entry["changes"].items()
     )
-    return f"{entry['name']} ({entry['key']}) — {changes}"
+    return escape(f"{entry['name']} ({entry['key']}) — {changes}")
 
 
 def _render_object(e: dict) -> str:
-    return (
-        f"[bold cyan]{e['name']}[/bold cyan] ({e['key']}) — {e['field_count']} fields"
-    )
+    return f"[bold cyan]{escape(e['name'])}[/bold cyan] ({e['key']}) — {e['field_count']} fields"
 
 
 def _render_field(e: dict) -> str:
-    return f"{e['object_name']} → [bold cyan]{e['name']}[/bold cyan] ({e['key']}, {e['type']})"
+    return f"{escape(e['object_name'])} → [bold cyan]{escape(e['name'])}[/bold cyan] ({e['key']}, {escape(e['type'])})"
 
 
 def _render_scene(e: dict) -> str:
-    return f"[bold cyan]{e['name']}[/bold cyan] ({e['key']}, /{e['slug']}) — {e['view_count']} views"
+    return f"[bold cyan]{escape(e['name'])}[/bold cyan] ({e['key']}, /{escape(e['slug'])}) — {e['view_count']} views"
 
 
 def _render_view(e: dict) -> str:
-    return f"{e['scene_name']} → [bold cyan]{e['name']}[/bold cyan] ({e['key']}, {e['type']})"
+    return f"{escape(e['scene_name'])} → [bold cyan]{escape(e['name'])}[/bold cyan] ({e['key']}, {escape(e['type'])})"
 
 
 def _render_rename(e: dict) -> str:
-    return f"{e['key']}: {e['old_name']} → {e['new_name']}"
+    return escape(f"{e['key']}: {e['old_name']} → {e['new_name']}")
 
 
 _ADDED, _REMOVED, _CHANGED = ("+", "green"), ("-", "red"), ("~", "yellow")
@@ -135,7 +138,7 @@ _DIFF_SECTIONS: list[tuple[str, str, str, Callable[[dict], str], tuple[str, str]
         "Fields Changed",
         "fields",
         "changed",
-        lambda e: f"{e['object_name']} → {_render_changes(e)}",
+        lambda e: f"{escape(e['object_name'])} → {_render_changes(e)}",
         _CHANGED,
     ),
     ("Scenes Added", "scenes", "added", _render_scene, _ADDED),
@@ -147,7 +150,7 @@ _DIFF_SECTIONS: list[tuple[str, str, str, Callable[[dict], str], tuple[str, str]
         "Views Changed",
         "views",
         "changed",
-        lambda e: f"{e['scene_name']} → {_render_changes(e)}",
+        lambda e: f"{escape(e['scene_name'])} → {_render_changes(e)}",
         _CHANGED,
     ),
 ]
@@ -161,9 +164,9 @@ def _print_diff_rich(diff_result: dict, old_file: Path, new_file: Path | None) -
     console.print()
     console.print(
         Panel(
-            f"[bold cyan]{old_file.name}[/bold cyan] → [bold cyan]{new_label}[/bold cyan]",
+            f"[bold cyan]{escape(old_file.name)}[/bold cyan] → [bold cyan]{escape(new_label)}[/bold cyan]",
             title="Metadata Diff",
-            subtitle=f"{summary['new_app_name']}",
+            subtitle=escape(summary["new_app_name"]),
         )
     )
 
@@ -183,7 +186,7 @@ def _print_diff_rich(diff_result: dict, old_file: Path, new_file: Path | None) -
     if summary["old_app_name"] != summary["new_app_name"]:
         console.print(
             f"\n[yellow]~[/yellow] Application renamed: "
-            f"{summary['old_app_name']} → {summary['new_app_name']}"
+            f"{escape(summary['old_app_name'])} → {escape(summary['new_app_name'])}"
         )
 
     for title, section, kind, render, (marker, color) in _DIFF_SECTIONS:

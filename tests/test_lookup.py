@@ -1,5 +1,7 @@
 """Tests for knack_sleuth.lookup resolution helpers."""
 
+import copy
+
 import pytest
 
 from knack_sleuth.lookup import (
@@ -72,3 +74,28 @@ class TestSuggestions:
 
     def test_no_suggestions_for_gibberish(self, app):
         assert suggest_object_names(app, "zzzzqqqqxxxx") == []
+
+
+class TestWhitespace:
+    """A name saved with a stray space must still be found by what is visible."""
+
+    @pytest.fixture
+    def spaced(self, sample_metadata_dict):
+        data = copy.deepcopy(sample_metadata_dict)
+        obj = data["application"]["objects"][0]
+        obj["name"] = "  Work   Orders "
+        obj["fields"][0]["name"] = "Status "
+        return KnackAppMetadata(**data).application
+
+    @pytest.mark.parametrize("typed", ["Work Orders", "work orders", " Work  Orders"])
+    def test_object_name_ignores_stray_whitespace(self, spaced, typed):
+        assert resolve_object(spaced, typed) is spaced.objects[0]
+
+    @pytest.mark.parametrize("typed", ["Status", "status ", "Status "])
+    def test_field_name_ignores_stray_whitespace(self, spaced, typed):
+        matches = resolve_fields(spaced, typed)
+        assert (spaced.objects[0], spaced.objects[0].fields[0]) in matches
+
+    def test_key_ignores_surrounding_whitespace(self, spaced):
+        key = spaced.objects[0].key
+        assert resolve_object(spaced, f" {key} ") is spaced.objects[0]

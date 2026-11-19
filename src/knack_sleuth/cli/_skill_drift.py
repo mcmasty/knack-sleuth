@@ -4,6 +4,8 @@ import re
 from importlib import resources
 from pathlib import Path
 
+from rich.markup import escape
+
 from knack_sleuth import __version__
 
 from ._common import err_console
@@ -90,4 +92,4 @@ def warn_if_installed_skill_is_stale() -> None:
 
     warning = _skill_drift_warning(default_skill_dir() / "SKILL.md", packaged_content)
     if warning:
-        err_console.print(f"[yellow]Warning:[/yellow] {warning}")
+        err_console.print(f"[yellow]Warning:[/yellow] {escape(warning)}")

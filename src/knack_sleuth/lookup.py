@@ -5,6 +5,8 @@ should resolve it through this module so lookup semantics stay consistent:
 keys (``object_12`` / ``field_116``) match case-insensitively and exactly;
 anything else is treated as a name and matched case-insensitively, then (for
 objects) against the singular/plural inflections when exactly one matches.
+Surrounding and repeated whitespace is ignored on both sides: Knack keeps a
+trailing space typed into a name, and nobody can see it to type it back.
 """
 
 from difflib import get_close_matches
@@ -12,12 +14,17 @@ from difflib import get_close_matches
 from knack_sleuth.models import Application, KnackField, KnackObject
 
 
+def _normalise(text: str) -> str:
+    """Lower-case, with whitespace trimmed and runs of it collapsed."""
+    return " ".join(text.split()).lower()
+
+
 def resolve_object(app: Application, identifier: str) -> KnackObject | None:
     """Find an object by key (e.g. 'object_12') or name, case-insensitively.
 
     Returns None if nothing matches.
     """
-    ident = identifier.lower()
+    ident = _normalise(identifier)
 
     if ident.startswith("object_"):
         for obj in app.objects:
@@ -25,7 +32,7 @@ def resolve_object(app: Application, identifier: str) -> KnackObject | None:
                 return obj
 
     for obj in app.objects:
-        if obj.name.lower() == ident:
+        if _normalise(obj.name) == ident:
             return obj
 
     # People say "Applicant" for an object named "Applicants". Fall back to the
@@ -34,7 +41,11 @@ def resolve_object(app: Application, identifier: str) -> KnackObject | None:
         obj
         for obj in app.objects
         if obj.inflections
-        and ident in (obj.inflections.singular.lower(), obj.inflections.plural.lower())
+        and ident
+        in (
+            _normalise(obj.inflections.singular),
+            _normalise(obj.inflections.plural),
+        )
     ]
     if len(inflected) == 1:
         return inflected[0]
@@ -51,7 +62,7 @@ def resolve_fields(
     legitimately be ambiguous — field names repeat across objects — so all
     matches are returned and the caller decides how to disambiguate.
     """
-    ident = identifier.lower()
+    ident = _normalise(identifier)
 
     if ident.startswith("field_"):
         for obj in app.objects:
@@ -63,7 +74,7 @@ def resolve_fields(
     matches: list[tuple[KnackObject, KnackField]] = []
     for obj in app.objects:
         for field in obj.fields:
-            if field.name.lower() == ident:
+            if _normalise(field.name) == ident:
                 matches.append((obj, field))
     return matches
 
