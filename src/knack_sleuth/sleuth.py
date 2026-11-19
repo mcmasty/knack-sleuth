@@ -1543,24 +1543,32 @@ class KnackSleuth:
     def _scene_depths(self) -> list[int]:
         """How many pages deep each scene sits: 1 for a top-level page.
 
-        ``parent`` is a slug, and a duplicate slug resolves to the first scene
-        that has it, as the navigation path does. A parent that does not
-        resolve still counts as a level; a slug seen twice ends the walk.
+        ``parent`` is a slug. Slugs repeat (a page can sit below a namesake),
+        so the walk tracks scenes, not slugs: each step takes the first scene
+        with the parent's slug that is not already on the path, and a loop
+        ends when none is left. No scene is ever its own ancestor. A parent
+        slug that no scene has still counts as a level.
         """
-        by_slug: dict[str, Scene] = {}
+        by_slug: dict[str, list[Scene]] = {}
         for scene in self.app.scenes:
-            by_slug.setdefault(scene.slug, scene)
+            by_slug.setdefault(scene.slug, []).append(scene)
 
         depths = []
         for scene in self.app.scenes:
             depth = 1
-            seen: set[str] = set()
-            parent = scene.parent
-            while parent and parent not in seen:
-                seen.add(parent)
+            on_path = {scene.key}
+            current = scene
+            while current.parent:
+                candidates = by_slug.get(current.parent)
+                if candidates is None:
+                    depth += 1  # dangling parent
+                    break
+                ancestor = next((c for c in candidates if c.key not in on_path), None)
+                if ancestor is None:
+                    break  # the chain has looped back onto itself
+                on_path.add(ancestor.key)
                 depth += 1
-                ancestor = by_slug.get(parent)
-                parent = ancestor.parent if ancestor else None
+                current = ancestor
             depths.append(depth)
         return depths
 
