@@ -443,6 +443,34 @@ def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, 
     }
 
 
+def _ancestor_keys(scene: Scene, hierarchy: dict[str, Any]) -> list[str]:
+    """Keys of the scenes above ``scene``, nearest first, then its menu.
+
+    Follows the same route as the navigation path: parents by slug, continuing
+    from the first scene of a duplicate slug, and the nearest menu on the way
+    up. Every scene sharing a duplicate slug is included, as each of them is
+    named in the path.
+    """
+    scenes_by_key = hierarchy["scenes_by_key"]
+    keys: dict[str, None] = {}
+    menu_key = _extra(scene).get("menu")
+    slug = scene.parent
+    visited: set[str] = set()
+    while slug and slug not in visited:
+        visited.add(slug)
+        candidates = hierarchy["scenes_by_slug"].get(slug, [])
+        if not candidates:
+            break
+        for candidate in candidates:
+            keys.setdefault(candidate.key)
+        menu_key = menu_key or _extra(candidates[0]).get("menu")
+        slug = candidates[0].parent
+    if isinstance(menu_key, str) and menu_key in scenes_by_key:
+        keys.setdefault(menu_key)
+    keys.pop(scene.key, None)
+    return list(keys)
+
+
 class _Access(NamedTuple):
     """Who can open a scene once inheritance from its ancestors is applied."""
 
@@ -567,33 +595,29 @@ def analyze_scene_security(
         security_concern=security_concern,
         requires_login=requires_login,
         inherits_security=access.inherits,
+        ancestor_keys=_ancestor_keys(scene, hierarchy),
         view_names=[view.name for view in scene.views],
         view_keys=[view.key for view in scene.views],
     )
 
 
 def count_children(scene_key: str, all_scenes: list[SceneSecurity]) -> int:
-    """Count how many child pages a scene has.
+    """Count the pages below a scene, at any depth.
+
+    For a menu these are the pages below its member pages; the member pages
+    themselves are top-level and are not counted.
 
     Args:
         scene_key: The scene key to count children for
         all_scenes: All scene security analyses
 
     Returns:
-        Count of child scenes
+        Count of descendant scenes
     """
-    parent_scene = next((s for s in all_scenes if s.scene_key == scene_key), None)
-    if parent_scene is None:
-        return 0
-    # Check if this scene's page_nav contains the parent's name. This is a
-    # simplified check - could be more sophisticated. "Child" makes sure it is
-    # actually a descendant, not just mentioned in the path.
     return sum(
         1
         for scene in all_scenes
-        if scene.scene_key != scene_key
-        and scene.nav_level == "Child"
-        and parent_scene.scene_name in scene.page_nav
+        if scene.nav_level == "Child" and scene_key in scene.ancestor_keys
     )
 
 

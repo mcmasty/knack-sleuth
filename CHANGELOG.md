@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- `role-access-review --summary-only` inflated `child_count` for a page whose name is part
+  of another page's name: "Jobs" was credited with everything under "Jobs Archive". Children
+  are now counted by following parent pages, not by matching names. On a real app two rows
+  dropped from 9 to 6 and from 10 to 1.
 - `app-summary` miscounted three access and navigation figures. They now agree with
   `role-access-review`:
   - Public and authenticated scenes were counted from each page's own `authenticated` flag,
