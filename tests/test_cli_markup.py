@@ -7,14 +7,19 @@ each command in its default (rich) output mode.
 """
 
 import copy
+import io
 import json
+import re
 from pathlib import Path
 
 import httpx
 import pytest
+from rich.console import Console
 from typer.testing import CliRunner
 
+from knack_sleuth.cli import _common as cli_common
 from knack_sleuth.cli import cli
+from knack_sleuth.cli import orphans as cli_orphans
 
 runner = CliRunner()
 SAMPLE = Path(__file__).parent / "data" / "sample_knack_app_meta.json"
@@ -510,6 +515,63 @@ def test_builder_links_survive_brackets_in_the_slug(tmp_path, env):
     path = _write(data, tmp_path / "slug.json")
     out = _run(["search-object", OBJECT, path], env, 0).output
     assert "my[app]" in out
+
+
+def _terminal_output(monkeypatch, module, args, env) -> str:
+    """Run a command with ``module.console`` writing to a pretend terminal.
+
+    Hyperlinks are OSC 8 escape sequences, which Rich only emits to a
+    terminal; the CliRunner's captured output never has them.
+    """
+    buffer = io.StringIO()
+    monkeypatch.setattr(
+        module,
+        "console",
+        Console(file=buffer, force_terminal=True, color_system="truecolor", width=400),
+    )
+    _run(args, env, 0)
+    return buffer.getvalue()
+
+
+def _link_targets(output: str) -> list[str]:
+    """The URLs of the OSC 8 hyperlinks in terminal output.
+
+    A link opens with ESC, "]8;", optional parameters, ";", the URL, and the
+    string terminator ESC backslash. The closing sequence has an empty URL.
+    """
+    opener = re.compile(r"\x1b\]8;[^;]*;([^\x1b]*)\x1b\\")
+    return [url for url in opener.findall(output) if url]
+
+
+def test_builder_links_point_at_the_bracketed_slug(tmp_path, env, monkeypatch):
+    # The visible URL can be right while the link target is missing or
+    # mangled; assert what the terminal is actually told to open.
+    data = _load()
+    data["application"]["slug"] = "my[app]"
+    path = _write(data, tmp_path / "slug.json")
+
+    out = _terminal_output(
+        monkeypatch, cli_common, ["search-object", OBJECT, path], env
+    )
+
+    targets = _link_targets(out)
+    assert targets
+    assert all("/my[app]/" in url for url in targets)
+    assert all(url.startswith("https://") for url in targets)
+
+
+def test_orphaned_view_open_link_points_at_the_bracketed_slug(
+    tmp_path, env, monkeypatch
+):
+    data = _add_orphan_defects(_load())
+    data["application"]["slug"] = "my[app]"
+    path = _write(data, tmp_path / "orphans.json")
+
+    out = _terminal_output(monkeypatch, cli_orphans, ["find-orphans", path], env)
+
+    targets = _link_targets(out)
+    assert targets
+    assert all("/my[app]/" in url for url in targets)
 
 
 def test_download_metadata_prints_names_verbatim(tmp_path, env, monkeypatch):
