@@ -235,10 +235,20 @@ def _resolve_profile(
             )
         return profile_key, name
 
-    wanted = normalise_name(role or "")
-    matches = [(k, v) for k, v in report.profiles.items() if v == role] or [
-        (k, v) for k, v in report.profiles.items() if normalise_name(v) == wanted
-    ]
+    # Closest reading first: as written, then ignoring case, then ignoring
+    # stray whitespace too. A looser reading is used only when a stricter one
+    # finds nothing.
+    typed = role or ""
+    readings = (
+        lambda name: name == typed,
+        lambda name: name.lower() == typed.lower(),
+        lambda name: normalise_name(name) == normalise_name(typed),
+    )
+    matches: list[tuple[str, str]] = []
+    for same in readings:
+        matches = [(k, v) for k, v in report.profiles.items() if same(v)]
+        if matches:
+            break
     if not matches:
         _exit_unknown_profile(f"Role '{role}' not found in application", report, False)
 
