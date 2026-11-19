@@ -99,3 +99,28 @@ class TestWhitespace:
     def test_key_ignores_surrounding_whitespace(self, spaced):
         key = spaced.objects[0].key
         assert resolve_object(spaced, f" {key} ") is spaced.objects[0]
+
+
+class TestNearNamesakes:
+    """Forgiving whitespace must not pick one of two names that differ by it."""
+
+    @pytest.fixture
+    def twins(self, sample_metadata_dict):
+        data = copy.deepcopy(sample_metadata_dict)
+        first, second = data["application"]["objects"][:2]
+        first["name"], second["name"] = "Job  Status", "Job Status"
+        first["fields"][0]["name"], second["fields"][0]["name"] = "Code ", "Code"
+        return KnackAppMetadata(**data).application
+
+    def test_exact_object_name_wins_over_an_earlier_near_match(self, twins):
+        assert resolve_object(twins, "Job Status") is twins.objects[1]
+        assert resolve_object(twins, "job  status") is twins.objects[0]
+
+    def test_object_name_matching_two_only_loosely_is_not_resolved(self, twins):
+        assert resolve_object(twins, " Job Status ") is None
+
+    def test_field_near_matches_are_all_returned_for_the_caller_to_pick(self, twins):
+        first, second = twins.objects[:2]
+        matches = resolve_fields(twins, "Code")
+        assert (first, first.fields[0]) in matches
+        assert (second, second.fields[0]) in matches
