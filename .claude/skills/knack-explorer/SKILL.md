@@ -31,7 +31,7 @@ Each command is invoked via `uvx knack-sleuth <command> ...`. Run any command wi
   - Key flags: `--no-fields` to suppress field-level detail
 - `search-field` — Find all usages of a single field (by key or name) without cascading through the whole object.
 - `show-coupling` — Show afferent (inbound) and efferent (outbound) coupling for an object.
-- `show-rules` — Show what an object's forms, action links, inline table edits and scheduled tasks **do**: email rules (subject, recipients, conditions; never the body), record rules (field = value, connected-record updates and inserts), submit rules (message, redirect, child page), and tasks with their run status. It also lists record rules on *other* objects' views that change this object through a connection, and flags rules on orphaned views as unreachable.
+- `show-rules` — Show what an object's forms, action links, inline table edits, pages and scheduled tasks **do**: email rules (subject, recipients, conditions; never the body), record rules (field = value, connected-record updates and inserts), submit rules (message, redirect, child page), page rules (hide a view, message, redirect), conditional field rules, and tasks with their run status. It also lists record rules on *other* objects' views that change this object through a connection, flags rules on orphaned views as unreachable, and marks inline-edit rules that cannot fire as inactive.
   - Key flags: `--object NAME_OR_KEY`, `--view view_NNN`
 - `find-orphans` — List orphaned fields and objects (defined but not used anywhere), plus page-layout debt: orphaned views (defined on a scene but left out of its layout, so they never render), dangling layout keys, and stale view rule references. Orphaned views carry a builder deep link — there is no API to delete a view.
 
@@ -79,7 +79,7 @@ Run `show-rules --object <object>` first. This is where each kind of rule sits i
 |---|---|---|
 | Form submit | `scenes[].views[].rules` | `emails`, `records`, `submits`, `fields` |
 | Action link in a table or details view | `views[].columns[].action_rules[]` (column `type: "action_link"`; details views nest it under `columns[].groups[].columns[]`) | `record_rules`, `submit_rules`, email rules when present |
-| Inline edit of a table cell | `views[].columns[].edit_rules[]` (only while `views[].options.cell_editor` is true and the column's `ignore_edit` is false) | record rules |
+| Inline edit of a table cell | `views[].columns[].edit_rules[]` (fires only on a `type: "field"` column of a `type: "table"` view, while `views[].options.cell_editor` is true and the column's `ignore_edit` is false; otherwise `show-rules` lists it as inactive) | record rules |
 | Page load | `scenes[].rules[]` (page rules) | `hide_views` (with `view_keys`), `message`, `existing_page` or `url` redirect, and criteria |
 | Schedule | `objects[].tasks` | task actions and criteria |
 | Any save of the record (form, link, import, API) | `objects[].fields[].rules` (conditional fields) | values and criteria |
@@ -88,8 +88,10 @@ Run `show-rules --object <object>` first. This is where each kind of rule sits i
   three.** It can also change from another object's form, link or table, through a connection,
   and through a conditional field rule on every save. `show-rules` lists all of these.
 - **A form can be hidden or skipped by its page.** A page rule can hide a view or redirect
-  away when the record or the logged-in user meets a condition. `show-rules` lists the page
-  rules of every page it reports on.
+  away when the record or the logged-in user meets a condition. `show-rules --object` lists
+  the page rules of every page holding one of the object's views, and of any other page whose
+  rules test the object's fields. `--view` lists that view's page, without rules that only
+  hide other views.
 - **Email rules run after record rules.** A record rule that blanks a field can break the email
   that uses it. `show-rules` warns when it sees this on the same trigger.
 - **A scene's `views` array is a registry, not the layout.** A view renders only if its key is in
@@ -169,7 +171,7 @@ Use `--format markdown` when the output is for human consumption.
 
 ### Common patterns
 
-- What does submitting a form or clicking an action link do? (emails, record changes, redirects):
+- What does submitting a form, clicking an action link or editing a table cell do, and what does the page do on load? (emails, record changes, redirects, hidden views):
   - `uvx knack-sleuth show-rules --object "Applicant" --app-id YOUR_APP_ID`
   - `uvx knack-sleuth show-rules --view view_123 --app-id YOUR_APP_ID --format json`
 - Search usages of one field:
@@ -205,6 +207,6 @@ Use `--format markdown` when the output is for human consumption.
   many connected records each connecting record holds, so Events.Client with `has: one,
   belongs_to: many` is many Events to one Client, not "one to many".
 - For impact analysis, call out the risk level and affected workflows.
-- For behaviour questions, name the trigger (form or action link, page, view key) and quote the rule that answers it.
+- For behaviour questions, name the trigger (form, action link, inline edit or page rule; page and view key) and quote the rule that answers it.
   Do not quote email bodies or full addresses. Email rules can hold personal data.
 - When multiple objects are involved, organize findings by domain cluster or dependency chain.
