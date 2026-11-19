@@ -521,7 +521,8 @@ def test_download_metadata_prints_names_verbatim(tmp_path, env, monkeypatch):
 
     # the cache file is now listed, under a table titled with the bracketed dir
     result = _run(["cache", "list"], env, 0)
-    assert PATH_NEEDLE in result.output.replace("\n", " ")
+    # The table title wraps and is centred, so collapse the padding.
+    assert PATH_NEEDLE in " ".join(result.output.split())
     assert "abc123_app_metadata_" in result.output
 
 
