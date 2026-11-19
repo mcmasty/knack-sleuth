@@ -52,7 +52,7 @@ SUMMARY_COLUMNS = [
     "view_keys",
     "access_basis",
 ]
-ACCESS_BASES = ("role", "any_login", "public", "utility")
+ACCESS_BASES = ("role", "any_login", "public")
 
 
 def _analyze(file_path: Path | None, app_id: str | None, refresh: bool):
@@ -75,7 +75,9 @@ def _print_review(report: SecurityReport) -> None:
     _banner(f"ROLE ACCESS REVIEW: {escape(report.app_name)}")
     console.print(f"\nTotal Scenes: {report.total_scenes}")
     console.print(f"  Menu Scenes: {report.menu_scenes}")
-    console.print(f"  Utility Pages (Require Knack Account): {report.utility_pages}")
+    console.print(
+        f"  Utility Pages (User Menu, Login Required): {report.utility_pages}"
+    )
     console.print(
         f"  Scenes with Parent (Inherit Security): {report.scenes_with_parents}"
     )
@@ -267,16 +269,12 @@ def _access_basis(analysis: SceneSecurity, profile_name: str) -> str | None:
     this role from one any logged-in user can open (issue #27); None if it can't.
     """
     if profile_name in analysis.allowed_profiles:
-        basis = "role"
-    elif not analysis.requires_login:
-        basis = "public"
-    elif analysis.allowed_profile_count == 0:
-        basis = "any_login"
-    else:
-        return None
-    # Utility pages need a Knack system-level account on top of whatever the
-    # app grants, so neither public nor any_login fits.
-    return "utility" if analysis.scene_type == "user" else basis
+        return "role"
+    if not analysis.requires_login:
+        return "public"
+    if analysis.allowed_profile_count == 0:
+        return "any_login"
+    return None
 
 
 def _accessible_scenes(
@@ -328,7 +326,7 @@ def _print_access_summary(
     console.print(f"  Scenes without Views: {len(rows) - with_views}")
     console.print(
         "Access basis (role = profile named on the scene, any_login = any logged-in user, "
-        "public = no login, utility = Knack system-level account):"
+        "public = no login):"
     )
     for basis in ACCESS_BASES:
         count = sum(1 for r in rows if r["access_basis"] == basis)
