@@ -448,12 +448,14 @@ PATH_ONLY = {
 def test_command_prints_names_verbatim(case_id, build, expect_exit, files, env):
     args = build(*files)
     result = _run(args, env, expect_exit)
+    # A long temporary path can wrap between the two halves of the needle.
+    output = _squash(result.output)
     if case_id in PATH_ONLY:
-        assert PATH_NEEDLE in result.output
+        assert _squash(PATH_NEEDLE) in output
     else:
-        assert NEEDLE in result.output
+        assert _squash(NEEDLE) in output
     if any(PATH_NEEDLE in str(a) for a in args):
-        assert PATH_NEEDLE in result.output
+        assert _squash(PATH_NEEDLE) in output
 
 
 def test_find_orphans_layout_defects_are_listed(meta_orphans, env):
