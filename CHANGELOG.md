@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.11.0
 
 ### Added
 
@@ -103,6 +103,23 @@
   list now counts only while its `limit_profile_access` is on, and a page's own list is
   ignored when its `limit_profile_access` is `false`; these pages get the `UNRESTRICTED`
   concern instead (#24).
+
+### Changed
+
+These follow from the fixes above. Anything that reads the output may need updating.
+
+- `app-summary`: `ui_architecture.scene_patterns`, `ui_architecture.navigation_depth` and
+  `access_patterns.role_usage.scenes_with_role_restrictions` hold different, corrected
+  values. Keys are unchanged.
+- `list-objects`: `totals.connections` is half what it was.
+- `role-access-review`: pages behind a login view with no role limit, and the pages below
+  them, are now login-required instead of public; a page whose leftover role list is no
+  longer enforced loses its roles and gains `UNRESTRICTED`.
+- `show-rules --format json`: adds `page_rules`, triggers of kind `inline_edit`, `range` on
+  relative date criteria, and `field_name` on criteria that test the logged-in user or a
+  connected record. Notification recipients are `type: custom` with a masked address
+  instead of `type: null`.
+- Development: no complexity suppressions remain; the lint baseline is down to 2.
 
 ## 0.10.0
 
