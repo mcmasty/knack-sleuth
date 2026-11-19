@@ -248,10 +248,51 @@ class TestAnalyzeSceneSecurityDirect:
         direct = analyze_scene_security(scene_3, profiles, hierarchy)
         via_report = analyses_by_key["scene_3"]
 
-        assert direct.requires_login == via_report.requires_login
-        assert direct.inherits_security == via_report.inherits_security
-        assert direct.allowed_profiles == via_report.allowed_profiles
-        assert direct.page_nav == via_report.page_nav
+        assert direct == via_report
+
+    def test_scene_3_matches_what_the_raw_json_says(
+        self, application, raw_scenes, raw_objects
+    ):
+        # The comparison above passes whatever the analyzer says, as long as
+        # it says it twice. These values are read from the raw JSON instead:
+        # scene_3 sets no restriction of its own; its parent slug is scene_4,
+        # a login page in menu scene_45 whose login view is limited to
+        # profile_10; and profile_10 is the object named "Object Name 10".
+        by_key = {s["key"]: s for s in raw_scenes}
+        scene_3, scene_4, menu = (
+            by_key["scene_3"],
+            by_key["scene_4"],
+            by_key["scene_45"],
+        )
+        assert scene_3["authenticated"] is False
+        assert not scene_3.get("allowed_profiles")
+        assert scene_3["parent"] == scene_4["slug"]
+        assert not scene_4.get("parent")
+        assert scene_4["menu"] == "scene_45"
+        (login,) = [v for v in scene_4["views"] if v["type"] == "login"]
+        assert (login["limit_profile_access"], login["allowed_profiles"]) == (
+            True,
+            ["profile_10"],
+        )
+        role = next(o for o in raw_objects if o.get("profile_key") == "profile_10")
+        assert role["name"] == "Object Name 10"
+
+        app = application
+        analysis = analyze_scene_security(
+            next(s for s in app.scenes if s.key == "scene_3"),
+            get_profile_mapping(app),
+            build_navigation_hierarchy(app.scenes),
+        )
+
+        assert analysis.requires_login is True
+        assert analysis.inherits_security is True
+        assert analysis.allowed_profiles == ["Object Name 10"]
+        assert analysis.page_nav == " > ".join(
+            [menu["name"], scene_4["name"], scene_3["name"]]
+        )
+        assert analysis.page_nav == (
+            "Data Maintenance > System Admin Home Login > Organizational Ref Data"
+        )
 
 
 class TestGetProfileMapping:
