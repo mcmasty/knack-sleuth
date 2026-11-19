@@ -6,7 +6,7 @@ access which scenes (pages) in a Knack application.
 
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, NotRequired, TypedDict
 
 from pydantic import BaseModel
 
@@ -53,7 +53,23 @@ def get_profile_mapping(app: Application) -> dict[str, str]:
     return profiles
 
 
-def build_navigation_hierarchy(scenes: list[Scene]) -> dict[str, Any]:
+class NavigationHierarchy(TypedDict):
+    """What ``build_navigation_hierarchy`` returns: the scenes, indexed.
+
+    The two underscore keys are caches the analysis adds as it goes; a
+    hierarchy is built once per report and reused for every scene.
+    """
+
+    scenes_by_key: dict[str, Scene]
+    # Slugs are path-scoped in Knack, so one slug can name several scenes.
+    scenes_by_slug: dict[str, list[Scene]]
+    menu_scenes: list[Scene]
+    scenes_by_menu: dict[str, list[Scene]]
+    _resolved_slugs: NotRequired[dict[str, tuple[Scene | None, str | None]]]
+    _inherited_restrictions: NotRequired[dict[str, "_Found"]]
+
+
+def build_navigation_hierarchy(scenes: list[Scene]) -> NavigationHierarchy:
     """Build navigation hierarchy showing menu > page relationships.
 
     Args:
@@ -140,7 +156,7 @@ def _scene_label(scene: Scene) -> str:
 
 def _resolve_scene_by_slug(
     slug: str,
-    hierarchy: dict[str, Any],
+    hierarchy: NavigationHierarchy,
 ) -> tuple[Scene | None, str | None]:
     """Resolve a slug for *navigation* display without discarding duplicates.
 
@@ -302,7 +318,7 @@ class _InheritanceSolver:
         } - self.looping_logins
 
 
-def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:
+def _solve_inheritance(hierarchy: NavigationHierarchy) -> dict[str, _Found]:
     """Restrictions for every slug, solved once per hierarchy and cached.
 
     Resolving parents by slug alone can close a cycle (a duplicate slug that
@@ -350,7 +366,7 @@ def _solve_inheritance(hierarchy: dict[str, Any]) -> dict[str, _Found]:
 
 
 def _inherited_restrictions(
-    start_slug: str, hierarchy: dict[str, Any]
+    start_slug: str, hierarchy: NavigationHierarchy
 ) -> list[Restriction]:
     """Every distinct restriction reachable by walking up from ``start_slug``.
 
@@ -372,7 +388,7 @@ def _inherited_restrictions(
 
 
 def _resolve_parent(
-    slug: str, hierarchy: dict[str, Any], child_key: str | None
+    slug: str, hierarchy: NavigationHierarchy, child_key: str | None
 ) -> tuple[Scene | None, str | None, bool]:
     """Resolve a parent slug for the walk up from the scene ``child_key``.
 
@@ -398,7 +414,7 @@ def _resolve_parent(
 
 def _walk_ancestors(
     parent_slug: str,
-    hierarchy: dict[str, Any],
+    hierarchy: NavigationHierarchy,
     child_key: str | None = None,
 ) -> tuple[list[str], str | None, str | None]:
     """Walk the parent chain once for everything a navigation path needs.
@@ -436,7 +452,9 @@ def _walk_ancestors(
     return chain, menu_name, root_login_name
 
 
-def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, str]:
+def build_navigation_path(
+    scene: Scene, hierarchy: NavigationHierarchy
+) -> dict[str, str]:
     """Build navigation path for a scene showing menu > parent > page.
 
     Args:
@@ -497,7 +515,7 @@ def build_navigation_path(scene: Scene, hierarchy: dict[str, Any]) -> dict[str, 
     }
 
 
-def _ancestor_keys(scene: Scene, hierarchy: dict[str, Any]) -> list[str]:
+def _ancestor_keys(scene: Scene, hierarchy: NavigationHierarchy) -> list[str]:
     """Keys of the scenes above ``scene``, nearest first, then its menu.
 
     Follows the same route as the navigation path: parents by slug, continuing
@@ -548,7 +566,7 @@ class _Access(NamedTuple):
     ancestors_public: bool = True
 
 
-def _effective_access(scene: Scene, hierarchy: dict[str, Any]) -> _Access:
+def _effective_access(scene: Scene, hierarchy: NavigationHierarchy) -> _Access:
     """The scene's own restriction, or what it inherits from above.
 
     Only a profile restriction is final. A bare authenticated=True still
@@ -634,7 +652,7 @@ def _security_concerns(
 
 
 def analyze_scene_security(
-    scene: Scene, profiles: dict[str, str], hierarchy: dict[str, Any]
+    scene: Scene, profiles: dict[str, str], hierarchy: NavigationHierarchy
 ) -> SceneSecurity:
     """Analyze security settings for a single scene with navigation context.
 
