@@ -148,3 +148,86 @@ def test_cluster_takes_direct_and_shared_neighbours():
 def test_object_with_one_neighbour_seeds_no_cluster():
     sleuth = _app_with_links([("object_1", "object_2")], count=2)
     assert sleuth._identify_clusters() == []
+
+
+def _access_app(scenes: list[dict]) -> KnackSleuth:
+    return KnackSleuth(
+        KnackAppMetadata(
+            application={
+                "id": "app_access",
+                "name": "Access",
+                "slug": "access",
+                "home_scene": {"key": "scene_1", "slug": "login"},
+                "objects": [],
+                "scenes": scenes,
+            }
+        )
+    )
+
+
+def test_access_figures_follow_logins_and_parents_not_flags_and_layouts():
+    # A role-limited login page, a page under it, a page under that, and one
+    # public page. None sets `authenticated`, the child pages name their
+    # parent by slug, and every page has a layout (`groups`).
+    layout = [{"columns": [{"keys": []}]}]
+    sleuth = _access_app(
+        [
+            {
+                "key": "scene_1",
+                "name": "Login",
+                "slug": "login",
+                "type": "authentication",
+                "groups": layout,
+                "views": [
+                    {
+                        "key": "view_1",
+                        "name": "Login",
+                        "type": "login",
+                        "limit_profile_access": True,
+                        "allowed_profiles": ["profile_1"],
+                    }
+                ],
+            },
+            {
+                "key": "scene_2",
+                "name": "Jobs",
+                "slug": "jobs",
+                "parent": "login",
+                "groups": layout,
+            },
+            {
+                "key": "scene_3",
+                "name": "Job",
+                "slug": "job",
+                "parent": "jobs",
+                "groups": layout,
+            },
+            {"key": "scene_4", "name": "About", "slug": "about", "groups": layout},
+        ]
+    )
+
+    summary = sleuth.generate_app_summary()
+    ui = summary["ui_architecture"]
+
+    assert ui["scene_patterns"] == {
+        "authenticated_scenes": 3,
+        "public_scenes": 1,
+        "total_scenes": 4,
+    }
+    # Depths 1, 2, 3 and 1.
+    assert ui["navigation_depth"]["max_depth"] == 3
+    assert ui["navigation_depth"]["avg_depth"] == 1.8
+    roles = summary["access_patterns"]["role_usage"]
+    assert roles["scenes_with_role_restrictions"] == 3
+
+
+def test_navigation_depth_survives_a_parent_loop_and_a_missing_parent():
+    sleuth = _access_app(
+        [
+            {"key": "scene_1", "name": "A", "slug": "a", "parent": "b"},
+            {"key": "scene_2", "name": "B", "slug": "b", "parent": "a"},
+            {"key": "scene_3", "name": "C", "slug": "c", "parent": "gone"},
+        ]
+    )
+
+    assert sleuth._scene_depths() == [3, 3, 2]
