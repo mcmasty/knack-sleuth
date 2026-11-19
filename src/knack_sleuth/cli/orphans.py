@@ -159,10 +159,10 @@ def _print_fields(orphans: _Orphans, app_name: str) -> None:
         table.add_column("Notes", style="dim")
         for obj, field in orphans.fields:
             table.add_row(
-                escape(obj.name),
-                escape(field.name),
-                field.key,
-                escape(field.type),
+                Text(obj.name),
+                Text(field.name),
+                Text(field.key),
+                Text(field.type),
                 ", ".join(_field_notes(obj, field)),
             )
         console.print(table)
@@ -203,10 +203,10 @@ def _print_views(orphans: _Orphans, app: Application) -> None:
     table.add_column("Builder", style="dim")
     for orphan in orphans.views:
         table.add_row(
-            escape(orphan.scene.name),
-            escape(orphan.view.name),
-            orphan.view.key,
-            escape(orphan.view.type),
+            Text(orphan.scene.name),
+            Text(orphan.view.name),
+            Text(orphan.view.key),
+            Text(orphan.view.type),
             # A Text, not [link=...] markup: a "[" in the URL would break the tag.
             Text("open", style=Style(link=_view_url(app, orphan))),
         )

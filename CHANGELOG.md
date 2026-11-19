@@ -12,6 +12,9 @@
 
 ### Fixed
 
+- Table cells in `list-objects`, `find-orphans` and `cache list` printed a name ending in a
+  backslash with two, and crashed on a key containing a closing tag such as `[/x]`. Cells
+  now hold the text exactly as written.
 - `role-access-review --summary-only` gave a menu a `child_count` of 0 for a page that still
   names a deleted menu, even though the page sits below one of the menu's member pages and
   its navigation path says so. A menu reference that points at no scene is now skipped when

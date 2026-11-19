@@ -7,6 +7,7 @@ from typing import Annotated
 import typer
 from rich.markup import escape
 from rich.table import Table
+from rich.text import Text
 
 from knack_sleuth.config import Settings
 from knack_sleuth.core import get_cache_dir
@@ -55,8 +56,8 @@ def cache_list(
     for path in files:
         age = datetime.now() - datetime.fromtimestamp(path.stat().st_mtime)
         table.add_row(
-            escape(path.name),
-            escape(path.name.split("_app_metadata_")[0]),
+            Text(path.name),
+            Text(path.name.split("_app_metadata_")[0]),
             f"{age.total_seconds() / 3600:.1f}h",
             f"{path.stat().st_size / 1024:.1f} KB",
             "fresh" if age < ttl else "[red]stale[/red]",
