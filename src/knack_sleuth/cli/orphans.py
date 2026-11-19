@@ -185,7 +185,7 @@ def _print_objects(orphans: _Orphans, app: Application) -> None:
     for obj in orphans.objects:
         row_count = app.counts.get(obj.key, 0)
         console.print(
-            f"  [yellow]•[/yellow] [bold cyan]{escape(obj.name)}[/bold cyan] ({obj.key}) - "
+            f"  [yellow]•[/yellow] [bold cyan]{escape(obj.name)}[/bold cyan] ({escape(obj.key)}) - "
             f"{len(obj.fields)} fields, {row_count:,} rows"
         )
 
@@ -232,7 +232,7 @@ def _print_layout_defects(orphans: _Orphans) -> None:
             )
             console.print(
                 f"  [yellow]•[/yellow] [bold cyan]{escape(item.scene.name)}[/bold cyan] "
-                f"({item.scene.key}) references {escape(item.view_key)} — {where}"
+                f"({escape(item.scene.key)}) references {escape(item.view_key)} — {where}"
             )
 
     if orphans.stale_rules:
@@ -243,7 +243,7 @@ def _print_layout_defects(orphans: _Orphans) -> None:
         for item in orphans.stale_rules:
             console.print(
                 f"  [yellow]•[/yellow] [bold cyan]{escape(item.scene.name)}[/bold cyan] "
-                f"({item.scene.key}) {escape(item.rule_path)} → {escape(item.view_key)} "
+                f"({escape(item.scene.key)}) {escape(item.rule_path)} → {escape(item.view_key)} "
                 f"[dim]({escape(item.reason)})[/dim]"
             )
 

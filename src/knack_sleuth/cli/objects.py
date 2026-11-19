@@ -207,7 +207,7 @@ def _print_field_usages(sleuth: KnackSleuth, field_usage_map: dict) -> None:
         _, field_info = sleuth.get_field_info(field_key)
         if field_info:
             console.print(
-                f"\n  [bold cyan]{escape(field_info.name)}[/bold cyan] ({field_key}) - {escape(field_info.type)} - {len(usages)} usages"
+                f"\n  [bold cyan]{escape(field_info.name)}[/bold cyan] ({escape(field_key)}) - {escape(field_info.type)} - {len(usages)} usages"
             )
             print_usages(usages, "    ")
 
@@ -278,7 +278,7 @@ def search_object(
 
     console.print(
         Panel(
-            f"[bold cyan]{escape(target.name)}[/bold cyan] ({target.key})",
+            f"[bold cyan]{escape(target.name)}[/bold cyan] ({escape(target.key)})",
             title="Object Search Results",
             subtitle=f"{len(target.fields)} fields",
         )
@@ -372,7 +372,7 @@ def search_field(
 
     console.print(
         Panel(
-            f"[bold cyan]{escape(target_object.name)} → {escape(target_field.name)}[/bold cyan] ({target_field.key})",
+            f"[bold cyan]{escape(target_object.name)} → {escape(target_field.name)}[/bold cyan] ({escape(target_field.key)})",
             title="Field Search Results",
             subtitle=f"type: {escape(target_field.type)}",
         )
@@ -425,8 +425,8 @@ def _print_coupling_side(connections: list, objects_by_key: dict, side: tuple) -
         if related:
             relationship = conn.relationship_type(from_connected=inbound)
             console.print(
-                f"  [yellow]{arrow}[/yellow] [bold cyan]{escape(related.name)}[/bold cyan] ({conn.object})\n"
-                f"     via [dim]{escape(conn.name)}[/dim] ({conn.key}) \\[{relationship}]"
+                f"  [yellow]{arrow}[/yellow] [bold cyan]{escape(related.name)}[/bold cyan] ({escape(conn.object)})\n"
+                f"     via [dim]{escape(conn.name)}[/dim] ({escape(conn.key)}) \\[{relationship}]"
             )
 
 
@@ -500,7 +500,7 @@ def show_coupling(
     console.print()
     console.print(
         Panel(
-            f"[bold cyan]{escape(target.name)}[/bold cyan] ({target.key})",
+            f"[bold cyan]{escape(target.name)}[/bold cyan] ({escape(target.key)})",
             title="Object Coupling",
             subtitle=f"Ca: {ca} | Ce: {ce} | I: {instability}",
         )

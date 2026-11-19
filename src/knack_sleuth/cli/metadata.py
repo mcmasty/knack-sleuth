@@ -106,19 +106,19 @@ def _render_changes(entry: dict) -> str:
 
 
 def _render_object(e: dict) -> str:
-    return f"[bold cyan]{escape(e['name'])}[/bold cyan] ({e['key']}) — {e['field_count']} fields"
+    return f"[bold cyan]{escape(e['name'])}[/bold cyan] ({escape(e['key'])}) — {e['field_count']} fields"
 
 
 def _render_field(e: dict) -> str:
-    return f"{escape(e['object_name'])} → [bold cyan]{escape(e['name'])}[/bold cyan] ({e['key']}, {escape(e['type'])})"
+    return f"{escape(e['object_name'])} → [bold cyan]{escape(e['name'])}[/bold cyan] ({escape(e['key'])}, {escape(e['type'])})"
 
 
 def _render_scene(e: dict) -> str:
-    return f"[bold cyan]{escape(e['name'])}[/bold cyan] ({e['key']}, /{escape(e['slug'])}) — {e['view_count']} views"
+    return f"[bold cyan]{escape(e['name'])}[/bold cyan] ({escape(e['key'])}, /{escape(e['slug'])}) — {e['view_count']} views"
 
 
 def _render_view(e: dict) -> str:
-    return f"{escape(e['scene_name'])} → [bold cyan]{escape(e['name'])}[/bold cyan] ({e['key']}, {escape(e['type'])})"
+    return f"{escape(e['scene_name'])} → [bold cyan]{escape(e['name'])}[/bold cyan] ({escape(e['key'])}, {escape(e['type'])})"
 
 
 def _render_rename(e: dict) -> str:
