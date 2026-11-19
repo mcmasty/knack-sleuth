@@ -12,6 +12,11 @@
 
 ### Fixed
 
+- `role-access-review` reported a login page as PUBLIC when its login view's role limit was
+  off and the page did not set `authenticated` itself, and reported the pages below it as
+  public too. A page with a login view now counts as requiring a login whatever its role
+  limit says; with the limit off it gets the `UNRESTRICTED` concern. On a real app this
+  moves 2 pages from public to login-required.
 - `list-objects` reported twice the number of connections in its total line and in
   `totals.connections` of the JSON output (228 for an app with 114), because it added each
   object's inbound and outbound counts. Each connection is now counted once. The per-object

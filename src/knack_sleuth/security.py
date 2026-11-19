@@ -98,6 +98,20 @@ def _view_profile_limit(view: BaseModel) -> list[Any]:
     return extra.get("allowed_profiles") or []
 
 
+def _asks_for_login(scene: Scene) -> bool | None:
+    """Whether the scene itself demands a login, whoever may then log in.
+
+    A login view is a login gate even when its role limit is switched off, and
+    Knack does not always set ``authenticated`` on the page that carries it.
+    Otherwise the scene's own flag stands, None (absent) included.
+    """
+    if scene.authenticated is True:
+        return True
+    if any(view.type == "login" for view in scene.views):
+        return True
+    return scene.authenticated
+
+
 def _get_allowed_profile_keys(scene: Scene) -> list[str]:
     """Return direct scene/view profile restrictions in stable order."""
     allowed_profiles = _scene_profile_limit(scene)
@@ -227,7 +241,7 @@ class _InheritanceSolver:
             # A bare login requirement does not end the walk: the scene still
             # sits behind every ancestor, so a login page above it that limits
             # profiles still decides which roles get in (issue #27).
-            bare_auth = candidate.authenticated is True
+            bare_auth = _asks_for_login(candidate) is True
             if candidate.key in self.looping_logins:
                 found.setdefault(((), True), {}).setdefault(label)
             # An unsolved parent (only possible inside a cycle) is an empty
@@ -271,7 +285,7 @@ class _InheritanceSolver:
             candidate.key
             for slug in self.order
             for candidate in self.scenes_by_slug[slug]
-            if candidate.authenticated is True
+            if _asks_for_login(candidate) is True
             and not self.own_profiles[candidate.key]
             and candidate.parent in self.values
             and not self.values[candidate.parent]
@@ -488,7 +502,7 @@ def _effective_access(scene: Scene, hierarchy: dict[str, Any]) -> _Access:
     inherits any profile restriction from a login page above it (issue #27).
     """
     allowed = _get_allowed_profile_keys(scene)
-    authenticated = scene.authenticated
+    authenticated = _asks_for_login(scene)
     if not scene.parent or allowed:
         return _Access(allowed, authenticated, False, None, None)
 
