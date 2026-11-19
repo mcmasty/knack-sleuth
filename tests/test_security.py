@@ -631,6 +631,37 @@ class TestNavigationHierarchy:
             f"ancestor walk took {elapsed:.1f}s -- cycle defeated memoization"
         )
 
+    def test_login_only_scenes_that_only_loop_keep_their_own_login(self):
+        # Two login-only scenes that name each other as parent have no route
+        # to a root, so nothing is inherited from above. Each one still asks
+        # for a login itself, exactly as it would at the top of a chain; the
+        # loop must not turn that into "no restriction".
+        first = Scene(
+            key="scene_first",
+            name="First",
+            slug="first",
+            parent="second",
+            authenticated=True,
+        )
+        second = Scene(
+            key="scene_second",
+            name="Second",
+            slug="second",
+            parent="first",
+            authenticated=True,
+        )
+        leaf = Scene(key="scene_leaf", name="Leaf", slug="leaf", parent="first")
+        hierarchy = build_navigation_hierarchy([first, second, leaf])
+
+        for scene in (first, second, leaf):
+            analysis = analyze_scene_security(scene, {}, hierarchy)
+            assert analysis.requires_login is True, scene.key
+            assert analysis.allowed_profiles == [], scene.key
+
+        leaf_analysis = analyze_scene_security(leaf, {}, hierarchy)
+        assert leaf_analysis.inherits_security is True
+        assert "AMBIGUOUS PARENT" not in (leaf_analysis.security_concern or "")
+
     def test_many_scenes_sharing_a_slug_stay_fast_across_the_report(self):
         # Hundreds of scenes behind one shared slug all contribute a label to
         # the same restriction, and every scene in the chain below inherits
