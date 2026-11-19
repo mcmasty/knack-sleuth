@@ -13,7 +13,7 @@ from typing import Any, NamedTuple
 import yaml
 
 from knack_sleuth.lookup import resolve_object
-from knack_sleuth.models import Application, KnackField, KnackObject
+from knack_sleuth.models import Application, Connection, KnackField, KnackObject
 
 
 def _should_include_field(field: KnackField, obj: KnackObject, detail: str) -> bool:
@@ -298,13 +298,10 @@ def _connection_entries(
             entry["has"] = conn.has
             entry["belongs_to"] = conn.belongs_to
             if with_field_details:
-                label = _relationship(conn.has, conn.belongs_to).label
-                # Knack gives an inbound entry the connecting object's
-                # has/belongs_to; read it from this object instead, as the
-                # outbound entries are.
-                if direction == "inbound":
-                    label = "-to-".join(reversed(label.split("-to-")))
-                entry["relationship_type"] = label
+                # Read from this object to the other end, in both directions.
+                entry["relationship_type"] = conn.relationship_type(
+                    from_connected=direction == "inbound"
+                )
             entries[direction].append(entry)
     return entries
 
@@ -442,7 +439,7 @@ def _dbml_refs(app: Application) -> list[str]:
         if not obj.connections:
             continue
         for conn in obj.connections.outbound:
-            rel_type = _relationship(conn.has, conn.belongs_to).dbml
+            rel_type = _relationship(conn).dbml
             lines.append(
                 f"Ref: {obj.key}.{conn.key} {rel_type} {conn.object}.id "
                 f"// {_one_line(conn.name)}"
@@ -552,33 +549,28 @@ def export_to_yaml(app: Application, detail: str = "standard") -> str:
 
 
 class _Relationship(NamedTuple):
-    """One has/belongs_to combination in each export's notation."""
+    """One cardinality in each export's notation."""
 
-    label: str
     dbml: str
     mermaid: str
 
 
-# Read from the connecting object to the connected one. Knack's `has` is how
-# many connected records each connecting record holds; `belongs_to` is how many
-# connecting records each connected record can belong to. So Events.Client with
-# has=one, belongs_to=many is many Events to one Client, which real records
-# confirm (no Event holds two Clients; a Client is on up to four Events).
+# Keyed by Connection.relationship_type(), which reads from the connecting
+# object: has=one, belongs_to=many is many-to-one (many Events, one Client).
 #
 # Mermaid ER syntax: ||--|| exactly one on both sides; ||--o{ one to zero or
 # more; }o--|| zero or more to exactly one; }o--o{ zero or more on both sides.
 # DBML: `a.x > b.id` is many a to one b; `<` the reverse.
 _RELATIONSHIPS = {
-    ("one", "one"): _Relationship("one-to-one", "-", "||--||"),
-    ("one", "many"): _Relationship("many-to-one", ">", "}o--||"),
-    ("many", "one"): _Relationship("one-to-many", "<", "||--o{"),
+    "one-to-one": _Relationship("-", "||--||"),
+    "many-to-one": _Relationship(">", "}o--||"),
+    "one-to-many": _Relationship("<", "||--o{"),
+    "many-to-many": _Relationship("<>", "}o--o{"),
 }
-# Anything else, including unexpected values, is treated as many-to-many.
-_MANY_TO_MANY = _Relationship("many-to-many", "<>", "}o--o{")
 
 
-def _relationship(has: str, belongs_to: str) -> _Relationship:
-    return _RELATIONSHIPS.get((has, belongs_to), _MANY_TO_MANY)
+def _relationship(conn: Connection) -> _Relationship:
+    return _RELATIONSHIPS[conn.relationship_type()]
 
 
 def _get_mermaid_type(field: KnackField) -> str:
@@ -750,7 +742,7 @@ def _mermaid_relationship_lines(
         if not obj.connections:
             continue
         for conn in obj.connections.outbound:
-            notation = _relationship(conn.has, conn.belongs_to).mermaid
+            notation = _relationship(conn).mermaid
             source_name = entity_names[obj.key]
             target_name = entity_names.get(conn.object, conn.object)
             # A double quote would end the label early.

@@ -10,14 +10,21 @@ from pathlib import Path
 
 import pytest
 import yaml
+from typer.testing import CliRunner
 
+from knack_sleuth.cli import cli
 from knack_sleuth.db_schema import (
     _relationship,
     export_to_dbml,
     export_to_mermaid,
     export_to_yaml,
 )
-from knack_sleuth.models import Application, KnackAppMetadata
+from knack_sleuth.models import (
+    Application,
+    Connection,
+    ConnectionField,
+    KnackAppMetadata,
+)
 
 DATA = Path(__file__).parent / "data"
 FIXTURES = ["schema_cases_meta.json", "sample_knack_app_meta.json"]
@@ -99,19 +106,31 @@ def test_mermaid_labels_and_comments_never_contain_a_bare_double_quote():
 
 
 @pytest.mark.parametrize(
-    ("has", "belongs_to", "label", "dbml", "mermaid"),
+    ("has_belongs_to", "expected"),
     [
         # Events.Client: each Event holds one Client, a Client is on many Events.
-        ("one", "many", "many-to-one", ">", "}o--||"),
-        ("many", "one", "one-to-many", "<", "||--o{"),
-        ("one", "one", "one-to-one", "-", "||--||"),
-        ("many", "many", "many-to-many", "<>", "}o--o{"),
+        (("one", "many"), ("many-to-one", "one-to-many", ">", "}o--||")),
+        (("many", "one"), ("one-to-many", "many-to-one", "<", "||--o{")),
+        (("one", "one"), ("one-to-one", "one-to-one", "-", "||--||")),
+        (("many", "many"), ("many-to-many", "many-to-many", "<>", "}o--o{")),
+        # Anything unexpected counts as many.
+        (("", "one"), ("one-to-many", "many-to-one", "<", "||--o{")),
     ],
 )
-def test_cardinality_reads_from_the_connecting_object(
-    has, belongs_to, label, dbml, mermaid
-):
-    assert _relationship(has, belongs_to) == (label, dbml, mermaid)
+def test_cardinality_reads_from_the_connecting_object(has_belongs_to, expected):
+    has, belongs_to = has_belongs_to
+    label, reverse, dbml, mermaid = expected
+    conn = Connection(
+        key="field_1",
+        name="Client",
+        object="object_2",
+        has=has,
+        belongs_to=belongs_to,
+        field=ConnectionField(name="Client"),
+    )
+    assert conn.relationship_type() == label
+    assert conn.relationship_type(from_connected=True) == reverse
+    assert _relationship(conn) == (dbml, mermaid)
 
 
 def test_yaml_relationship_type_reads_from_the_listing_object():
@@ -130,3 +149,35 @@ def test_yaml_relationship_type_reads_from_the_listing_object():
 
     assert label("object_1", "outbound") == "many-to-one"
     assert label("object_2", "inbound") == "one-to-many"
+
+
+SCHEMA_CASES = str(DATA / "schema_cases_meta.json")
+
+
+def test_show_coupling_labels_read_from_the_object_shown():
+    """object_2 is on the 'one' side of Owner (many object_1 records to one
+    object_2) and holds many object_1 records through Account Link."""
+    result = CliRunner().invoke(
+        cli, ["show-coupling", "object_2", SCHEMA_CASES, "--format", "json"]
+    )
+    payload = json.loads(result.output)
+    labels = {
+        c["connection_key"]: c["relationship_type"]
+        for c in payload["inbound"] + payload["outbound"]
+    }
+    assert labels == {
+        "field_3": "one-to-many",
+        "field_20": "one-to-one",
+        "field_21": "one-to-many",
+    }
+
+    rich = CliRunner().invoke(cli, ["show-coupling", "object_2", SCHEMA_CASES])
+    assert "via Owner (field_3) [one-to-many]" in rich.output
+
+
+def test_search_object_relationship_reads_from_the_connecting_object():
+    result = CliRunner().invoke(
+        cli, ["search-object", "object_2", SCHEMA_CASES, "--format", "json"]
+    )
+    assert '"relationship": "many-to-one"' in result.output
+    assert "one to many" not in result.output

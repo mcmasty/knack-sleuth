@@ -195,6 +195,10 @@ Use `--format markdown` when the output is for human consumption.
 - Summarize key findings before showing raw data.
 - Highlight important objects (high coupling, high row count, hub objects).
 - When reporting on relationships, note the direction (inbound vs outbound).
+- For cardinality, use the `relationship_type` / `relationship` labels (`many-to-one` and so on); they
+  read from the object shown. Knack's raw `has`/`belongs_to` are the connecting object's: `has` is how
+  many connected records each connecting record holds, so Events.Client with `has: one,
+  belongs_to: many` is many Events to one Client, not "one to many".
 - For impact analysis, call out the risk level and affected workflows.
 - For behaviour questions, name the trigger (form or action link, page, view key) and quote the rule that answers it.
   Do not quote email bodies or full addresses. Email rules can hold personal data.

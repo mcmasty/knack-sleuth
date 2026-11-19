@@ -522,7 +522,7 @@ class KnackSleuth:
                                     "source_object_name": obj.name,
                                     "connection_field": conn.key,
                                     "connection_name": conn.name,
-                                    "relationship": f"{conn.has} to {conn.belongs_to}",
+                                    "relationship": conn.relationship_type(),
                                 },
                             )
                         )
@@ -539,7 +539,7 @@ class KnackSleuth:
                                     "target_object_name": obj.name,
                                     "connection_field": conn.key,
                                     "connection_name": conn.name,
-                                    "relationship": f"{conn.has} to {conn.belongs_to}",
+                                    "relationship": conn.relationship_type(),
                                 },
                             )
                         )

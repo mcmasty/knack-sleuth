@@ -117,6 +117,24 @@ class Connection(_KnackModel):
     object: str  # Target object key
     belongs_to: str  # "one" or "many"
 
+    def relationship_type(self, *, from_connected: bool = False) -> str:
+        """Cardinality from the connecting object to the connected one.
+
+        `has` is how many connected records each connecting record holds and
+        `belongs_to` how many connecting records each connected record can
+        belong to, so Events.Client with has=one, belongs_to=many is
+        "many-to-one": many Events, one Client. Real records confirm it.
+        Inbound entries carry the connecting object's values too, so an
+        object listing its inbound connections passes from_connected=True.
+        Unexpected values count as "many".
+        """
+        near, far = (
+            "one" if side == "one" else "many" for side in (self.belongs_to, self.has)
+        )
+        if from_connected:
+            near, far = far, near
+        return f"{near}-to-{far}"
+
 
 class Connections(_KnackModel):
     """Inbound and outbound connections for an object."""
