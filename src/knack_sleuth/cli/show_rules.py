@@ -228,9 +228,12 @@ def _print_page_rules(pages: list) -> None:
             f"  [bold]{escape(str(page['scene_name']))}[/bold] "
             f"({escape(str(page['scene_key']))})"
         )
+        # A page that is here for its criteria alone has no selected view to
+        # hide, so every one of its rules is the finding: print them all.
+        collapse = page.get("matched_by") != "criteria"
         other_hides = 0
         for rule in page["rules"]:
-            if rule.get("hides_selected_view") is False:
+            if collapse and rule.get("hides_selected_view") is False:
                 other_hides += 1
                 continue
             console.print(

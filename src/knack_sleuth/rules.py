@@ -674,6 +674,10 @@ def _page_rules(
                     "scene_key": scene.key,
                     "scene_name": scene.name,
                     "scene_slug": scene.slug,
+                    # "views": the page holds a selected view. "criteria": it
+                    # holds none, and is here because its rules test the
+                    # object's fields.
+                    "matched_by": "views" if scene.key in selected else "criteria",
                     "rules": rules,
                 }
             )
