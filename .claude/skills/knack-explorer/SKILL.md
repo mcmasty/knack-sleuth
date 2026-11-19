@@ -80,12 +80,16 @@ Run `show-rules --object <object>` first. This is where each kind of rule sits i
 | Form submit | `scenes[].views[].rules` | `emails`, `records`, `submits`, `fields` |
 | Action link in a table or details view | `views[].columns[].action_rules[]` (column `type: "action_link"`; details views nest it under `columns[].groups[].columns[]`) | `record_rules`, `submit_rules`, email rules when present |
 | Inline edit of a table cell | `views[].columns[].edit_rules[]` (only while `views[].options.cell_editor` is true and the column's `ignore_edit` is false) | record rules |
+| Page load | `scenes[].rules[]` (page rules) | `hide_views` (with `view_keys`), `message`, `existing_page` or `url` redirect, and criteria |
 | Schedule | `objects[].tasks` | task actions and criteria |
 | Any save of the record (form, link, import, API) | `objects[].fields[].rules` (conditional fields) | values and criteria |
 
 - **A status can change through a form, an action link or an inline table edit. Check all
   three.** It can also change from another object's form, link or table, through a connection,
   and through a conditional field rule on every save. `show-rules` lists all of these.
+- **A form can be hidden or skipped by its page.** A page rule can hide a view or redirect
+  away when the record or the logged-in user meets a condition. `show-rules` lists the page
+  rules of every page it reports on.
 - **Email rules run after record rules.** A record rule that blanks a field can break the email
   that uses it. `show-rules` warns when it sees this on the same trigger.
 - **A scene's `views` array is a registry, not the layout.** A view renders only if its key is in

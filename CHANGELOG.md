@@ -2,8 +2,19 @@
 
 ## Unreleased
 
+### Added
+
+- `show-rules` lists page rules (`scenes[].rules`): the rules that hide a view, show a
+  message or redirect away when a page loads. They are reported for every page that holds
+  one of the object's views, and for pages whose rules test the object's fields. With
+  `--view`, rules that only hide other views are left out. In the JSON output they are under
+  `page_rules`.
+
 ### Fixed
 
+- `show-rules` named no field for a condition on the logged-in user (`profile_3-field_9`,
+  `all_users-field_9`) or on a connected record (`field_4-field_9`). These now read
+  "logged-in user's Email" and "Program > Title".
 - `show-rules` ignored the record rules that run when a table cell is edited in place
   (`columns[].edit_rules`), and listed such a table under "no form rules or action links".
   They are now reported as an `inline_edit` trigger, including when they change another

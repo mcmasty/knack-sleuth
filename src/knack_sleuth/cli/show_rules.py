@@ -197,6 +197,52 @@ def _print_connected(connected: list) -> None:
         )
 
 
+def _page_rule_line(rule: dict) -> str:
+    action = rule.get("action")
+    if action == "hide_views":
+        hidden = ", ".join(
+            f"{v['view_key']} ({v['view_name']})"
+            if v.get("view_name")
+            else v["view_key"]
+            for v in rule["hides"]
+        )
+        return f"[yellow]Hide[/yellow] {escape(hidden or 'no views')}"
+    if rule.get("target_page"):
+        return f"[blue]Redirect[/blue] to page {escape(repr(rule['target_page']))}"
+    if rule.get("url"):
+        return f"[blue]Redirect[/blue] to {escape(repr(rule['url']))}"
+    if action == "message":
+        return f"[blue]Message[/blue] {escape(repr(rule.get('message') or ''))}"
+    return f"[blue]{escape(str(action))}[/blue]"
+
+
+def _print_page_rules(pages: list) -> None:
+    if not pages:
+        return
+    console.print(
+        "\n[bold cyan]Page rules[/bold cyan] "
+        "[dim](run when the page loads; they can hide a view or redirect away):[/dim]"
+    )
+    for page in pages:
+        console.print(
+            f"  [bold]{escape(str(page['scene_name']))}[/bold] "
+            f"({escape(str(page['scene_key']))})"
+        )
+        other_hides = 0
+        for rule in page["rules"]:
+            if rule.get("hides_selected_view") is False:
+                other_hides += 1
+                continue
+            console.print(
+                f"    {_page_rule_line(rule)}{_fmt_criteria(rule['criteria'])}"
+            )
+        if other_hides:
+            console.print(
+                f"    [dim]{other_hides} rule(s) hiding other views on this page "
+                "(see --format json)[/dim]"
+            )
+
+
 def _print_field_rules(field_rules: list) -> None:
     if not field_rules:
         return
@@ -246,6 +292,7 @@ def _print_report(report: dict, title: str, show_tasks: bool) -> None:
             + "[/dim]"
         )
 
+    _print_page_rules(report["page_rules"])
     _print_connected(report["connected_record_rules"])
     _print_field_rules(report["conditional_field_rules"])
     if show_tasks:
