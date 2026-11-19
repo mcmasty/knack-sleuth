@@ -538,3 +538,36 @@ def test_stale_skill_warning_survives_brackets_in_the_version(meta, env):
     skill.write_text("<!-- knack-sleuth-version: 0.0.[/x] -->\nold skill\n")
     result = _run(["list-objects", meta], env, 0)
     assert "0.0.[/x]" in result.output
+
+
+def test_table_cells_print_backslashes_and_bracketed_keys_as_written(tmp_path, env):
+    # escape() doubles a trailing backslash unless a tag follows it, and a key
+    # was not escaped at all. Table cells are now literal Text.
+    data = _load()
+    first, second = data["application"]["objects"][:2]
+    first["name"] = "Cost\\"
+    second["key"] = "object_2[/literal]"
+    orphan = {
+        "key": "field_9001[/x]",
+        "name": "Rate\\",
+        "type": "short_text",
+        "required": False,
+        "unique": False,
+        "user": False,
+        "conditional": False,
+        "rules": [],
+        "validation": [],
+    }
+    first["fields"].append(orphan)
+    meta = tmp_path / "app.json"
+    meta.write_text(json.dumps(data))
+
+    listing = _run(["list-objects", meta], env, 0).output
+    assert "Cost\\ " in listing
+    assert "Cost\\\\" not in listing
+    assert "object_2[/literal]" in listing
+
+    orphans = _run(["find-orphans", meta], env, 0).output
+    assert "Rate\\ " in orphans
+    assert "Rate\\\\" not in orphans
+    assert "field_9001[/x]" in orphans

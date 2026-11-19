@@ -9,6 +9,7 @@ import typer
 from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 
 from knack_sleuth.lookup import resolve_fields, suggest_field_names
 from knack_sleuth.models import KnackObject
@@ -79,8 +80,10 @@ def _print_objects_table(app_name: str, entries: list[dict], totals: dict) -> No
 
     for entry in entries:
         table.add_row(
-            entry["key"],
-            escape(entry["name"]),
+            # Text cells are printed as they are. Escaped markup is not quite
+            # that: Rich doubles a trailing backslash it has no tag after.
+            Text(entry["key"]),
+            Text(entry["name"]),
             f"{entry['rows']:,}",
             str(entry["fields"]),
             str(entry["ca"]),
