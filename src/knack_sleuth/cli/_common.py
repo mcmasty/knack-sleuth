@@ -26,7 +26,8 @@ from knack_sleuth.core import (
 )
 from knack_sleuth.core import load_app_metadata as core_load_metadata
 from knack_sleuth.lookup import resolve_object, suggest_object_names
-from knack_sleuth.models import KnackAppMetadata, KnackObject
+from knack_sleuth.models import Application, KnackAppMetadata, KnackObject
+from knack_sleuth.system_fields import without_system_connections
 
 console = Console()
 err_console = Console(stderr=True)  # status + error output; keeps stdout clean for data
@@ -189,6 +190,26 @@ def load_app_metadata(
 
 
 # --- Lookups ----------------------------------------------------------------
+
+
+def relationship_view(
+    app: Application, include_system: bool
+) -> tuple[Application, int]:
+    """The app as relationship analysis should see it, and how many system
+    connections were left out of it (0 when they were asked for, or absent).
+
+    Says so on stderr, so the figures are not mistaken for the whole app and
+    data on stdout stays clean.
+    """
+    if include_system:
+        return app, 0
+    view, excluded = without_system_connections(app)
+    if excluded:
+        err_console.print(
+            f"[dim]{excluded} system audit connections (Created By, Updated By, "
+            "Owned By) left out; --include-system-connections counts them[/dim]"
+        )
+    return view, excluded
 
 
 def print_suggestions(suggestions: list[str]) -> None:

@@ -24,9 +24,11 @@ from ._common import (
     fail,
     file_size_kb,
     load_app_metadata,
+    relationship_view,
     validate_choice,
 )
 from ._options import (
+    IncludeSystemConnections,
     Refresh,
     SchemaAppId,
     SchemaDetail,
@@ -143,13 +145,20 @@ def _validate_schema_options(format: str, detail: str) -> None:
     validate_choice(detail, SCHEMA_DETAILS, "detail level")
 
 
-def _load(file_path: Path | None, app_id: str | None, refresh: bool):
-    """Load the app, announcing it; the loader handles cache messaging + errors."""
+def _load(
+    file_path: Path | None, app_id: str | None, refresh: bool, include_system: bool
+):
+    """Load the app, announcing it; the loader handles cache messaging + errors.
+
+    Unless asked for, Knack's own audit connections are not drawn: they would
+    add three lines from every table to Accounts.
+    """
     console.print("[dim]Loading application metadata...[/dim]")
     app = load_app_metadata(file_path, app_id, refresh).application
     console.print(
         f"[green]✓[/green] Loaded: [bold]{escape(app.name)}[/bold] ({len(app.objects)} objects)"
     )
+    app, _ = relationship_view(app, include_system)
     return app
 
 
@@ -183,6 +192,7 @@ def export_db_schema(
     detail: SchemaDetail = "standard",
     app_id: SchemaAppId = None,
     refresh: Refresh = False,
+    include_system_connections: IncludeSystemConnections = False,
 ):
     """
     Export your application's database schema (how your app looks to you).
@@ -239,7 +249,7 @@ def export_db_schema(
     _validate_schema_options(format, detail)
     output_file = output_file or Path(f"knack_db_schema.{_EXTENSIONS[format]}")
 
-    app = _load(file_path, app_id, refresh)
+    app = _load(file_path, app_id, refresh, include_system_connections)
     console.print()
     _generate_and_write(app, format, detail, output_file)
 
@@ -307,6 +317,7 @@ def export_schema_subgraph(
     detail: SchemaDetail = "standard",
     app_id: SchemaAppId = None,
     refresh: Refresh = False,
+    include_system_connections: IncludeSystemConnections = False,
 ):
     """
     Export a subgraph of the database schema starting from a specific object.
@@ -367,7 +378,7 @@ def export_schema_subgraph(
     _validate_schema_options(format, detail)
     output_file = output_file or _subgraph_filename(object, format)
 
-    app = _load(file_path, app_id, refresh)
+    app = _load(file_path, app_id, refresh, include_system_connections)
 
     start = find_object_by_identifier(app, object)
     if not start:

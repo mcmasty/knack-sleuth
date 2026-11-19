@@ -22,6 +22,16 @@ Refresh = Annotated[
     bool,
     typer.Option("--refresh", help="Force refresh cached API data (ignore cache)"),
 ]
+IncludeSystemConnections = Annotated[
+    bool,
+    typer.Option(
+        "--include-system-connections",
+        help=(
+            "Count Knack's own audit connections (Created By, Updated By, Owned By) "
+            "as relationships. They are left out by default."
+        ),
+    ),
+]
 RichOrJson = Annotated[
     str, typer.Option("--format", help="Output format: rich or json")
 ]

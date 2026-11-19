@@ -94,6 +94,10 @@ Run `show-rules --object <object>` first. This is where each kind of rule sits i
   hide other views.
 - **Email rules run after record rules.** A record rule that blanks a field can break the email
   that uses it. `show-rules` warns when it sees this on the same trigger.
+- **Knack's audit fields are not relationships.** Every object carries Created By, Updated
+  By and Owned By, each a connection to Accounts marked `isSystemField`. `list-objects`,
+  `show-coupling`, `app-summary` and the schema exports leave those connections out and say
+  how many (`--include-system-connections` counts them). They are still listed as fields.
 - **A scene's `views` array is a registry, not the layout.** A view renders only if its key is in
   `scenes[].groups[].columns[].keys`. Rules on a view outside the layout never fire.
   `show-rules` marks those views UNREACHABLE, and `find-orphans` lists them. There are two

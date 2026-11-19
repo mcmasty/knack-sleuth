@@ -41,6 +41,7 @@ from knack_sleuth.models import (
     View,
 )
 from knack_sleuth.security import generate_security_report
+from knack_sleuth.system_fields import metadata_without_system_connections
 
 # Heuristic thresholds for the technical analysis (impact, domain model,
 # graph and technical-debt sections). Changing them changes report wording,
@@ -347,6 +348,7 @@ class KnackSleuth:
     """Search engine for finding object and field usages in Knack metadata."""
 
     def __init__(self, app_export: KnackAppMetadata):
+        self.app_export = app_export
         self.app = app_export.application
         self._build_indexes()
 
@@ -1136,25 +1138,42 @@ class KnackSleuth:
             )
             analysis["cascade_impacts"]["affected_scenes"].append(scene_key)
 
-    def generate_app_summary(self) -> AppSummary:
+    def generate_app_summary(
+        self, include_system_connections: bool = False
+    ) -> AppSummary:
         """
         Generate a comprehensive architectural summary of the entire application.
 
         This provides universal context for any architectural discussion or change,
         including domain model, relationships, patterns, and extensibility.
 
+        Args:
+            include_system_connections: Count Knack's own audit connections
+                (Created By, Updated By, Owned By) as relationships. Off by
+                default: they join every object to Accounts and hide the
+                app's real structure.
+
         Returns:
             A structured dictionary with complete app architecture summary
         """
+        # Relationships are read from a view without the system connections.
+        # Orphans are not: there the connection is what makes the field used.
+        model, excluded = self, 0
+        if not include_system_connections:
+            export, excluded = metadata_without_system_connections(self.app_export)
+            if excluded:
+                model = KnackSleuth(export)
+        application = model._analyze_application_metadata()
+        application["complexity_metrics"]["system_connections_excluded"] = excluded
         return {
-            "application": self._analyze_application_metadata(),
-            "domain_model": self._analyze_domain_model(),
-            "relationship_map": self._analyze_relationship_topology(),
+            "application": application,
+            "domain_model": model._analyze_domain_model(),
+            "relationship_map": model._analyze_relationship_topology(),
             "data_patterns": self._analyze_data_patterns(),
             "ui_architecture": self._analyze_ui_architecture(),
             "access_patterns": self._analyze_access_patterns(),
-            "technical_debt_indicators": self._analyze_technical_debt(),
-            "extensibility_assessment": self._analyze_extensibility(),
+            "technical_debt_indicators": self._analyze_technical_debt(model),
+            "extensibility_assessment": model._analyze_extensibility(),
         }
 
     def _analyze_application_metadata(self) -> ApplicationSummary:
@@ -1668,8 +1687,12 @@ class KnackSleuth:
             },
         }
 
-    def _analyze_technical_debt(self) -> TechnicalDebt:
-        """Identify orphaned resources and complexity hotspots."""
+    def _analyze_technical_debt(self, model: "KnackSleuth") -> TechnicalDebt:
+        """Identify orphaned resources and complexity hotspots.
+
+        Orphans come from this app as it is; bottlenecks and fan-out come
+        from ``model``, the view the relationship analysis uses.
+        """
         orphaned_fields = len(self.find_orphaned_fields())
 
         orphaned_objects = self.find_orphaned_objects()
@@ -1682,7 +1705,7 @@ class KnackSleuth:
         bottlenecks: list[NamedObject] = []
         high_fanout: list[NamedObject] = []
 
-        for obj in self.app.objects:
+        for obj in model.app.objects:
             if obj.connections:
                 inbound = len(obj.connections.inbound)
                 outbound = len(obj.connections.outbound)

@@ -218,6 +218,14 @@ def _summary_header(app_info: ApplicationSummary) -> list[str]:
         f"- **Views:** {metrics['total_views']}",
         f"- **Records:** {metrics['total_records']:,}",
         f"- **Connection Density:** {metrics['connection_density']}",
+        *(
+            [
+                f"- **System audit connections left out:** {excluded} "
+                "(Created By, Updated By, Owned By)"
+            ]
+            if (excluded := metrics.get("system_connections_excluded"))
+            else []
+        ),
         "",
     ]
 
