@@ -287,7 +287,7 @@ This displays:
 
 Perfect for understanding an object's role in your data model from its perspective.
 
-### Show What Forms, Action Links and Tasks Do
+### Show What Forms, Links, Table Edits, Pages and Tasks Do
 
 Knack Builder rules (emails, record updates, redirects, scheduled tasks) live in the app metadata, not in any code repo. `show-rules` answers questions like "does rejecting an applicant email them?":
 
@@ -296,13 +296,22 @@ knack-sleuth show-rules my_app.json --object Applicant
 knack-sleuth show-rules --app-id YOUR_APP_ID --view view_123 --format json
 ```
 
-For each form, action link and inline-editable table column on the object, it lists the email
-rules, record rules and submit rules. Inline-edit rules on a table whose inline editing is off
-are listed as inactive. Email rules show subject, recipients and conditions, but never the body; custom addresses
-are masked to their domain. It lists the page rules (hide a view, show a message, redirect) of the pages those views sit
-on. It also lists rules on other objects' views that change this object
-through a connection, and the object's scheduled tasks with their run status. Views that never
-render are marked unreachable.
+For an object, it lists:
+
+- **Forms and action links** on the object's views: their email rules, record rules and submit
+  rules. Email rules show subject, recipients and conditions, but never the body; custom
+  addresses are masked to their domain.
+- **Inline table edits**: the record rules a table column runs when its cell is edited in
+  place. Rules that cannot fire are listed as inactive, with the reason: the view is not a
+  table, inline editing is off for the table or the column, or the column is not a field.
+- **Page rules** (hide a view, show a message, redirect) of the pages those views sit on, and
+  of any other page whose rules test the object's fields.
+- **Rules on other objects' views** that change this object through a connection.
+- **Conditional field rules**, which run on every save of a record.
+- **Scheduled tasks**, with their run status.
+
+Views that never render are marked unreachable. With `--view`, it reports that one view and
+its page's rules, leaving out page rules that only hide other views.
 
 ### Find Orphaned Fields and Objects
 

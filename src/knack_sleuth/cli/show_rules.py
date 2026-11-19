@@ -1,4 +1,4 @@
-"""show-rules: what an object's forms, action links and scheduled tasks DO."""
+"""show-rules: what an object's forms, links, table edits, pages and tasks DO."""
 
 import json
 from typing import Annotated
@@ -283,14 +283,16 @@ def _print_report(report: dict, title: str, show_tasks: bool) -> None:
     )
 
     if not report["triggers"]:
-        console.print("\n[dim]No forms or action links with rules found.[/dim]")
+        console.print(
+            "\n[dim]No forms, action links or inline table edits with rules found.[/dim]"
+        )
     for trigger in report["triggers"]:
         _print_trigger(trigger)
 
     quiet = report["views_without_rules"]
     if quiet:
         console.print(
-            f"\n[dim]{len(quiet)} other view(s) on this object have no form rules or action links: "
+            f"\n[dim]{len(quiet)} other view(s) on this object have no form, action-link or inline-edit rules: "
             + escape(", ".join(v["view_key"] for v in quiet))
             + "[/dim]"
         )
@@ -319,20 +321,26 @@ def show_rules(
     output_format: RichOrJson = "rich",
 ):
     """
-    Show what an object's forms, action links and scheduled tasks DO.
+    Show what an object's forms, links, table edits, pages and tasks DO.
 
     Knack Builder rules (emails, record updates, redirects) live in the app
     metadata, not in any code repo. For an object this lists every view
-    sourced on it that has form rules or action links, with:
+    sourced on it that has form rules, action links or inline-edit rules
+    (the record rules a table column runs when a cell is edited in place;
+    marked INACTIVE when they cannot fire), with:
 
       - email rules: subject, recipients (record fields by key/name; custom
         addresses masked to their domain) and conditions — never the body;
       - record rules: field = value, and connected-record updates/inserts;
       - submit rules: message, redirect or child page;
 
-    plus record rules on OTHER objects' views that change this object through a
+    plus the page rules (hide a view, message, redirect) of the pages those
+    views sit on and of pages whose rules test the object's fields, record
+    rules on OTHER objects' views that change this object through a
     connection, conditional field rules (applied on every save), and the
     object's scheduled tasks (with run status).
+
+    With --view, only that view and its page's rules are shown.
 
     Views left out of their page layout are flagged unreachable: their rules
     never fire.
