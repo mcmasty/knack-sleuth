@@ -103,6 +103,11 @@ def env(tmp_path):
     }
 
 
+def _squash(text: str) -> str:
+    """Drop all whitespace, so line wrapping cannot split a match."""
+    return "".join(text.split())
+
+
 def _run(args, env, expect_exit):
     result = runner.invoke(cli, [str(a) for a in args], env=env)
     assert result.exception is None or isinstance(result.exception, SystemExit), (
@@ -517,7 +522,8 @@ def test_download_metadata_prints_names_verbatim(tmp_path, env, monkeypatch):
     target = _out(tmp_path, "downloaded")
     result = _run(["download-metadata", target, "--app-id", "abc123"], env, 0)
     assert f"App: Sample Application{SUFFIX}" in result.output
-    assert str(target) in result.output
+    # A long path wraps wherever the terminal width puts it.
+    assert _squash(str(target)) in _squash(result.output)
 
     # the cache file is now listed, under a table titled with the bracketed dir
     result = _run(["cache", "list"], env, 0)
