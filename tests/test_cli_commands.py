@@ -5,6 +5,7 @@ cache-then-API path a real run takes.
 """
 
 import json
+import re
 from pathlib import Path
 
 import httpx
@@ -312,6 +313,21 @@ class TestAppSummary:
             "## Extensibility",
         ):
             assert heading in text
+
+    def test_markdown_domain_model_accounts_for_every_object(
+        self, sample_metadata_dict
+    ):
+        # Supporting entities and user profiles were in the JSON but not the
+        # markdown, so 12 of this app's 19 objects were never mentioned.
+        result = runner.invoke(cli, ["app-summary", SAMPLE, "--format", "markdown"])
+        assert result.exit_code == 0, result.output
+        section = result.stdout.split("## Domain Model")[1].split("\n## ")[0]
+
+        counts = [int(n) for n in re.findall(r"^### .*\((\d+)\)", section, re.M)]
+        assert len(counts) == 5
+        assert sum(counts) == len(sample_metadata_dict["application"]["objects"]) == 19
+        assert "### Supporting Entities (8)" in section
+        assert "### User Profiles (4)" in section
 
     def test_unwritable_output(self, tmp_path):
         result = runner.invoke(

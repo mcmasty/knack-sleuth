@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- `app-summary --format markdown` left supporting entities and user profiles out of its
+  Domain Model section, though both are in the JSON. On a real app 26 of 61 objects were
+  never mentioned. Both buckets are now listed, so the five counts add up to the number of
+  objects.
 - `role-access-review` listed the base Accounts object as a role with "Access to 0 scenes".
   Its key, `all_users`, stands for every logged-in user, so the line now gives the number
   of login-required scenes that have no role limit.
