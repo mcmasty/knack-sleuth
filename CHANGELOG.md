@@ -30,9 +30,10 @@
   target cannot be classified (for example the key `nonsense`), with `error` set and every
   list empty. It used to return `{"error": ...}` alone. The CLI is unaffected: it prints the
   error and exits 1 either way.
-- Development: the `show-rules` and `impact-analysis` reports and the security hierarchy are
-  declared as TypedDicts (`rules_report.py`, `impact_report.py`), so the type checker sees
-  a misspelt or missing key. They are still plain dicts at run time.
+- Development: the `show-rules`, `impact-analysis` and `app-summary` reports and the
+  security hierarchy are declared as TypedDicts (`rules_report.py`, `impact_report.py`,
+  `app_summary_report.py`), so the type checker sees a misspelt or missing key. They are
+  still plain dicts at run time.
 
 ## 0.11.0
 

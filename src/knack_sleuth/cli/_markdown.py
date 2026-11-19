@@ -3,6 +3,17 @@
 from collections.abc import Callable, Iterable
 from typing import Any
 
+from knack_sleuth.app_summary_report import (
+    AccessPatterns,
+    ApplicationSummary,
+    AppSummary,
+    DataPatterns,
+    DomainModel,
+    Extensibility,
+    RelationshipMap,
+    TechnicalDebt,
+    UiArchitecture,
+)
 from knack_sleuth.impact_report import (
     CascadeImpacts,
     DirectImpacts,
@@ -192,7 +203,7 @@ def impact_markdown(analysis: ImpactAnalysis, scene_url: Callable[[str], str]) -
 # --- app-summary ----------------------------------------------------------------
 
 
-def _summary_header(app_info: dict) -> list[str]:
+def _summary_header(app_info: ApplicationSummary) -> list[str]:
     metrics = app_info["complexity_metrics"]
     return [
         f"# Application Architecture Summary: {app_info['name']}",
@@ -211,7 +222,7 @@ def _summary_header(app_info: dict) -> list[str]:
     ]
 
 
-def _domain_model(domain: dict) -> list[str]:
+def _domain_model(domain: DomainModel) -> list[str]:
     lines = [
         "## Domain Model",
         "",
@@ -237,7 +248,7 @@ def _domain_model(domain: dict) -> list[str]:
     return lines
 
 
-def _relationships(relationships: dict) -> list[str]:
+def _relationships(relationships: RelationshipMap) -> list[str]:
     hubs = relationships["hub_objects"]
     clusters = relationships["dependency_clusters"]
     lines = [
@@ -261,7 +272,7 @@ def _relationships(relationships: dict) -> list[str]:
     return lines
 
 
-def _patterns_and_ui(patterns: dict, ui: dict) -> list[str]:
+def _patterns_and_ui(patterns: DataPatterns, ui: UiArchitecture) -> list[str]:
     calc = patterns["calculation_complexity"]
     nav = ui["navigation_depth"]
     return [
@@ -291,7 +302,9 @@ def _patterns_and_ui(patterns: dict, ui: dict) -> list[str]:
     ]
 
 
-def _access_debt_extensibility(access: dict, debt: dict, ext: dict) -> list[str]:
+def _access_debt_extensibility(
+    access: AccessPatterns, debt: TechnicalDebt, ext: Extensibility
+) -> list[str]:
     user_objects = (
         ", ".join(access["user_objects"]) if access["user_objects"] else "None"
     )
@@ -323,7 +336,7 @@ def _access_debt_extensibility(access: dict, debt: dict, ext: dict) -> list[str]
     ]
 
 
-def app_summary_markdown(summary: dict) -> str:
+def app_summary_markdown(summary: AppSummary) -> str:
     return "\n".join(
         [
             *_summary_header(summary["application"]),
