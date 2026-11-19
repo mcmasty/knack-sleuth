@@ -28,15 +28,35 @@ def _fmt_field(entry: dict) -> str:
     return f"{key} ({name})" if name else str(key)
 
 
+def _fmt_value(criterion: dict) -> str:
+    """What a criterion compares against, or "" when it compares to nothing."""
+    if criterion.get("range"):
+        return str(criterion["range"])
+    value = criterion.get("value")
+    if isinstance(value, dict) and "date" in value:
+        # Knack stores a date as a dict and leaves an empty one behind on
+        # operators that take no date ("is blank", "is today").
+        value = value.get("date")
+    if value in (None, "", [], {}):
+        return ""
+    names = criterion.get("value_names") or {}
+    if names:
+        keys = value if isinstance(value, list) else [value]
+        return ", ".join(
+            f"{names[key]} ({key})" if key in names else repr(key) for key in keys
+        )
+    return repr(value)
+
+
 def _fmt_criteria(criteria: list) -> str:
     if not criteria:
         return ""
     parts = [
-        f"{_fmt_field(c)} {c.get('operator')} {c['range']}"
-        if c.get("range")
-        else f"{_fmt_field(c)} {c.get('operator')} {c.get('value')!r}"
-        if c.get("value") not in (None, "", [])
-        else f"{_fmt_field(c)} {c.get('operator')}"
+        " ".join(
+            part
+            for part in (_fmt_field(c), str(c.get("operator")), _fmt_value(c))
+            if part
+        )
         for c in criteria
     ]
     return " [dim]when " + escape(" and ".join(parts)) + "[/dim]"

@@ -96,6 +96,21 @@ class _FieldNames:
             for obj in app_export.application.objects
             for field in obj.fields
         }
+        # Role key -> role name, for criteria that test the user's roles.
+        self.roles = {
+            obj.profile_key: obj.name
+            for obj in app_export.application.objects
+            if obj.profile_key
+        }
+
+    def role_names(self, value: Any) -> dict[str, str]:
+        """The roles a criterion's value names, if it names any."""
+        keys = value if isinstance(value, list) else [value]
+        return {
+            key: self.roles[key]
+            for key in keys
+            if isinstance(key, str) and key in self.roles
+        }
 
     def label(self, field_key: Any) -> dict[str, Any]:
         if not isinstance(field_key, str):
@@ -134,6 +149,9 @@ def _criteria(rules: Any, names: _FieldNames) -> list[dict[str, Any]]:
         span = _relative_range(rule)
         if span:
             entry["range"] = span
+        roles = names.role_names(rule.get("value"))
+        if roles:
+            entry["value_names"] = roles
         out.append(entry)
     return out
 
