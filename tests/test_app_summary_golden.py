@@ -9,9 +9,11 @@ synthetic schema app. A deliberate output change regenerates them with
 import json
 import os
 from pathlib import Path
+from typing import cast
 
 import pytest
 
+from knack_sleuth.app_summary_report import EntitySummary
 from knack_sleuth.models import KnackAppMetadata
 from knack_sleuth.sleuth import (
     KnackSleuth,
@@ -35,10 +37,18 @@ def test_matches_golden(fixture):
     assert actual == json.loads(golden.read_text())
 
 
-def summaries(*pairs: tuple[int, int]) -> list[dict]:
+def summaries(*pairs: tuple[int, int]) -> list[EntitySummary]:
     """One summary per (record_count, total_connections), keyed obj_0, obj_1..."""
+    # Only the three keys the ranking reads; the rest are not needed here.
     return [
-        {"object_key": f"obj_{i}", "record_count": records, "total_connections": links}
+        cast(
+            EntitySummary,
+            {
+                "object_key": f"obj_{i}",
+                "record_count": records,
+                "total_connections": links,
+            },
+        )
         for i, (records, links) in enumerate(pairs)
     ]
 

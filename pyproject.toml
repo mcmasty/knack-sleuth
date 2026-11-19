@@ -144,6 +144,7 @@ ignore_names = ["model_config", "cls"]
 # TypedDict declarations: their keys are read as dict subscripts, which vulture
 # cannot connect to the declaration. The type checker covers them instead.
 exclude = [
+    "src/knack_sleuth/app_summary_report.py",
     "src/knack_sleuth/impact_report.py",
     "src/knack_sleuth/rules_report.py",
 ]

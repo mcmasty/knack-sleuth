@@ -6,6 +6,25 @@ from dataclasses import dataclass, replace
 from functools import cached_property
 from typing import Any, Literal, NamedTuple
 
+from knack_sleuth.app_summary_report import (
+    AccessPatterns,
+    ApplicationSummary,
+    AppSummary,
+    ConnectionEdge,
+    CouplingPair,
+    DataPatterns,
+    DependencyCluster,
+    DomainModel,
+    EntitySummary,
+    Extensibility,
+    HubObject,
+    NamedObject,
+    OrphanedObject,
+    RelationshipMap,
+    TechnicalDebt,
+    TemporalObject,
+    UiArchitecture,
+)
 from knack_sleuth.impact_report import (
     AffectedField,
     DirectImpacts,
@@ -284,7 +303,7 @@ def _affected_objects(direct: DirectImpacts, own_object: str) -> list[str]:
     return list(dict.fromkeys(key for key in named if key and key != own_object))
 
 
-def _score_importance(summaries: list[dict[str, Any]]) -> None:
+def _score_importance(summaries: list[EntitySummary]) -> None:
     """Set each summary's importance_score: 60% volume, 40% connectivity,
     each normalised to the largest in the list."""
     if not summaries:
@@ -297,7 +316,7 @@ def _score_importance(summaries: list[dict[str, Any]]) -> None:
         summary["importance_score"] = (volume_score * 0.6) + (connectivity_score * 0.4)
 
 
-def _core_entity_keys(summaries: list[dict[str, Any]]) -> set[str]:
+def _core_entity_keys(summaries: list[EntitySummary]) -> set[str]:
     """Keys of the top N by importance: N is 20% of the list, at least 4, at most 10."""
     max_core_entities = min(10, max(4, int(len(summaries) * 0.2)))
     ranked = sorted(summaries, key=lambda x: x.get("importance_score", 0), reverse=True)
@@ -1117,7 +1136,7 @@ class KnackSleuth:
             )
             analysis["cascade_impacts"]["affected_scenes"].append(scene_key)
 
-    def generate_app_summary(self) -> dict[str, Any]:
+    def generate_app_summary(self) -> AppSummary:
         """
         Generate a comprehensive architectural summary of the entire application.
 
@@ -1138,7 +1157,7 @@ class KnackSleuth:
             "extensibility_assessment": self._analyze_extensibility(),
         }
 
-    def _analyze_application_metadata(self) -> dict[str, Any]:
+    def _analyze_application_metadata(self) -> ApplicationSummary:
         """Extract basic application metadata and complexity metrics."""
         total_fields = sum(len(obj.fields) for obj in self.app.objects)
         total_views = sum(len(scene.views) for scene in self.app.scenes)
@@ -1240,7 +1259,7 @@ class KnackSleuth:
 
         return round(centrality, 3)
 
-    def _analyze_domain_model(self) -> dict[str, Any]:
+    def _analyze_domain_model(self) -> DomainModel:
         """Analyze domain model and classify objects into orthogonal categories.
 
         Core entity selection: Top N objects by record count OR connectivity.
@@ -1255,7 +1274,7 @@ class KnackSleuth:
             - reference_data: Low record count, used by many (primary role)
             - supporting_entities: Low record count, low connectivity (primary role)
         """
-        user_profiles = []
+        user_profiles: list[EntitySummary] = []
         ranked_pool = []  # everyone else, ranked for core status
         for obj in self.app.objects:
             roles = self._classify_object_roles(obj)
@@ -1272,8 +1291,8 @@ class KnackSleuth:
 
         # Core entities come out of the pool; everything else is filed under
         # its primary role, so each object appears in exactly one category.
-        core_entities = []
-        by_role: dict[str, list[dict[str, Any]]] = {
+        core_entities: list[EntitySummary] = []
+        by_role: dict[str, list[EntitySummary]] = {
             "reference": [],
             "transactional": [],
             "supporting": [],
@@ -1304,9 +1323,7 @@ class KnackSleuth:
             "supporting_entities": by_role["supporting"],
         }
 
-    def _object_summary(
-        self, obj: KnackObject, roles: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _object_summary(self, obj: KnackObject, roles: dict[str, Any]) -> EntitySummary:
         """The per-object entry the domain model lists."""
         field_types: dict[str, int] = {}
         for field in obj.fields:
@@ -1338,10 +1355,10 @@ class KnackSleuth:
             if conn.object == object_key
         ]
 
-    def _analyze_relationship_topology(self) -> dict[str, Any]:
+    def _analyze_relationship_topology(self) -> RelationshipMap:
         """Analyze connection graph, clusters, and hub objects."""
         # Build connection graph
-        edges = []
+        edges: list[ConnectionEdge] = []
         for obj in self.app.objects:
             if obj.connections:
                 for conn in obj.connections.outbound:
@@ -1364,7 +1381,7 @@ class KnackSleuth:
                     )
 
         # Calculate hub objects (high connection count)
-        hub_objects = []
+        hub_objects: list[HubObject] = []
         for obj in self.app.objects:
             if obj.connections:
                 inbound = len(obj.connections.inbound)
@@ -1413,7 +1430,7 @@ class KnackSleuth:
             return "Core hub - high bidirectional connectivity"
         return "Moderately connected"
 
-    def _identify_clusters(self) -> list[dict[str, Any]]:
+    def _identify_clusters(self) -> list[DependencyCluster]:
         """Identify groups of highly interconnected objects (simplified clustering).
 
         Each object not yet clustered seeds a cluster of the objects it
@@ -1466,7 +1483,7 @@ class KnackSleuth:
 
     def _cluster_stats(
         self, members: dict[str, None], adjacency: dict[str, set[str]]
-    ) -> dict[str, Any]:
+    ) -> DependencyCluster:
         """Names, keys, connection counts and cohesion for one cluster."""
         internal = sum(
             1 for key in members for neighbor in adjacency[key] if neighbor in members
@@ -1488,10 +1505,10 @@ class KnackSleuth:
             "cohesion": _cohesion(internal, internal + external),
         }
 
-    def _analyze_data_patterns(self) -> dict[str, Any]:
+    def _analyze_data_patterns(self) -> DataPatterns:
         """Detect temporal and calculation patterns."""
         # Analyze temporal objects
-        temporal_objects = []
+        temporal_objects: list[TemporalObject] = []
         for obj in self.app.objects:
             has_created = any("created" in f.type.lower() for f in obj.fields)
             has_modified = any("modified" in f.type.lower() for f in obj.fields)
@@ -1586,7 +1603,7 @@ class KnackSleuth:
             depths.append(depth)
         return depths
 
-    def _analyze_ui_architecture(self) -> dict[str, Any]:
+    def _analyze_ui_architecture(self) -> UiArchitecture:
         """Analyze scene and view patterns."""
         # Whether a page needs a login depends on its ancestors and on login
         # views, not only on its own `authenticated` flag; the security
@@ -1622,7 +1639,7 @@ class KnackSleuth:
             },
         }
 
-    def _analyze_access_patterns(self) -> dict[str, Any]:
+    def _analyze_access_patterns(self) -> AccessPatterns:
         """Analyze authentication and access control patterns."""
         # User objects are identified by having a profile_key
         user_objects = [obj.name for obj in self.app.objects if obj.profile_key]
@@ -1647,19 +1664,19 @@ class KnackSleuth:
             },
         }
 
-    def _analyze_technical_debt(self) -> dict[str, Any]:
+    def _analyze_technical_debt(self) -> TechnicalDebt:
         """Identify orphaned resources and complexity hotspots."""
         orphaned_fields = len(self.find_orphaned_fields())
 
         orphaned_objects = self.find_orphaned_objects()
         orphaned_objects_count = len(orphaned_objects)
-        orphaned_objects_list = [
+        orphaned_objects_list: list[OrphanedObject] = [
             {"name": obj.name, "object_key": obj.key} for obj in orphaned_objects
         ]
 
         # Identify bottleneck objects
-        bottlenecks = []
-        high_fanout = []
+        bottlenecks: list[NamedObject] = []
+        high_fanout: list[NamedObject] = []
 
         for obj in self.app.objects:
             if obj.connections:
@@ -1691,7 +1708,7 @@ class KnackSleuth:
             ),
         }
 
-    def _analyze_extensibility(self) -> dict[str, Any]:
+    def _analyze_extensibility(self) -> Extensibility:
         """Assess how easy it is to extend or modify the application."""
         # Calculate modularity based on clusters
         clusters = self._identify_clusters()
@@ -1703,7 +1720,7 @@ class KnackSleuth:
         )
 
         # Identify tight coupling
-        tight_coupling = []
+        tight_coupling: list[CouplingPair] = []
         for obj in self.app.objects:
             if obj.connections:
                 for conn in obj.connections.outbound:
